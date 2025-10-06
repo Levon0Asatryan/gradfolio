@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
+    "baseUrl": ".",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -10,7 +11,12 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "strictNullChecks": true,
     "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "importsNotUsedAsValues": "error",
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
