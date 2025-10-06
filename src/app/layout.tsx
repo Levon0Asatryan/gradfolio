@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SideBarWrapper } from "@/components/sidebar/SideBarWrapper";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +29,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable}`}
         style={{ padding: 0, margin: 0 }}
       >
-        <SideBarWrapper>{children}</SideBarWrapper>
+        <ThemeWrapper>
+          <SideBarWrapper>{children}</SideBarWrapper>
+        </ThemeWrapper>
       </body>
     </html>
   );
