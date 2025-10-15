@@ -7,6 +7,7 @@ import { type ReactNode, use, useMemo } from "react";
 import type { ThemeMode } from "@/components/theme/utils/types/types";
 import { cookiesThemeKey } from "@/utils/constants/constants";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
           <SideBarWrapper>{children}</SideBarWrapper>
         </ThemeWrapper>
 
+        <SpeedInsights />
         <Analytics />
       </body>
     </html>
