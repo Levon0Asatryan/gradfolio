@@ -16,7 +16,6 @@
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
-    "importsNotUsedAsValues": "error",
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
