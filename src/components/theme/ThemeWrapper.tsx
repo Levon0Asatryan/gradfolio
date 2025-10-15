@@ -1,17 +1,38 @@
 "use client";
 
-import { createContext, useCallback, useMemo, useState, type FC, type ReactNode } from "react";
+import { createContext, useMemo, FC, ReactNode, useState, useCallback } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import type { ThemeMode } from "@/components/theme/utils/types/types";
+import { getTheme } from "@/components/theme/utils/helpers/helpers";
+
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+import { setThemeCookie } from "@/actions/setThemeCookie";
+
+declare module "@mui/material/styles" {
+  interface Palette {
+    navigation: {
+      main: string;
+    };
+  }
+  interface PaletteOptions {
+    navigation?: {
+      main?: string;
+    };
+  }
+}
 
 interface ThemeWrapperProps {
   children: ReactNode;
+  initialMode?: ThemeMode;
 }
-
-export type ThemeMode = "light" | "dark";
 
 export interface DarkModeContextValue {
   mode: ThemeMode;
-  toggleMode: () => void;
+  toggleMode(): void;
 }
 
 export const DarkModeContext = createContext<DarkModeContextValue>({
@@ -19,28 +40,26 @@ export const DarkModeContext = createContext<DarkModeContextValue>({
   toggleMode: () => {},
 });
 
-export const ThemeWrapper: FC<ThemeWrapperProps> = ({ children }) => {
-  const [mode, setMode] = useState<ThemeMode>("light");
+export const ThemeWrapper: FC<ThemeWrapperProps> = ({ children, initialMode }) => {
+  const [mode, setMode] = useState<ThemeMode>(initialMode ?? "light");
+
+  const theme = useMemo(() => createTheme(getTheme(mode)), [mode]);
 
   const toggleMode = useCallback(() => {
-    setMode((prev) => (prev === "light" ? "dark" : "light"));
-  }, []);
+    setMode(mode === "light" ? "dark" : "light");
+    setThemeCookie(mode === "light" ? "dark" : "light");
+  }, [mode]);
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-        },
-      }),
-    [mode],
-  );
-
-  const contextValue = useMemo(() => ({ mode, toggleMode }), [mode, toggleMode]);
+  const contextValue = useMemo(() => {
+    return { mode, toggleMode };
+  }, [mode, toggleMode]);
 
   return (
     <DarkModeContext.Provider value={contextValue}>
-      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
     </DarkModeContext.Provider>
   );
 };
