@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { type ReactNode, use, useMemo } from "react";
 import type { ThemeMode } from "@/components/theme/utils/types/types";
 import { cookiesThemeKey } from "@/utils/constants/constants";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
         <ThemeWrapper initialMode={initialMode}>
           <SideBarWrapper>{children}</SideBarWrapper>
         </ThemeWrapper>
+
+        <Analytics />
       </body>
     </html>
   );
