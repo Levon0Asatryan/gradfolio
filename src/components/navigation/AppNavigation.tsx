@@ -20,6 +20,7 @@ import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInstructionsOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
+import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
 import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
 import { TypographyWithTooltip } from "@/components/TypographyWithTooltip";
 
@@ -45,6 +46,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
 
   const items: NavItem[] = useMemo(
     () => [
+      { label: "Dashboard", href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
       { label: "Auth0 Login", href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
       {
         label: "Login Connections",

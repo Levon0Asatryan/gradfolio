@@ -9,7 +9,12 @@ export type StepIndicatorProps = {
   disableStepIndicators?: boolean;
 };
 
-export const StepIndicator: React.FC<StepIndicatorProps> = ({ step, currentStep, onClickStep, disableStepIndicators }) => {
+export const StepIndicator: React.FC<StepIndicatorProps> = ({
+  step,
+  currentStep,
+  onClickStep,
+  disableStepIndicators,
+}) => {
   const status = currentStep === step ? "active" : currentStep < step ? "inactive" : "complete";
 
   const handleClick = useCallback(() => {
@@ -17,7 +22,12 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ step, currentStep,
   }, [currentStep, disableStepIndicators, onClickStep, step]);
 
   return (
-    <motion.div onClick={handleClick} initial={false} animate={status as any} style={{ cursor: "pointer" }}>
+    <motion.div
+      onClick={handleClick}
+      initial={false}
+      animate={status as any}
+      style={{ cursor: "pointer" }}
+    >
       <motion.div
         variants={{
           inactive: { scale: 1 },
@@ -47,9 +57,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ step, currentStep,
           })}
         >
           {status === "complete" ? (
-            <CheckIcon sx={{ color: (t) => t.palette.common.white }} />
+            <CheckIcon sx={{ color: (theme) => theme.palette.background.paper }} />
           ) : status === "active" ? (
-            <Box sx={{ height: 12, width: 12, borderRadius: "50%", bgcolor: (t) => t.palette.common.white }} />
+            <Box
+              sx={{
+                height: 12,
+                width: 12,
+                borderRadius: "50%",
+                bgcolor: (theme) => theme.palette.background.paper,
+              }}
+            />
           ) : (
             <Typography variant="body2" component="span">
               {step}
@@ -62,7 +79,12 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ step, currentStep,
 };
 
 export const CheckIcon: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => (
-  <Box component="svg" sx={{ height: 16, width: 16, color: (t) => t.palette.common.white, ...(sx as any) }} fill="none" viewBox="0 0 24 24">
+  <Box
+    component="svg"
+    sx={{ height: 16, width: 16, color: (t) => t.palette.common.white, ...(sx as any) }}
+    fill="none"
+    viewBox="0 0 24 24"
+  >
     <motion.path
       initial={{ pathLength: 0 }}
       animate={{ pathLength: 1 }}

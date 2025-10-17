@@ -19,12 +19,14 @@ import {
   useLayoutConfigHook,
 } from "@/components/sidebar/utils/hooks/useLayoutConfigHook";
 import { AppNavigation } from "@/components/navigation/AppNavigation";
+import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
 
 interface SideBarWrapperProps {
   children: ReactNode;
 }
 
 export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
+  const { hidden } = useSidebarVisibility();
   const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const sideBarRef = useRef<ImperativePanelHandle>(null);
 
@@ -60,7 +62,39 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
   }, [safeCollapsedSize, isMobile]);
 
   if (!mounted) {
+    // In hidden mode we can render immediately to avoid layout shift
+    if (hidden) {
+      return (
+        <Fragment>
+          <div style={{ minHeight: "100vh" }}>{children}</div>
+          <NoSsr>
+            <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              <IconButton aria-label="toggle dark mode" onClick={toggleMode} sx={iconStyle} size="small">
+                {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </NoSsr>
+        </Fragment>
+      );
+    }
     return null;
+  }
+
+  if (hidden) {
+    return (
+      <Fragment>
+        <div style={{ minHeight: "100vh", backgroundColor: theme.palette.background.default, color: theme.palette.text.primary }}>
+          {children}
+        </div>
+        <NoSsr>
+          <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            <IconButton aria-label="toggle dark mode" onClick={toggleMode} sx={iconStyle} size="small">
+              {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </NoSsr>
+      </Fragment>
+    );
   }
 
   return (

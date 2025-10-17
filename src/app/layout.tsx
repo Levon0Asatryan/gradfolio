@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SideBarWrapper } from "@/components/sidebar/SideBarWrapper";
+import { SidebarVisibilityProvider } from "@/components/layout/SidebarVisibilityContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { cookies } from "next/headers";
 import { type ReactNode } from "react";
@@ -42,7 +43,9 @@ export default async function RootLayout({ children }: Readonly<RootLayoutProps>
       >
         <ThemeRegistry>
           <ThemeWrapper initialMode={initialMode}>
-            <SideBarWrapper>{children}</SideBarWrapper>
+            <SidebarVisibilityProvider>
+              <SideBarWrapper>{children}</SideBarWrapper>
+            </SidebarVisibilityProvider>
           </ThemeWrapper>
         </ThemeRegistry>
 
