@@ -46,17 +46,17 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
   const items: NavItem[] = useMemo(
     () => [
       { label: "Auth0 Login", href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
+      {
+        label: "Login Connections",
+        href: "/integrations/connections",
+        icon: <LinkOutlined fontSize="small" />,
+      },
       { label: "My Account", href: "/account", icon: <AccountCircleOutlined fontSize="small" /> },
       { label: "Projects", href: "/projects", icon: <FolderOutlined fontSize="small" /> },
       {
         label: "Integrations",
         href: "/integrations",
         icon: <IntegrationInstructionsOutlined fontSize="small" />,
-      },
-      {
-        label: "Login Connections",
-        href: "/integrations/connections",
-        icon: <LinkOutlined fontSize="small" />,
       },
       {
         label: "Explore Portfolios",
