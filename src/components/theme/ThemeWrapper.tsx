@@ -10,7 +10,7 @@ import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
-import { setThemeCookie } from "@/actions/setThemeCookie";
+import { cookiesThemeKey } from "@/utils/constants/constants";
 
 declare module "@mui/material/styles" {
   interface Palette {
@@ -46,8 +46,12 @@ export const ThemeWrapper: FC<ThemeWrapperProps> = ({ children, initialMode }) =
   const theme = useMemo(() => createTheme(getTheme(mode)), [mode]);
 
   const toggleMode = useCallback(() => {
-    setMode(mode === "light" ? "dark" : "light");
-    setThemeCookie(mode === "light" ? "dark" : "light");
+    const next = mode === "light" ? "dark" : "light";
+    setMode(next);
+    try {
+      const maxAge = 60 * 60 * 24 * 365;
+      document.cookie = `${cookiesThemeKey}=${next}; path=/; max-age=${maxAge}; samesite=lax`;
+    } catch {}
   }, [mode]);
 
   const contextValue = useMemo(() => {

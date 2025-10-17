@@ -108,7 +108,14 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
           </PanelResizeHandle>
         )}
 
-        <Panel id={COMPONENT_ID.CONTENT_WRAPPER} order={2}>
+        <Panel
+          id={COMPONENT_ID.CONTENT_WRAPPER}
+          order={2}
+          style={{
+            backgroundColor: theme.palette.background.default,
+            color: theme.palette.text.primary,
+          }}
+        >
           {children}
         </Panel>
       </PanelGroup>

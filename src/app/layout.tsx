@@ -3,11 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SideBarWrapper } from "@/components/sidebar/SideBarWrapper";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { cookies } from "next/headers";
-import { type ReactNode, use, useMemo } from "react";
+import { type ReactNode } from "react";
 import type { ThemeMode } from "@/components/theme/utils/types/types";
 import { cookiesThemeKey } from "@/utils/constants/constants";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import ThemeRegistry from "@/components/theme/ThemeRegistry";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,13 +29,10 @@ interface RootLayoutProps {
   children: ReactNode;
 }
 
-export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
-  const cookieStore = use(cookies());
+export default async function RootLayout({ children }: Readonly<RootLayoutProps>) {
+  const cookieStore = await cookies();
 
-  const initialMode = useMemo(
-    () => cookieStore.get(cookiesThemeKey)?.value as ThemeMode | undefined,
-    [cookieStore],
-  );
+  const initialMode = cookieStore.get(cookiesThemeKey)?.value as ThemeMode | undefined;
 
   return (
     <html lang="en">
@@ -42,9 +40,11 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
         className={`${geistSans.variable} ${geistMono.variable}`}
         style={{ padding: 0, margin: 0 }}
       >
-        <ThemeWrapper initialMode={initialMode}>
-          <SideBarWrapper>{children}</SideBarWrapper>
-        </ThemeWrapper>
+        <ThemeRegistry>
+          <ThemeWrapper initialMode={initialMode}>
+            <SideBarWrapper>{children}</SideBarWrapper>
+          </ThemeWrapper>
+        </ThemeRegistry>
 
         <SpeedInsights />
         <Analytics />
