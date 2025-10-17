@@ -22,7 +22,7 @@ import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInst
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
 import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
-import { TypographyWithTooltip } from "@/components/TypographyWithTooltip";
+import { TypographyWithTooltip } from "@/components/text/TypographyWithTooltip";
 
 interface NavItem {
   label: string;

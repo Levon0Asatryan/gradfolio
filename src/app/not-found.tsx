@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
+import { Noise } from "@/components/effects/Noise";
 
 export default function NotFound() {
   const { setHidden } = useSidebarVisibility();
@@ -15,6 +16,7 @@ export default function NotFound() {
 
   return (
     <Stack sx={{ p: 3, minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
+      <Noise patternRefreshInterval={2} />
       <Box sx={{ textAlign: "center", maxWidth: 720 }}>
         <Typography
           variant="h3"

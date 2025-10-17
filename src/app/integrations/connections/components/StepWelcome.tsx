@@ -6,7 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import { TextType } from "@/components/bits/TextType";
+import { TextType } from "@/components/text/TextType";
 
 export type StepWelcomeProps = {
   ghImported: boolean;
