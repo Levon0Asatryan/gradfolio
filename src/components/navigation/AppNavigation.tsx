@@ -71,11 +71,22 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
 
   const current = normalize(pathname ?? "/");
 
-  const isSelected = (href: string) => {
-    const target = normalize(href);
-    // Select only exact matches to avoid marking parent and child simultaneously
-    return current === target;
-  };
+  // Determine active navigation item by longest matching href prefix (exact match wins).
+  const activeHref = useMemo(() => {
+    const cur = current;
+    let best = "";
+    let bestLen = -1;
+    for (const item of items) {
+      const t = normalize(item.href);
+      if (cur === t || cur.startsWith(t + "/")) {
+        if (t.length > bestLen) {
+          best = t;
+          bestLen = t.length;
+        }
+      }
+    }
+    return best;
+  }, [current, items]);
 
   return (
     <Stack
@@ -116,7 +127,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
             <ListItemButton
               component={Link}
               href={item.href}
-              selected={isSelected(item.href)}
+              selected={normalize(item.href) === activeHref}
               sx={(theme) => ({
                 px: 1.75,
                 minHeight: 48,

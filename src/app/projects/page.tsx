@@ -1,8 +1,16 @@
+import ProjectsList from "@/components/projects/ProjectsList";
+import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
+import { projectsMock } from "@/data/project.mock";
+
+export const metadata = { title: "Projects" };
+
 export default function ProjectsPage() {
+  const projects = projectsMock;
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Projects</h1>
-      <p>Browse and manage your projects. This is a placeholder page for future content.</p>
+    <main>
+      {/* Toolbar is UI-only for now */}
+      <ProjectsListToolbar />
+      <ProjectsList projects={projects} />
     </main>
   );
 }
