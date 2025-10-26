@@ -53,7 +53,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
         href: "/integrations/connections",
         icon: <LinkOutlined fontSize="small" />,
       },
-      { label: "My Account", href: "/account", icon: <AccountCircleOutlined fontSize="small" /> },
+      { label: "My Account", href: "/profile", icon: <AccountCircleOutlined fontSize="small" /> },
       { label: "Projects", href: "/projects", icon: <FolderOutlined fontSize="small" /> },
       {
         label: "Integrations",

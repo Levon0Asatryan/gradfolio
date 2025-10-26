@@ -148,6 +148,10 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
           style={{
             backgroundColor: theme.palette.background.default,
             color: theme.palette.text.primary,
+            // Allow page content to scroll within the content panel
+            overflowY: "auto",
+            // Required so flex children can shrink and scrolling can occur
+            minHeight: 0,
           }}
         >
           {children}
