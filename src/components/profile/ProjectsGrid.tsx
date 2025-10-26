@@ -32,7 +32,7 @@ const ProjectsGrid: FC<ProjectsGridProps> = ({ items, onAddProject }) => {
             <Grid key={p.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <Card variant="outlined" aria-label={`Project ${p.name}`}>
                 <CardActionArea
-                  href={p.href}
+                  href={p.href ?? ""}
                   target={p.href ? "_blank" : undefined}
                   rel={p.href ? "noopener noreferrer" : undefined}
                 >
