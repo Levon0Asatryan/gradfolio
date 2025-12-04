@@ -33,7 +33,8 @@ const CertificationsList: FC<CertificationsListProps> = ({ items }) => {
                     </Typography>
                     {c.credentialUrl && (
                       <>
-                        {" "}—{" "}
+                        {" "}
+                        —{" "}
                         <MuiLink href={c.credentialUrl} target="_blank" rel="noopener noreferrer">
                           Verify
                         </MuiLink>

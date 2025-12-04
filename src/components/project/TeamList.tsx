@@ -1,7 +1,15 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Avatar, List, ListItem, ListItemAvatar, ListItemText, Typography, Link as MuiLink } from "@mui/material";
+import {
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Typography,
+  Link as MuiLink,
+} from "@mui/material";
 import SectionCard from "./SectionCard";
 import type { TeamMember } from "@/data/project.mock";
 
@@ -21,7 +29,12 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
               <Avatar sx={{ width: 36, height: 36 }} aria-hidden>
                 {/* Next/Image doesn't fit inside Avatar src; we rely on Avatar img fallback */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={m.avatarUrl || "/light_logo.png"} alt={m.name + " avatar"} width={36} height={36} />
+                <img
+                  src={m.avatarUrl || "/light_logo.png"}
+                  alt={m.name + " avatar"}
+                  width={36}
+                  height={36}
+                />
               </Avatar>
             </ListItemAvatar>
             <ListItemText

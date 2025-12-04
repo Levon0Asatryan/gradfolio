@@ -12,7 +12,9 @@ const SidebarVisibilityContext = createContext<SidebarVisibilityContextValue>({
   setHidden: () => {},
 });
 
-export const SidebarVisibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SidebarVisibilityProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [hidden, setHiddenState] = useState(false);
 
   const setHidden = useCallback((v: boolean) => setHiddenState(v), []);

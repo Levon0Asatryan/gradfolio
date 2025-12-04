@@ -105,13 +105,7 @@ export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
           />
         </Box>
         <Box>
-          <TextField
-            label="Phone"
-            value={phone}
-            onChange={onPhoneChange}
-            fullWidth
-            size="small"
-          />
+          <TextField label="Phone" value={phone} onChange={onPhoneChange} fullWidth size="small" />
         </Box>
         <Box>
           <TextField

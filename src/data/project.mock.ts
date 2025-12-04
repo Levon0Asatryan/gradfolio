@@ -54,8 +54,7 @@ export const projectsMock: ProjectDetailData[] = [
       "A Next.js web app that finds eco-friendly driving routes using OpenStreetMap data and estimated CO₂ emissions. Includes dynamic maps, turn-by-turn summaries, and deployment on Vercel.",
     heroImageUrl:
       "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop", // unoptimized fallback used
-    descriptionHtml:
-      `<h3>Problem Statement</h3>
+    descriptionHtml: `<h3>Problem Statement</h3>
        <p>Navigation apps typically optimize for <strong>shortest</strong> or <strong>fastest</strong> routes, but not for <em>emissions</em>. EcoRoute estimates CO₂ per segment using speed, stops, and elevation.</p>
        <h3>Solution Approach</h3>
        <ul>
@@ -125,8 +124,7 @@ export const projectsMock: ProjectDetailData[] = [
       "An Arduino + Raspberry Pi system automating irrigation with real-time soil moisture monitoring and a mobile dashboard.",
     heroImageUrl:
       "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
-    descriptionHtml:
-      `<h3>Overview</h3>
+    descriptionHtml: `<h3>Overview</h3>
        <p>The system controls water pumps based on moisture sensors and weather forecast. The dashboard shows trends and alerts.</p>
        <h3>Hardware</h3>
        <ul>
@@ -150,8 +148,18 @@ export const projectsMock: ProjectDetailData[] = [
     },
     technologies: ["Arduino", "Raspberry Pi", "MQTT", "Python"],
     team: [
-      { id: "u_emil", name: "Emil S.", role: "Hardware", avatarUrl: "https://i.pravatar.cc/160?img=13" },
-      { id: "u_aliya", name: "Aliya R.", role: "Firmware", avatarUrl: "https://i.pravatar.cc/160?img=31" },
+      {
+        id: "u_emil",
+        name: "Emil S.",
+        role: "Hardware",
+        avatarUrl: "https://i.pravatar.cc/160?img=13",
+      },
+      {
+        id: "u_aliya",
+        name: "Aliya R.",
+        role: "Firmware",
+        avatarUrl: "https://i.pravatar.cc/160?img=31",
+      },
     ],
     metadata: {
       startDate: "2024-03-01",
@@ -166,14 +174,18 @@ export const projectsMock: ProjectDetailData[] = [
     title: "Paper Summarizer (NLP)",
     aiSummary:
       "Extractive + abstractive summarization for arXiv PDFs with evaluation via ROUGE/BERTScore, built with PyTorch.",
-    descriptionHtml:
-      `<p>CLI tool and web UI for uploading PDFs and generating summaries with optional citations.</p>`,
+    descriptionHtml: `<p>CLI tool and web UI for uploading PDFs and generating summaries with optional citations.</p>`,
     technologies: ["Python", "PyTorch", "Transformers", "FastAPI"],
     attachments: [
       { id: "sum_pdf", type: "pdf", url: "https://arxiv.org/pdf/1910.13461.pdf", title: "Writeup" },
     ],
     team: [
-      { id: "u_lee", name: "Lee M.", role: "ML Engineer", avatarUrl: "https://i.pravatar.cc/160?img=25" },
+      {
+        id: "u_lee",
+        name: "Lee M.",
+        role: "ML Engineer",
+        avatarUrl: "https://i.pravatar.cc/160?img=25",
+      },
     ],
     metadata: { category: "research" },
   },

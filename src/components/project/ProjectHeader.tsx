@@ -13,11 +13,26 @@ export interface ProjectHeaderProps {
   liveDemoUrl?: string;
 }
 
-const ProjectHeader: FC<ProjectHeaderProps> = ({ title, aiSummary, heroImageUrl, repo, liveDemoUrl }) => {
+const ProjectHeader: FC<ProjectHeaderProps> = ({
+  title,
+  aiSummary,
+  heroImageUrl,
+  repo,
+  liveDemoUrl,
+}) => {
   return (
     <Box component="header" aria-label="Project Header" sx={{ mb: 3 }}>
       {heroImageUrl && (
-        <Box sx={{ position: "relative", width: "100%", borderRadius: 1, overflow: "hidden", aspectRatio: "16 / 9", mb: 2 }}>
+        <Box
+          sx={{
+            position: "relative",
+            width: "100%",
+            borderRadius: 1,
+            overflow: "hidden",
+            aspectRatio: "16 / 9",
+            mb: 2,
+          }}
+        >
           <Image
             src={heroImageUrl}
             alt={`${title} hero image`}

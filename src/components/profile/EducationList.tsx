@@ -61,7 +61,11 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
         </List>
       )}
 
-      <DetailDialog open={Boolean(active)} title={active ? active.institution : "Education"} onClose={onClose}>
+      <DetailDialog
+        open={Boolean(active)}
+        title={active ? active.institution : "Education"}
+        onClose={onClose}
+      >
         {active && (
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>

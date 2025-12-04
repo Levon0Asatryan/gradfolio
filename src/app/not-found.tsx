@@ -41,7 +41,12 @@ export default function NotFound() {
           Sorry, we couldn’t find the page you’re looking for. It may have been moved or removed.
         </Typography>
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 3 }} justifyContent="center">
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          sx={{ mt: 3 }}
+          justifyContent="center"
+        >
           <Button
             variant="contained"
             color="primary"

@@ -25,7 +25,8 @@ export const Noise: React.FC<NoiseProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const theme = useTheme();
 
-  const effectiveAlpha = typeof patternAlpha === "number" ? patternAlpha : theme.palette.mode === "dark" ? 22 : 16;
+  const effectiveAlpha =
+    typeof patternAlpha === "number" ? patternAlpha : theme.palette.mode === "dark" ? 22 : 16;
 
   useEffect(() => {
     const canvas = canvasRef.current;

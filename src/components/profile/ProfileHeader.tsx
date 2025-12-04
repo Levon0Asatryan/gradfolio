@@ -27,7 +27,11 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
 
   return (
     <Box component="header" aria-label="Profile Header" sx={{ mb: 3 }}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+      >
         <Box
           sx={{
             position: "relative",
