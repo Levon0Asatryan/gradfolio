@@ -12,15 +12,6 @@
     "knip": "knip",
     "prepare": "husky"
   },
-  "lint-staged": {
-    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": "prettier --write",
-    "src/**/*.{js,jsx,ts,tsx}": "eslint --fix"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.10.0",
     "@emotion/cache": "^11.14.0",
