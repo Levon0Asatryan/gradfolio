@@ -6,9 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "prettier": "prettier -w src",
+    "eslint": "eslint .",
+    "eslint-fix": "eslint --fix .",
     "knip": "knip"
   },
   "dependencies": {
