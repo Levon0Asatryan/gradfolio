@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, memo } from "react";
+import { FC, memo, ReactElement } from "react";
 import { Box, Card, CardContent, Stack, Typography, Chip, Skeleton } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -15,14 +15,22 @@ export interface DashboardStatsProps {
   onStatClick?: (key: keyof DashboardStatsType) => void;
 }
 
-const StatCard: FC<{ label: string; value?: number; icon: JSX.Element; onClick?: () => void }> = ({ label, value, icon, onClick }) => {
+interface StatCardProps {
+  label: string;
+  value?: number;
+  icon: ReactElement;
+  onClick?: () => void;
+}
+
+const StatCard: FC<StatCardProps> = ({ label, value, icon, onClick }) => {
   const isEmpty = value === undefined || value === null;
   return (
     <Card
       component="section"
       variant="outlined"
       sx={{
-        transition: (theme) => theme.transitions.create(["box-shadow", "transform"], { duration: 150 }),
+        transition: (theme) =>
+          theme.transitions.create(["box-shadow", "transform"], { duration: 150 }),
         cursor: onClick ? "pointer" : "default",
         "&:hover": { boxShadow: 6 },
       }}
@@ -68,10 +76,30 @@ const StatCard: FC<{ label: string; value?: number; icon: JSX.Element; onClick?:
 
 const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }) => {
   const items = [
-    { key: "totalPublications" as const, label: "Publications", value: stats?.totalPublications, icon: <ArticleIcon /> },
-    { key: "totalProjects" as const, label: "Projects", value: stats?.totalProjects, icon: <FolderIcon /> },
-    { key: "profileViews" as const, label: "Profile Views", value: stats?.profileViews, icon: <VisibilityIcon /> },
-    { key: "recentActivities" as const, label: "Recent Activities", value: stats?.recentActivities, icon: <TrendingUpIcon /> },
+    {
+      key: "totalPublications" as const,
+      label: "Publications",
+      value: stats?.totalPublications,
+      icon: <ArticleIcon />,
+    },
+    {
+      key: "totalProjects" as const,
+      label: "Projects",
+      value: stats?.totalProjects,
+      icon: <FolderIcon />,
+    },
+    {
+      key: "profileViews" as const,
+      label: "Profile Views",
+      value: stats?.profileViews,
+      icon: <VisibilityIcon />,
+    },
+    {
+      key: "recentActivities" as const,
+      label: "Recent Activities",
+      value: stats?.recentActivities,
+      icon: <TrendingUpIcon />,
+    },
   ] as const;
 
   return (
@@ -83,7 +111,12 @@ const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }
               <Card component="section" variant="outlined" sx={{ p: 1 }}>
                 <CardContent>
                   <Stack direction="row" spacing={2} alignItems="center">
-                    <Skeleton variant="rounded" width={40} height={40} sx={{ borderRadius: 1, flexShrink: 0 }} />
+                    <Skeleton
+                      variant="rounded"
+                      width={40}
+                      height={40}
+                      sx={{ borderRadius: 1, flexShrink: 0 }}
+                    />
                     <Box sx={{ flex: 1 }}>
                       <Skeleton variant="text" width={100} height={16} />
                       <Skeleton variant="text" width={60} height={32} />
@@ -92,7 +125,12 @@ const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }
                 </CardContent>
               </Card>
             ) : (
-              <StatCard label={it.label} value={it.value} icon={it.icon} onClick={onStatClick ? () => onStatClick(it.key) : undefined} />
+              <StatCard
+                label={it.label}
+                value={it.value}
+                icon={it.icon}
+                onClick={onStatClick ? () => onStatClick(it.key) : undefined}
+              />
             )}
           </Grid>
         ))}

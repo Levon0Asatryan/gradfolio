@@ -22,7 +22,7 @@ const HomePage: FC = () => {
       bio: `Based in ${profileMock.location || "Unknown location"}. Building projects in ${profileMock.skills.slice(0, 3).join(", ")}.`,
       avatarUrl: profileMock.avatarUrl,
     }),
-    []
+    [],
   );
 
   return (

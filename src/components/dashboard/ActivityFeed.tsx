@@ -1,7 +1,18 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Box, Card, CardContent, Chip, List, ListItem, ListItemText, Skeleton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  Skeleton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import type { Activity } from "@/utils/types/dashboard.types";
 import { formatDate } from "@/utils/helpers/formatDate";
 
@@ -26,7 +37,12 @@ const typeColor = (type: Activity["type"]): "default" | "info" | "success" | "wa
 const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
   if (loading) {
     return (
-      <Card component="section" aria-label="Activity Feed" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+      <Card
+        component="section"
+        aria-label="Activity Feed"
+        variant="outlined"
+        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      >
         <CardContent>
           <Typography variant="h6" sx={{ mb: 1.5 }}>
             Activity Feed
@@ -52,13 +68,20 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
 
   if (!items || items.length === 0) {
     return (
-      <Card component="section" aria-label="Activity Feed" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+      <Card
+        component="section"
+        aria-label="Activity Feed"
+        variant="outlined"
+        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      >
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Activity Feed
           </Typography>
           <Box sx={{ textAlign: "center", py: 4 }}>
-            <Typography variant="body2" color="text.secondary">No recent activity</Typography>
+            <Typography variant="body2" color="text.secondary">
+              No recent activity
+            </Typography>
           </Box>
         </CardContent>
       </Card>
@@ -66,7 +89,12 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
   }
 
   return (
-    <Card component="section" aria-label="Activity Feed" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+    <Card
+      component="section"
+      aria-label="Activity Feed"
+      variant="outlined"
+      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+    >
       <CardContent>
         <Typography variant="h6" sx={{ mb: 1.5 }}>
           Activity Feed
@@ -78,14 +106,18 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
               sx={{
                 px: 1,
                 py: 0.75,
-                '&:not(:last-of-type)': (t) => ({ borderBottom: `1px solid ${t.palette.divider}` }),
+                "&:not(:last-of-type)": (t) => ({ borderBottom: `1px solid ${t.palette.divider}` }),
               }}
             >
               <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }}>
                 <Chip size="small" label={a.type} color={typeColor(a.type)} variant="outlined" />
                 <ListItemText
                   primary={<Typography variant="body2">{a.action}</Typography>}
-                  secondary={<Typography variant="caption" color="text.secondary">{formatDate(a.timestamp, { withTime: true })}</Typography>}
+                  secondary={
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(a.timestamp, { withTime: true })}
+                    </Typography>
+                  }
                   sx={{ my: 0 }}
                 />
               </Stack>

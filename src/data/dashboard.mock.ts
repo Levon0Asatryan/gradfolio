@@ -66,13 +66,13 @@ export const activitiesMock: Activity[] = [
   {
     id: "act-1",
     type: "publication",
-    action: "Added publication \"Deep Learning Approaches for Time Series Forecasting\"",
+    action: 'Added publication "Deep Learning Approaches for Time Series Forecasting"',
     timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
   {
     id: "act-2",
     type: "project",
-    action: "Updated project \"Academic Portfolio Platform\"",
+    action: 'Updated project "Academic Portfolio Platform"',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
   },
   {

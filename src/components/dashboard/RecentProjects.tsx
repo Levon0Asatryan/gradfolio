@@ -29,7 +29,12 @@ const statusToColor = (status: Project["status"]): ChipColor => {
   }
 };
 
-const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loading, onItemClick }) => {
+const RecentProjects: FC<RecentProjectsProps> = ({
+  items = [],
+  onViewAll,
+  loading,
+  onItemClick,
+}) => {
   const top = useMemo<Project[]>(() => {
     if (items.length === 0) return [];
     return [...items]
@@ -39,7 +44,12 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loadin
 
   if (loading) {
     return (
-      <Card component="section" aria-label="Recent Projects" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+      <Card
+        component="section"
+        aria-label="Recent Projects"
+        variant="outlined"
+        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      >
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
             <Typography variant="h6">Recent Projects</Typography>
@@ -72,17 +82,29 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loadin
 
   if (!items || items.length === 0) {
     return (
-      <Card component="section" aria-label="Recent Projects" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+      <Card
+        component="section"
+        aria-label="Recent Projects"
+        variant="outlined"
+        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      >
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
             <Typography variant="h6">Recent Projects</Typography>
-            <Link component="button" variant="body2" onClick={onViewAll} sx={{ textDecoration: "none" }}>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={onViewAll}
+              sx={{ textDecoration: "none" }}
+            >
               View All
             </Link>
           </Stack>
           <Box sx={{ textAlign: "center", py: 5 }}>
             <FolderOpenIcon color="disabled" sx={{ fontSize: 48, mb: 1 }} />
-            <Typography variant="body2" color="text.secondary">No projects yet</Typography>
+            <Typography variant="body2" color="text.secondary">
+              No projects yet
+            </Typography>
           </Box>
         </CardContent>
       </Card>
@@ -90,11 +112,21 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loadin
   }
 
   return (
-    <Card component="section" aria-label="Recent Projects" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+    <Card
+      component="section"
+      aria-label="Recent Projects"
+      variant="outlined"
+      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+    >
       <CardContent>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
           <Typography variant="h6">Recent Projects</Typography>
-          <Link component="button" variant="body2" onClick={onViewAll} sx={{ textDecoration: "none" }}>
+          <Link
+            component="button"
+            variant="body2"
+            onClick={onViewAll}
+            sx={{ textDecoration: "none" }}
+          >
             View All
           </Link>
         </Stack>
@@ -106,21 +138,40 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loadin
                 sx={{
                   p: 1,
                   borderRadius: 1,
-                  transition: (t) => t.transitions.create(["background-color", "box-shadow", "transform"], { duration: 120 }),
+                  transition: (t) =>
+                    t.transitions.create(["background-color", "box-shadow", "transform"], {
+                      duration: 120,
+                    }),
                   cursor: onItemClick ? "pointer" : "default",
                   "&:hover": onItemClick ? { bgcolor: "action.hover" } : undefined,
                 }}
                 role={onItemClick ? "button" : undefined}
                 tabIndex={onItemClick ? 0 : undefined}
                 onClick={onItemClick ? () => onItemClick(p) : undefined}
-                onKeyDown={onItemClick ? (e) => { if (e.key === "Enter") onItemClick(p); } : undefined}
+                onKeyDown={
+                  onItemClick
+                    ? (e) => {
+                        if (e.key === "Enter") onItemClick(p);
+                      }
+                    : undefined
+                }
                 aria-label={onItemClick ? `Open ${p.title}` : undefined}
               >
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body1" noWrap title={p.title} sx={{ fontWeight: 500, flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="body1"
+                    noWrap
+                    title={p.title}
+                    sx={{ fontWeight: 500, flex: 1, minWidth: 0 }}
+                  >
                     {p.title}
                   </Typography>
-                  <Chip size="small" label={p.status} color={statusToColor(p.status)} variant="outlined" />
+                  <Chip
+                    size="small"
+                    label={p.status}
+                    color={statusToColor(p.status)}
+                    variant="outlined"
+                  />
                 </Stack>
                 <Typography variant="body2" color="text.secondary" noWrap title={p.description}>
                   {p.description}
@@ -130,7 +181,9 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [], onViewAll, loadin
                     <Chip key={t} size="small" label={t} variant="outlined" />
                   ))}
                   <Box sx={{ flex: 1 }} />
-                  <Typography variant="caption" color="text.secondary">{formatDate(p.lastUpdated)}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(p.lastUpdated)}
+                  </Typography>
                 </Stack>
               </Stack>
             </Grid>
