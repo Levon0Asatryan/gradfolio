@@ -8,8 +8,6 @@ import ConnectIntegrationDialog from "@/components/integrations/ConnectIntegrati
 import ConfirmDisconnectDialog from "@/components/integrations/ConfirmDisconnectDialog";
 import { integrationsMock, type Integration, type IntegrationId } from "@/data/integrations.mock";
 
-export interface IntegrationsPageProps {}
-
 const containerSx: SxProps<Theme> = (theme) => ({
   py: 3,
   display: "flex",
@@ -41,7 +39,7 @@ const emptyStateSx: SxProps<Theme> = () => ({
  * Renders the Integrations settings screen, listing LinkedIn and GitHub with
  * mock local state for connecting/disconnecting and informational context.
  */
-const IntegrationsPage: FC<IntegrationsPageProps> = () => {
+const IntegrationsPage: FC = () => {
   const [integrations, setIntegrations] = useState<Integration[]>(integrationsMock);
   const [connectOpen, setConnectOpen] = useState<boolean>(false);
   const [disconnectOpen, setDisconnectOpen] = useState<boolean>(false);
