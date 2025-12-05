@@ -22,7 +22,11 @@ export type SlideTransitionProps = {
   onHeightReady: (h: number) => void;
 };
 
-export const SlideTransition: React.FC<SlideTransitionProps> = ({ children, direction, onHeightReady }) => {
+export const SlideTransition: React.FC<SlideTransitionProps> = ({
+  children,
+  direction,
+  onHeightReady,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {

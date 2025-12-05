@@ -46,6 +46,11 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
 
   const items: NavItem[] = useMemo(
     () => [
+
+
+
+
+
       { label: "Dashboard", href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
       { label: "Auth0 Login", href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
       {

@@ -12,7 +12,11 @@ export interface ProjectMetadataCardProps {
 function fmtDate(d?: string): string | undefined {
   if (!d) return undefined;
   try {
-    return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+    return new Date(d).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
   } catch {
     return d;
   }

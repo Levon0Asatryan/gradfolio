@@ -15,7 +15,11 @@ const SectionCard: FC<SectionCardProps> = ({ title, action, children, sx, subhea
   return (
     <Card component="section" sx={{ mb: 3, ...(sx as object) }} aria-label={title}>
       <CardHeader
-        title={<Typography variant="h6" component="h2">{title}</Typography>}
+        title={
+          <Typography variant="h6" component="h2">
+            {title}
+          </Typography>
+        }
         action={action}
         subheader={subheader}
       />

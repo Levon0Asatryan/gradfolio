@@ -39,7 +39,9 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
           <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
             Attachments
           </Typography>
-          <Typography variant="body2" color="text.secondary">No attachments provided.</Typography>
+          <Typography variant="body2" color="text.secondary">
+            No attachments provided.
+          </Typography>
         </CardContent>
       </Card>
     );
@@ -56,7 +58,10 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
             <Grid key={att.id} size={{ xs: 12, sm: 6, md: 4 }}>
               {att.type === "image" ? (
                 <Card variant="outlined">
-                  <CardActionArea aria-label={att.title || "Open image"} onClick={() => open(att.id)}>
+                  <CardActionArea
+                    aria-label={att.title || "Open image"}
+                    onClick={() => open(att.id)}
+                  >
                     <Box sx={{ position: "relative", aspectRatio: "16 / 10" }}>
                       <Image
                         src={att.thumbnailUrl || att.url}
@@ -121,12 +126,22 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
         </Grid>
       </CardContent>
 
-      <Dialog open={Boolean(active)} onClose={close} aria-labelledby="lightbox-title" maxWidth="lg" fullWidth>
+      <Dialog
+        open={Boolean(active)}
+        onClose={close}
+        aria-labelledby="lightbox-title"
+        maxWidth="lg"
+        fullWidth
+      >
         {active && (
           <>
             <DialogTitle id="lightbox-title" sx={{ pr: 6 }}>
               {active.title || "Preview"}
-              <IconButton onClick={close} aria-label="Close" sx={{ position: "absolute", right: 8, top: 8 }}>
+              <IconButton
+                onClick={close}
+                aria-label="Close"
+                sx={{ position: "absolute", right: 8, top: 8 }}
+              >
                 <CloseIcon />
               </IconButton>
             </DialogTitle>
@@ -151,7 +166,13 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                     <iframe
                       title={active.title || "Video"}
                       src={active.url.replace("watch?v=", "embed/")}
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        border: 0,
+                      }}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />

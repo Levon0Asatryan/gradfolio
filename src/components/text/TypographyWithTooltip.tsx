@@ -1,20 +1,7 @@
-import React, {
-  FC,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  Tooltip,
-  TooltipProps,
-  Typography,
-  TypographyProps,
-} from "@mui/material";
+import React, { FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Tooltip, TooltipProps, Typography, TypographyProps } from "@mui/material";
 
-export interface TypographyWithTooltipProps
-  extends Omit<TypographyProps, "title"> {
+export interface TypographyWithTooltipProps extends Omit<TypographyProps, "title"> {
   title: TooltipProps["title"];
   tooltipMaxHeight?: number | string;
   placement?: TooltipProps["placement"];
@@ -63,11 +50,7 @@ export const TypographyWithTooltip: FC<TypographyWithTooltipProps> = ({
     <Tooltip
       arrow
       placement={placement}
-      title={
-        <div style={{ maxHeight: tooltipMaxHeight ?? 100, overflowY: "auto" }}>
-          {title}
-        </div>
-      }
+      title={<div style={{ maxHeight: tooltipMaxHeight ?? 100, overflowY: "auto" }}>{title}</div>}
       disableHoverListener={!isTruncated}
       disableFocusListener={!isTruncated}
       disableTouchListener={!isTruncated}

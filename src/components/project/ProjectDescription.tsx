@@ -38,7 +38,7 @@ const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
           "& li": { mb: 0.5 },
           "& a": { color: "primary.main" },
         }}
-        // eslint-disable-next-line react/no-danger
+         
         dangerouslySetInnerHTML={{ __html: safeHtml }}
         aria-label="Project description"
       />

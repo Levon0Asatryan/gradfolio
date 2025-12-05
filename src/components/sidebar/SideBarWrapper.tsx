@@ -69,8 +69,17 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
           <div style={{ minHeight: "100vh" }}>{children}</div>
           <NoSsr>
             <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-              <IconButton aria-label="toggle dark mode" onClick={toggleMode} sx={iconStyle} size="small">
-                {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              <IconButton
+                aria-label="toggle dark mode"
+                onClick={toggleMode}
+                sx={iconStyle}
+                size="small"
+              >
+                {mode === "dark" ? (
+                  <LightModeIcon fontSize="small" />
+                ) : (
+                  <DarkModeIcon fontSize="small" />
+                )}
               </IconButton>
             </Tooltip>
           </NoSsr>
@@ -83,13 +92,28 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
   if (hidden) {
     return (
       <Fragment>
-        <div style={{ minHeight: "100vh", backgroundColor: theme.palette.background.default, color: theme.palette.text.primary }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            backgroundColor: theme.palette.background.default,
+            color: theme.palette.text.primary,
+          }}
+        >
           {children}
         </div>
         <NoSsr>
           <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-            <IconButton aria-label="toggle dark mode" onClick={toggleMode} sx={iconStyle} size="small">
-              {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            <IconButton
+              aria-label="toggle dark mode"
+              onClick={toggleMode}
+              sx={iconStyle}
+              size="small"
+            >
+              {mode === "dark" ? (
+                <LightModeIcon fontSize="small" />
+              ) : (
+                <DarkModeIcon fontSize="small" />
+              )}
             </IconButton>
           </Tooltip>
         </NoSsr>

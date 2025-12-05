@@ -11,7 +11,13 @@ export type StepContentWrapperProps = {
   sx?: SxProps<Theme>;
 };
 
-export const StepContentWrapper: React.FC<StepContentWrapperProps> = ({ isCompleted, currentStep, direction, children, sx }) => {
+export const StepContentWrapper: React.FC<StepContentWrapperProps> = ({
+  isCompleted,
+  currentStep,
+  direction,
+  children,
+  sx,
+}) => {
   const [parentHeight, setParentHeight] = useState(0);
   const handleHeightReady = useCallback((h: number) => setParentHeight(h), []);
 
@@ -19,7 +25,11 @@ export const StepContentWrapper: React.FC<StepContentWrapperProps> = ({ isComple
     <div style={{ position: "relative", overflow: "hidden" }}>
       <AnimatePresence initial={false} mode="sync" custom={direction}>
         {!isCompleted && (
-          <SlideTransition key={currentStep} direction={direction} onHeightReady={handleHeightReady}>
+          <SlideTransition
+            key={currentStep}
+            direction={direction}
+            onHeightReady={handleHeightReady}
+          >
             <Box sx={{ px: 2, ...(sx as any) }}>{children}</Box>
           </SlideTransition>
         )}

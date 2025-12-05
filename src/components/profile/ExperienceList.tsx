@@ -11,7 +11,8 @@ export interface ExperienceListProps {
 }
 
 function formatRange(start?: string, end?: string) {
-  const fmt = (s?: string) => (s ? new Date(s + "-01").toLocaleString(undefined, { year: "numeric", month: "short" }) : "");
+  const fmt = (s?: string) =>
+    s ? new Date(s + "-01").toLocaleString(undefined, { year: "numeric", month: "short" }) : "";
   const s = fmt(start);
   const e = end ? fmt(end) : "Present";
   return `${s} – ${e}`;
@@ -65,7 +66,11 @@ const ExperienceList: FC<ExperienceListProps> = ({ items }) => {
         </List>
       )}
 
-      <DetailDialog open={Boolean(active)} title={active ? active.title : "Experience"} onClose={onClose}>
+      <DetailDialog
+        open={Boolean(active)}
+        title={active ? active.title : "Experience"}
+        onClose={onClose}
+      >
         {active && (
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
