@@ -1,8 +1,5 @@
-export default function IntegrationsPage() {
-  return (
-    <main style={{ padding: 24 }}>
-      <h1>Integrations</h1>
-      <p>Connect third-party services and configure integration settings.</p>
-    </main>
-  );
+import IntegrationsPage from "@/components/integrations/IntegrationsPage";
+
+export default function Page() {
+  return <IntegrationsPage />;
 }
