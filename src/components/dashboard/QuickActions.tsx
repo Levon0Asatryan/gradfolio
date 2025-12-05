@@ -14,36 +14,69 @@ export interface QuickActionsProps {
   onViewAnalytics?: () => void;
 }
 
-const QuickActions: FC<QuickActionsProps> = ({ onAddPublication, onAddProject, onEditProfile, onViewAnalytics }) => {
-  const call = (fn?: () => void, label?: string) => () => {
-    if (fn) fn();
-    else console.info(label || "action");
-  };
-
+const QuickActions: FC<QuickActionsProps> = ({
+  onAddPublication,
+  onAddProject,
+  onEditProfile,
+  onViewAnalytics,
+}) => {
   return (
-    <Card component="section" aria-label="Quick Actions" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+    <Card
+      component="section"
+      aria-label="Quick Actions"
+      variant="outlined"
+      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+    >
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Quick Actions
         </Typography>
         <Grid container spacing={1.5} columns={{ xs: 12 }}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Button fullWidth size="medium" sx={{ height: 40 }} startIcon={<AddIcon />} variant="contained" onClick={call(onAddPublication, "Add Publication")}>
+            <Button
+              fullWidth
+              size="medium"
+              sx={{ height: 40 }}
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={onAddPublication}
+            >
               Add New Publication
             </Button>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Button fullWidth size="medium" sx={{ height: 40 }} startIcon={<AddIcon />} variant="outlined" onClick={call(onAddProject, "Add Project")}>
+            <Button
+              fullWidth
+              size="medium"
+              sx={{ height: 40 }}
+              startIcon={<AddIcon />}
+              variant="outlined"
+              onClick={onAddProject}
+            >
               Add New Project
             </Button>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Button fullWidth size="medium" sx={{ height: 40 }} startIcon={<EditIcon />} variant="outlined" onClick={call(onEditProfile, "Edit Profile")}>
+            <Button
+              fullWidth
+              size="medium"
+              sx={{ height: 40 }}
+              startIcon={<EditIcon />}
+              variant="outlined"
+              onClick={onEditProfile}
+            >
               Edit Profile
             </Button>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Button fullWidth size="medium" sx={{ height: 40 }} startIcon={<AnalyticsIcon />} variant="outlined" onClick={call(onViewAnalytics, "View Analytics")}>
+            <Button
+              fullWidth
+              size="medium"
+              sx={{ height: 40 }}
+              startIcon={<AnalyticsIcon />}
+              variant="outlined"
+              onClick={onViewAnalytics}
+            >
               View Analytics
             </Button>
           </Grid>

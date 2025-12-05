@@ -11,7 +11,6 @@ import { formatDate } from "@/utils/helpers/formatDate";
 export interface RecentWorkProps {
   projects?: Project[];
   publications?: Publication[];
-  loading?: boolean;
   onViewAllProjects?: () => void;
   onViewAllPublications?: () => void;
   onProjectClick?: (p: Project) => void;
@@ -23,7 +22,6 @@ type View = "all" | "projects" | "publications";
 const RecentWork: FC<RecentWorkProps> = ({
   projects = [],
   publications = [],
-  loading,
   onViewAllProjects,
   onViewAllPublications,
   onProjectClick,
@@ -52,85 +50,121 @@ const RecentWork: FC<RecentWorkProps> = ({
       tags: x.authors,
       raw: x,
     }));
-    return [...proj, ...pubs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [...proj, ...pubs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
   }, [projects, publications]);
 
   const content = (
     <Grid container spacing={1.5} columns={{ xs: 12 }}>
-      {(view === "all" ? allItems : view === "projects" ? allItems.filter((i) => i.kind === "project") : allItems.filter((i) => i.kind === "publication")).slice(0, 5).map((it) => (
-        <Grid key={`${it.kind}_${it.id}`} size={{ xs: 12 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{
-              p: 1,
-              borderRadius: 1,
-              transition: (t) => t.transitions.create(["background-color", "box-shadow"], { duration: 120 }),
-              cursor: "pointer",
-              "&:hover": { bgcolor: "action.hover" },
-            }}
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              if (it.kind === "project") onProjectClick?.(it.raw as Project);
-              else onPublicationClick?.(it.raw as Publication);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
+      {(view === "all"
+        ? allItems
+        : view === "projects"
+          ? allItems.filter((i) => i.kind === "project")
+          : allItems.filter((i) => i.kind === "publication")
+      )
+        .slice(0, 5)
+        .map((it) => (
+          <Grid key={`${it.kind}_${it.id}`} size={{ xs: 12 }}>
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              sx={{
+                p: 1,
+                borderRadius: 1,
+                transition: (t) =>
+                  t.transitions.create(["background-color", "box-shadow"], { duration: 120 }),
+                cursor: "pointer",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
                 if (it.kind === "project") onProjectClick?.(it.raw as Project);
                 else onPublicationClick?.(it.raw as Publication);
-              }
-            }}
-            aria-label={`Open ${it.title}`}
-          >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: "action.hover",
-                color: "text.secondary",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
               }}
-              aria-hidden
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (it.kind === "project") onProjectClick?.(it.raw as Project);
+                  else onPublicationClick?.(it.raw as Publication);
+                }
+              }}
+              aria-label={`Open ${it.title}`}
             >
-              {it.kind === "project" ? <FolderIcon fontSize="small" /> : <ArticleIcon fontSize="small" />}
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body1" noWrap title={it.title} sx={{ fontWeight: 500 }}>
-                  {it.title}
-                </Typography>
-                <Chip size="small" label={String(it.status)} variant="outlined" />
-              </Stack>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25, flexWrap: "wrap" }}>
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {it.subtitle}
-                </Typography>
-                <Box sx={{ flex: 1 }} />
-                <Typography variant="caption" color="text.secondary">{formatDate(it.date)}</Typography>
-              </Stack>
-            </Box>
-          </Stack>
-        </Grid>
-      ))}
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 1,
+                  bgcolor: "action.hover",
+                  color: "text.secondary",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              >
+                {it.kind === "project" ? (
+                  <FolderIcon fontSize="small" />
+                ) : (
+                  <ArticleIcon fontSize="small" />
+                )}
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body1" noWrap title={it.title} sx={{ fontWeight: 500 }}>
+                    {it.title}
+                  </Typography>
+                  <Chip size="small" label={String(it.status)} variant="outlined" />
+                </Stack>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ mt: 0.25, flexWrap: "wrap" }}
+                >
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {it.subtitle}
+                  </Typography>
+                  <Box sx={{ flex: 1 }} />
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(it.date)}
+                  </Typography>
+                </Stack>
+              </Box>
+            </Stack>
+          </Grid>
+        ))}
     </Grid>
   );
 
   return (
-    <Card component="section" aria-label="Recent Work" variant="outlined" sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}>
+    <Card
+      component="section"
+      aria-label="Recent Work"
+      variant="outlined"
+      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+    >
       <CardContent>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
           <Typography variant="h6">Recent Work</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Link component="button" variant="body2" onClick={onViewAllProjects} sx={{ textDecoration: "none" }}>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={onViewAllProjects}
+              sx={{ textDecoration: "none" }}
+            >
               View Projects
             </Link>
-            <Link component="button" variant="body2" onClick={onViewAllPublications} sx={{ textDecoration: "none" }}>
+            <Link
+              component="button"
+              variant="body2"
+              onClick={onViewAllPublications}
+              sx={{ textDecoration: "none" }}
+            >
               View Publications
             </Link>
           </Stack>

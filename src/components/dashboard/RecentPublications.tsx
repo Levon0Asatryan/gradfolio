@@ -198,7 +198,6 @@ const RecentPublications: FC<RecentPublicationsProps> = ({
                     aria-label={`View ${pub.title}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.info("View", pub.id);
                     }}
                   >
                     <VisibilityIcon fontSize="small" />
@@ -208,7 +207,6 @@ const RecentPublications: FC<RecentPublicationsProps> = ({
                     aria-label={`Edit ${pub.title}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.info("Edit", pub.id);
                     }}
                   >
                     <EditIcon fontSize="small" />
@@ -218,7 +216,6 @@ const RecentPublications: FC<RecentPublicationsProps> = ({
                     aria-label={`Delete ${pub.title}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.info("Delete", pub.id);
                     }}
                   >
                     <DeleteIcon fontSize="small" />
