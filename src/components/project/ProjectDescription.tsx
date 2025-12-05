@@ -38,7 +38,6 @@ const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
           "& li": { mb: 0.5 },
           "& a": { color: "primary.main" },
         }}
-         
         dangerouslySetInnerHTML={{ __html: safeHtml }}
         aria-label="Project description"
       />
