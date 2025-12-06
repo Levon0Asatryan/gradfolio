@@ -121,7 +121,7 @@ const EditableText: FC<EditableTextProps> = ({
     >
       <Typography
         variant={variant}
-        component={component}
+        {...(component && { component })}
         color={!value ? "text.secondary" : "text.primary"}
         sx={{
           whiteSpace: "pre-wrap",

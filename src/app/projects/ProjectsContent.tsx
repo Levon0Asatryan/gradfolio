@@ -24,15 +24,14 @@ export default function ProjectsContent() {
     result = [...result].sort((a, b) => {
       switch (sort) {
         case "newest":
-          // Assumes timeline format "Year - Year" or "Year"
           return (
-            new Date(b.timeline?.split(" - ")[0] || 0).getTime() -
-            new Date(a.timeline?.split(" - ")[0] || 0).getTime()
+            new Date(b.metadata?.startDate || 0).getTime() -
+            new Date(a.metadata?.startDate || 0).getTime()
           );
         case "oldest":
           return (
-            new Date(a.timeline?.split(" - ")[0] || 0).getTime() -
-            new Date(b.timeline?.split(" - ")[0] || 0).getTime()
+            new Date(a.metadata?.startDate || 0).getTime() -
+            new Date(b.metadata?.startDate || 0).getTime()
           );
         case "name_asc":
           return a.title.localeCompare(b.title);

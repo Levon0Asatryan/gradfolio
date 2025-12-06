@@ -45,9 +45,13 @@ const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
             </Typography>
             <Box
               sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 40,
+                height: 40,
                 color: "primary.main",
                 opacity: 0.8,
-                p: 1,
                 bgcolor: "action.hover",
                 borderRadius: "50%",
               }}

@@ -8,7 +8,7 @@ export const projectsMock: Project[] = [
       "A Next.js web app that finds eco-friendly driving routes using OpenStreetMap data.",
     status: "ongoing",
     technologies: ["Next.js", "TypeScript", "Mapbox"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    lastUpdated: "2025-12-06T09:00:00.000Z", // 12 hours ago from reference
   },
   {
     id: "smart-garden-iot",
@@ -17,7 +17,7 @@ export const projectsMock: Project[] = [
       "An Arduino + Raspberry Pi system automating irrigation with real-time soil moisture monitoring.",
     status: "completed",
     technologies: ["Arduino", "Raspberry Pi", "MQTT"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    lastUpdated: "2025-11-29T21:00:00.000Z", // 7 days ago from reference
   },
   {
     id: "paper-summarizer",
@@ -25,7 +25,7 @@ export const projectsMock: Project[] = [
     description: "Extractive + abstractive summarization for arXiv PDFs built with PyTorch.",
     status: "completed",
     technologies: ["Python", "PyTorch", "FastAPI"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+    lastUpdated: "2025-11-16T21:00:00.000Z", // 20 days ago from reference
   },
 ];
 
@@ -34,13 +34,13 @@ export const activitiesMock: Activity[] = [
     id: "act-2",
     type: "project",
     action: 'Updated project "Academic Portfolio Platform"',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    timestamp: "2025-12-06T18:00:00.000Z", // 3 hours ago from reference
   },
   {
     id: "act-3",
     type: "profile",
     action: "Profile viewed 18 times",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(),
+    timestamp: "2025-12-06T12:00:00.000Z", // 9 hours ago from reference
   },
 ];
 
