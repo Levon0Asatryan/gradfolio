@@ -4,84 +4,72 @@ import { FC, memo, ReactElement } from "react";
 import { Box, Card, CardContent, Stack, Typography, Chip, Skeleton } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import ArticleIcon from "@mui/icons-material/Article";
 import FolderIcon from "@mui/icons-material/Folder";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import type { DashboardStats as DashboardStatsType } from "@/utils/types/dashboard.types";
 
 export interface DashboardStatsProps {
   stats?: DashboardStatsType;
   loading?: boolean;
-  onStatClick?: (key: keyof DashboardStatsType) => void;
 }
 
 interface StatCardProps {
   label: string;
   value?: number;
   icon: ReactElement;
-  onClick?: () => void;
 }
 
-const StatCard: FC<StatCardProps> = ({ label, value, icon, onClick }) => {
+const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
   const isEmpty = value === undefined || value === null;
   return (
     <Card
       component="section"
       variant="outlined"
       sx={{
-        transition: (theme) =>
-          theme.transitions.create(["box-shadow", "transform"], { duration: 150 }),
-        cursor: onClick ? "pointer" : "default",
-        "&:hover": { boxShadow: 6 },
+        height: "100%",
+        userSelect: "none",
+        bgcolor: "background.paper",
+        boxShadow: "none",
       }}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
     >
-      <CardContent>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 1,
-              bgcolor: "action.hover",
-              color: "text.secondary",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-            aria-hidden
-          >
-            {icon}
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="overline" color="text.secondary">
+      <CardContent sx={{ py: 3 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ fontWeight: 600, letterSpacing: 1 }}
+            >
               {label}
             </Typography>
-            {isEmpty ? (
-              <Chip size="small" label="No data" sx={{ mt: 0.5 }} />
-            ) : (
-              <Typography variant="h5" sx={{ mt: 0.5 }}>
-                {value}
-              </Typography>
-            )}
-          </Box>
+            <Box
+              sx={{
+                color: "primary.main",
+                opacity: 0.8,
+                p: 1,
+                bgcolor: "action.hover",
+                borderRadius: "50%",
+              }}
+            >
+              {icon}
+            </Box>
+          </Stack>
+          {isEmpty ? (
+            <Chip size="small" label="No data" />
+          ) : (
+            <Typography variant="h3" fontWeight="bold" sx={{ lineHeight: 1 }}>
+              {value}
+            </Typography>
+          )}
         </Stack>
       </CardContent>
     </Card>
   );
 };
 
-const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }) => {
+const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading }) => {
   const items = [
-    {
-      key: "totalPublications" as const,
-      label: "Publications",
-      value: stats?.totalPublications,
-      icon: <ArticleIcon />,
-    },
     {
       key: "totalProjects" as const,
       label: "Projects",
@@ -89,14 +77,20 @@ const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }
       icon: <FolderIcon />,
     },
     {
-      key: "profileViews" as const,
-      label: "Profile Views",
-      value: stats?.profileViews,
-      icon: <VisibilityIcon />,
+      key: "githubStars" as const,
+      label: "GitHub Stars",
+      value: stats?.githubStars,
+      icon: <GitHubIcon />,
+    },
+    {
+      key: "linkedinConnections" as const,
+      label: "Connections",
+      value: stats?.linkedinConnections,
+      icon: <LinkedInIcon />,
     },
     {
       key: "recentActivities" as const,
-      label: "Recent Activities",
+      label: "Activity",
       value: stats?.recentActivities,
       icon: <TrendingUpIcon />,
     },
@@ -104,33 +98,21 @@ const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading, onStatClick }
 
   return (
     <Box component="section" aria-label="Dashboard Stats" sx={{ mb: 2 }}>
-      <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
+      <Grid container spacing={2} columns={{ xs: 12 }}>
         {items.map((it) => (
-          <Grid key={it.key} size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid key={it.key} size={{ xs: 12, sm: 6, md: 3 }}>
             {loading ? (
-              <Card component="section" variant="outlined" sx={{ p: 1 }}>
-                <CardContent>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Skeleton
-                      variant="rounded"
-                      width={40}
-                      height={40}
-                      sx={{ borderRadius: 1, flexShrink: 0 }}
-                    />
-                    <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" width={100} height={16} />
-                      <Skeleton variant="text" width={60} height={32} />
-                    </Box>
+              <Card component="section" variant="outlined" sx={{ p: 2, height: "100%" }}>
+                <Stack spacing={1}>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Skeleton variant="text" width={80} />
+                    <Skeleton variant="circular" width={24} height={24} />
                   </Stack>
-                </CardContent>
+                  <Skeleton variant="text" width={60} height={40} />
+                </Stack>
               </Card>
             ) : (
-              <StatCard
-                label={it.label}
-                value={it.value}
-                icon={it.icon}
-                onClick={onStatClick ? () => onStatClick(it.key) : undefined}
-              />
+              <StatCard label={it.label} value={it.value} icon={it.icon} />
             )}
           </Grid>
         ))}

@@ -5,8 +5,7 @@ import { Avatar, Box, Button, Card, CardContent, Chip, Stack, Typography } from 
 import Grid from "@mui/material/Grid";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import EditIcon from "@mui/icons-material/Edit";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import ArticleIcon from "@mui/icons-material/Article";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import FolderIcon from "@mui/icons-material/Folder";
 import type { DashboardStats } from "@/utils/types/dashboard.types";
 
@@ -37,7 +36,6 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
   stats,
   engagementRate = 3.7,
   onEditProfile,
-  onViewAnalytics,
 }) => {
   return (
     <Card
@@ -49,15 +47,14 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
         overflow: "hidden",
         transition: (t) => t.transitions.create("box-shadow"),
         "&:hover": { boxShadow: 6 },
-        backgroundImage: (t) =>
-          `linear-gradient(180deg, ${t.palette.action.hover} 0%, transparent 100%)`,
+        bgcolor: "background.paper",
       }}
     >
       <CardContent>
         <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
           <Grid size={{ xs: 12, md: 8 }}>
             <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
-              <Avatar src={user.avatarUrl} alt={user.name} sx={{ width: 56, height: 56 }} />
+              <Avatar src={user.avatarUrl} alt={user.name} sx={{ width: 100, height: 100 }} />
               <Box sx={{ minWidth: 0 }}>
                 <Typography variant="h5" sx={{ lineHeight: 1.2 }} noWrap title={user.name}>
                   {user.name}
@@ -75,10 +72,10 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
             <Grid container spacing={1} columns={{ xs: 12 }}>
               <Grid size={{ xs: 6, sm: 6 }}>
                 <Chip
-                  icon={<VisibilityIcon />}
-                  label={`${stats?.profileViews ?? 0} views`}
+                  icon={<LinkedInIcon />}
+                  label={`${stats?.linkedinConnections ?? 0} connections`}
                   variant="outlined"
-                  sx={{ width: "100%" }}
+                  sx={{ width: "100%", userSelect: "none" }}
                 />
               </Grid>
               <Grid size={{ xs: 6, sm: 6 }}>
@@ -87,23 +84,15 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
                   label={`${engagementRate.toFixed(1)}% engagement`}
                   color="info"
                   variant="outlined"
-                  sx={{ width: "100%" }}
+                  sx={{ width: "100%", userSelect: "none" }}
                 />
               </Grid>
-              <Grid size={{ xs: 6, sm: 6 }}>
-                <Chip
-                  icon={<ArticleIcon />}
-                  label={`${stats?.totalPublications ?? 0} publications`}
-                  variant="outlined"
-                  sx={{ width: "100%" }}
-                />
-              </Grid>
-              <Grid size={{ xs: 6, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 12 }}>
                 <Chip
                   icon={<FolderIcon />}
                   label={`${stats?.totalProjects ?? 0} projects`}
                   variant="outlined"
-                  sx={{ width: "100%" }}
+                  sx={{ width: "100%", userSelect: "none" }}
                 />
               </Grid>
             </Grid>
@@ -118,14 +107,6 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
             sx={{ height: 40 }}
           >
             Edit Profile
-          </Button>
-          <Button
-            startIcon={<AnalyticsIcon />}
-            variant="contained"
-            onClick={onViewAnalytics}
-            sx={{ height: 40 }}
-          >
-            View Analytics
           </Button>
         </Stack>
       </CardContent>

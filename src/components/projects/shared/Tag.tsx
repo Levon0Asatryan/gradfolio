@@ -1,10 +1,10 @@
 "use client";
 
-import { FC, memo } from "react";
+import { FC, memo, ReactNode } from "react";
 import { Chip, type ChipProps } from "@mui/material";
 
 export interface TagProps {
-  label: string;
+  label: ReactNode;
   onClick?: () => void;
   chipProps?: Omit<ChipProps, "label" | "onClick" | "size">;
 }

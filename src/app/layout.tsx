@@ -36,8 +36,9 @@ export default async function RootLayout({ children }: Readonly<RootLayoutProps>
   const initialMode = cookieStore.get(cookiesThemeKey)?.value as ThemeMode | undefined;
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable}`}
         style={{ padding: 0, margin: 0 }}
       >

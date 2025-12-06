@@ -1,31 +1,23 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 export interface QuickActionsProps {
-  onAddPublication?: () => void;
   onAddProject?: () => void;
   onEditProfile?: () => void;
-  onViewAnalytics?: () => void;
 }
 
-const QuickActions: FC<QuickActionsProps> = ({
-  onAddPublication,
-  onAddProject,
-  onEditProfile,
-  onViewAnalytics,
-}) => {
+const QuickActions: FC<QuickActionsProps> = ({ onAddProject, onEditProfile }) => {
   return (
     <Card
       component="section"
       aria-label="Quick Actions"
       variant="outlined"
-      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      sx={{ transition: (t) => t.transitions.create("box-shadow") }}
     >
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>
@@ -35,20 +27,8 @@ const QuickActions: FC<QuickActionsProps> = ({
           <Grid size={{ xs: 12, sm: 6 }}>
             <Button
               fullWidth
-              size="medium"
-              sx={{ height: 40 }}
-              startIcon={<AddIcon />}
-              variant="contained"
-              onClick={onAddPublication}
-            >
-              Add New Publication
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Button
-              fullWidth
-              size="medium"
-              sx={{ height: 40 }}
+              size="large"
+              sx={{ py: 2, minHeight: 64 }}
               startIcon={<AddIcon />}
               variant="outlined"
               onClick={onAddProject}
@@ -59,8 +39,8 @@ const QuickActions: FC<QuickActionsProps> = ({
           <Grid size={{ xs: 12, sm: 6 }}>
             <Button
               fullWidth
-              size="medium"
-              sx={{ height: 40 }}
+              size="large"
+              sx={{ py: 2, minHeight: 64 }}
               startIcon={<EditIcon />}
               variant="outlined"
               onClick={onEditProfile}
@@ -68,21 +48,8 @@ const QuickActions: FC<QuickActionsProps> = ({
               Edit Profile
             </Button>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Button
-              fullWidth
-              size="medium"
-              sx={{ height: 40 }}
-              startIcon={<AnalyticsIcon />}
-              variant="outlined"
-              onClick={onViewAnalytics}
-            >
-              View Analytics
-            </Button>
-          </Grid>
         </Grid>
         <Box sx={{ mt: 1 }} />
-        <Stack direction="row" spacing={1} />
       </CardContent>
     </Card>
   );
