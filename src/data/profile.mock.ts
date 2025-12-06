@@ -50,6 +50,11 @@ export interface ProfileData {
   projects: Project[];
   certifications: Certification[];
   skills: string[];
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
 }
 
 export const profileMock: ProfileData = {
@@ -60,6 +65,10 @@ export const profileMock: ProfileData = {
   verified: true,
   email: "ari.petrosyan@example.com",
   avatarUrl: "https://i.pravatar.cc/160?img=5",
+  socialLinks: {
+    github: "https://github.com/example",
+    linkedin: "https://linkedin.com/in/example",
+  },
   education: [
     {
       id: "edu_bsc",

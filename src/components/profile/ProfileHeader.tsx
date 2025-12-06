@@ -12,6 +12,7 @@ export interface ProfileHeaderProps {
   verified: boolean;
   email?: string;
   avatarUrl: string;
+  onEdit?: () => void;
 }
 
 const ProfileHeader: FC<ProfileHeaderProps> = ({
@@ -21,6 +22,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
   verified,
   email,
   avatarUrl,
+  onEdit,
 }) => {
   const theme = useTheme();
   const avatarSize = 96;
@@ -81,6 +83,11 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
                   Contact
                 </Button>
               </Tooltip>
+            )}
+            {onEdit && (
+              <Button size="small" variant="outlined" onClick={onEdit} aria-label="Edit Profile">
+                Edit
+              </Button>
             )}
           </Stack>
         </Box>

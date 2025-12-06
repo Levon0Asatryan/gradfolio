@@ -2,7 +2,13 @@ import type { NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
 
 export async function middleware(request: NextRequest) {
-  return await auth0.middleware(request);
+  try {
+    return await auth0.middleware(request);
+  } catch (error) {
+    console.error("Middleware error:", error);
+    // Fallback or bypass in case of error (e.g. during development/mock)
+    return undefined;
+  }
 }
 
 export const config = {

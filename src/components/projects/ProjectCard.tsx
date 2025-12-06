@@ -9,9 +9,43 @@ import type { ProjectDetailData } from "@/data/project.mock";
 
 export interface ProjectCardProps {
   project: ProjectDetailData;
+  highlightQuery?: string;
 }
 
 const externalLoader = ({ src }: { src: string }) => src;
+
+// Helper to highlight matching text
+function HighlightedText({ text, query }: { text: string; query?: string }) {
+  if (!query || !text) return <>{text}</>;
+
+  const parts = text.split(
+    new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})`, "gi"),
+  );
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <Box
+            component="mark"
+            key={i}
+            sx={{
+              bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.700" : "grey.300"),
+              color: "inherit",
+              px: 0,
+              borderRadius: 0,
+              boxDecorationBreak: "clone",
+              WebkitBoxDecorationBreak: "clone",
+            }}
+          >
+            {part}
+          </Box>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
 
 function truncate(text: string, max = 160) {
   if (!text) return "";
@@ -30,6 +64,7 @@ const categoryColor: Record<
   research: "secondary",
   hackathon: "warning",
   other: "default",
+  "N/A": "default",
 };
 
 function formatDate(date?: string) {
@@ -39,7 +74,7 @@ function formatDate(date?: string) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short" });
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
   const href = `/projects/${id}`;
 
@@ -61,24 +96,56 @@ const ProjectCard: FC<ProjectCardProps> = ({ project }) => {
       variant="outlined"
       component="article"
       aria-label={`Project ${title}`}
-      sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: (theme) => theme.shadows[4],
+          borderColor: "primary.main",
+          "& .hero-image": {
+            transform: "scale(1.05)",
+          },
+        },
+      }}
     >
       <CardActionArea
         component={Link}
         href={href}
         aria-label={`Open ${title}`}
-        sx={{ alignItems: "stretch", display: "block" }}
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "flex-start",
+          textAlign: "inherit",
+        }}
       >
         {/* Hero image */}
-        <Box sx={{ position: "relative", width: "100%", height: 160, bgcolor: "action.hover" }}>
+        <Box
+          sx={{
+            position: "relative",
+            width: "100%",
+            height: 160,
+            bgcolor: "action.hover",
+            overflow: "hidden", // Ensure image zoom doesn't overflow
+          }}
+        >
           {heroImageUrl ? (
             <Image
               loader={externalLoader}
               src={heroImageUrl}
               alt={`${title} hero image`}
               fill
+              className="hero-image" // Add class for hover targeting
               sizes="(max-width: 600px) 100vw, 33vw"
-              style={{ objectFit: "cover" }}
+              style={{
+                objectFit: "cover",
+                transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)", // Smooth zoom
+              }}
             />
           ) : (
             <Box
@@ -96,7 +163,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project }) => {
             </Box>
           )}
         </Box>
-        <CardContent>
+        <CardContent sx={{ flexGrow: 1, width: "100%" }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
             {cat && (
               <Chip
@@ -126,9 +193,11 @@ const ProjectCard: FC<ProjectCardProps> = ({ project }) => {
               WebkitLineClamp: 1,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
+              lineHeight: 1.5,
+              py: 0.2, // Add small vertical padding to container to show highlight edges
             }}
           >
-            {title}
+            <HighlightedText text={title} query={highlightQuery} />
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             {truncate(aiSummary, 170)}
@@ -137,7 +206,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project }) => {
           {visibleTags.length > 0 && (
             <Stack direction="row" flexWrap="wrap" sx={{ mb: 1 }}>
               {visibleTags.map((t) => (
-                <Tag key={t} label={t} />
+                <Tag key={t} label={<HighlightedText text={t} query={highlightQuery} />} />
               ))}
               {remainingCount > 0 && (
                 <Chip

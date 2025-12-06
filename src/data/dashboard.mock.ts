@@ -1,91 +1,52 @@
-import type { Activity, DashboardStats, Project, Publication } from "@/utils/types/dashboard.types";
-
-export const publicationsMock: Publication[] = [
-  {
-    id: "pub-1",
-    title: "Deep Learning Approaches for Time Series Forecasting",
-    journal: "IEEE Transactions on Neural Networks",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-    authors: ["A. Smith", "J. Doe"],
-    status: "published",
-  },
-  {
-    id: "pub-2",
-    title: "Graph-based Methods in Bioinformatics",
-    journal: "Bioinformatics Journal",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-    authors: ["L. Zhang", "K. Patel"],
-    status: "inReview",
-  },
-  {
-    id: "pub-3",
-    title: "A Survey on Explainable AI",
-    journal: "ACM Computing Surveys",
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60).toISOString(),
-    authors: ["M. Rossi"],
-    status: "draft",
-  },
-];
+import type { Activity, DashboardStats, Project } from "@/utils/types/dashboard.types";
 
 export const projectsMock: Project[] = [
   {
-    id: "proj-1",
-    title: "Academic Portfolio Platform",
-    description: "Building a Next.js + MUI dashboard for academic portfolios.",
+    id: "ecoroute",
+    title: "EcoRoute – CO₂-aware Navigation",
+    description:
+      "A Next.js web app that finds eco-friendly driving routes using OpenStreetMap data.",
     status: "ongoing",
-    technologies: ["Next.js", "TypeScript", "MUI"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    technologies: ["Next.js", "TypeScript", "Mapbox"],
+    lastUpdated: "2025-12-06T09:00:00.000Z", // 12 hours ago from reference
   },
   {
-    id: "proj-2",
-    title: "NLP for Literature Review",
-    description: "Automated keyword extraction and topic modeling.",
+    id: "smart-garden-iot",
+    title: "Smart Garden IoT System",
+    description:
+      "An Arduino + Raspberry Pi system automating irrigation with real-time soil moisture monitoring.",
     status: "completed",
-    technologies: ["Python", "spaCy", "LDA"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    technologies: ["Arduino", "Raspberry Pi", "MQTT"],
+    lastUpdated: "2025-11-29T21:00:00.000Z", // 7 days ago from reference
   },
   {
-    id: "proj-3",
-    title: "Research Data Visualizer",
-    description: "Interactive charts and dashboards for publication metrics.",
-    status: "archived",
-    technologies: ["D3.js", "React"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
-  },
-  {
-    id: "proj-4",
-    title: "Lab Equipment Tracker",
-    description: "Track usage and maintenance of lab equipment.",
-    status: "ongoing",
-    technologies: ["Node.js", "MongoDB"],
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    id: "paper-summarizer",
+    title: "Paper Summarizer (NLP)",
+    description: "Extractive + abstractive summarization for arXiv PDFs built with PyTorch.",
+    status: "completed",
+    technologies: ["Python", "PyTorch", "FastAPI"],
+    lastUpdated: "2025-11-16T21:00:00.000Z", // 20 days ago from reference
   },
 ];
 
 export const activitiesMock: Activity[] = [
   {
-    id: "act-1",
-    type: "publication",
-    action: 'Added publication "Deep Learning Approaches for Time Series Forecasting"',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
     id: "act-2",
     type: "project",
     action: 'Updated project "Academic Portfolio Platform"',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    timestamp: "2025-12-06T18:00:00.000Z", // 3 hours ago from reference
   },
   {
     id: "act-3",
     type: "profile",
     action: "Profile viewed 18 times",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(),
+    timestamp: "2025-12-06T12:00:00.000Z", // 9 hours ago from reference
   },
 ];
 
 export const statsMock: DashboardStats = {
-  totalPublications: publicationsMock.length,
   totalProjects: projectsMock.length,
-  profileViews: 1287,
+  githubStars: 48,
+  linkedinConnections: 342,
   recentActivities: activitiesMock.length,
 };

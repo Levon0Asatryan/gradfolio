@@ -1,16 +1,17 @@
 "use client";
 
-import { FC, memo, useMemo } from "react";
+import { FC, memo, useCallback, useMemo } from "react";
 import { Box, Container } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useRouter } from "next/navigation";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardStats from "@/components/dashboard/DashboardStats";
-import RecentWork from "@/components/dashboard/RecentWork";
+import RecentProjects from "@/components/dashboard/RecentProjects";
 import QuickActions from "@/components/dashboard/QuickActions";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
-import { activitiesMock, projectsMock, publicationsMock, statsMock } from "@/data/dashboard.mock";
+import { activitiesMock, projectsMock, statsMock } from "@/data/dashboard.mock";
 import { profileMock } from "@/data/profile.mock";
+import type { Project } from "@/utils/types/dashboard.types";
 
 const HomePage: FC = () => {
   const router = useRouter();
@@ -25,69 +26,60 @@ const HomePage: FC = () => {
     [],
   );
 
+  const handleEditProfile = useCallback(() => {
+    router.push("/profile/edit");
+  }, [router]);
+
+  const handleViewProjects = useCallback(() => {
+    router.push("/projects");
+  }, [router]);
+
+  const handleAddProject = useCallback(() => {
+    router.push("/projects/new");
+  }, [router]);
+
+  const handleProjectClick = useCallback(
+    (p: Project) => {
+      router.push(`/projects/${p.id}`);
+    },
+    [router],
+  );
+
   return (
-    <Container sx={{ py: 3 }}>
+    <Container sx={{ py: 4 }}>
       {/* Header / Hero with Profile & Analytics */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 3 }}>
         <DashboardHeader
           user={headerUser}
           stats={statsMock}
           engagementRate={3.7}
-          onEditProfile={() => router.push("/profile")}
-          onViewAnalytics={() => router.push("/analytics")}
+          onEditProfile={handleEditProfile}
         />
       </Box>
 
-      {/* Summary Stats (interactive) */}
-      <Box sx={{ mb: 2 }}>
-        <DashboardStats
-          stats={statsMock}
-          onStatClick={(key) => {
-            switch (key) {
-              case "totalPublications":
-                router.push("/publications");
-                break;
-              case "totalProjects":
-                router.push("/projects");
-                break;
-              case "profileViews":
-                router.push("/analytics");
-                break;
-              case "recentActivities":
-                router.push("/analytics");
-                break;
-              default:
-                break;
-            }
-          }}
-        />
+      {/* Summary Stats (non-interactive) */}
+      <Box sx={{ mb: 3 }}>
+        <DashboardStats stats={statsMock} />
       </Box>
 
       {/* Main Grid */}
       <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
         {/* Left Column */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Box sx={{ mb: { xs: 2, md: 0 } }}>
-            <RecentWork
-              projects={projectsMock}
-              publications={publicationsMock}
-              onViewAllProjects={() => router.push("/projects")}
-              onViewAllPublications={() => router.push("/publications")}
-              onProjectClick={(p) => router.push(`/projects/${p.id}`)}
-              onPublicationClick={() => router.push(`/publications`)}
+          <Box sx={{ mb: { xs: 3, md: 0 } }}>
+            <RecentProjects
+              items={projectsMock}
+              onViewAll={handleViewProjects}
+              onItemClick={handleProjectClick}
+              loading={false}
             />
           </Box>
         </Grid>
 
         {/* Right Sidebar */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Box sx={{ mb: 2 }}>
-            <QuickActions
-              onAddPublication={() => router.push("/publications/new")}
-              onAddProject={() => router.push("/projects/new")}
-              onEditProfile={() => router.push("/profile")}
-              onViewAnalytics={() => router.push("/analytics")}
-            />
+          <Box sx={{ mb: 3 }}>
+            <QuickActions onAddProject={handleAddProject} onEditProfile={handleEditProfile} />
           </Box>
           <Box>
             <ActivityFeed items={activitiesMock} />

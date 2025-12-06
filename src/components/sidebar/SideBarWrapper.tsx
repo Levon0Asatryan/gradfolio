@@ -1,6 +1,6 @@
 "use client";
 
-import { type FC, Fragment, type ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { type FC, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type ImperativePanelGroupHandle,
   type ImperativePanelHandle,
@@ -9,11 +9,8 @@ import {
   PanelResizeHandle,
 } from "react-resizable-panels";
 import { COMPONENT_ID } from "@/components/sidebar/utils/constants/constants";
-import { useTheme, Divider, IconButton, Tooltip, useMediaQuery, type Theme } from "@mui/material";
-import NoSsr from "@mui/material/NoSsr";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { DarkModeContext } from "@/components/theme/ThemeWrapper";
+import { useTheme, Divider, useMediaQuery } from "@mui/material";
+
 import {
   navbarCollapsedDefaultSize,
   useLayoutConfigHook,
@@ -38,7 +35,6 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { mode, toggleMode } = useContext(DarkModeContext);
 
   useEffect(() => {
     setMounted(true);
@@ -67,22 +63,6 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
       return (
         <Fragment>
           <div style={{ minHeight: "100vh" }}>{children}</div>
-          <NoSsr>
-            <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-              <IconButton
-                aria-label="toggle dark mode"
-                onClick={toggleMode}
-                sx={iconStyle}
-                size="small"
-              >
-                {mode === "dark" ? (
-                  <LightModeIcon fontSize="small" />
-                ) : (
-                  <DarkModeIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          </NoSsr>
         </Fragment>
       );
     }
@@ -101,22 +81,6 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
         >
           {children}
         </div>
-        <NoSsr>
-          <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-            <IconButton
-              aria-label="toggle dark mode"
-              onClick={toggleMode}
-              sx={iconStyle}
-              size="small"
-            >
-              {mode === "dark" ? (
-                <LightModeIcon fontSize="small" />
-              ) : (
-                <DarkModeIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </NoSsr>
       </Fragment>
     );
   }
@@ -181,34 +145,6 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
           {children}
         </Panel>
       </PanelGroup>
-
-      <NoSsr>
-        <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-          <IconButton
-            aria-label="toggle dark mode"
-            onClick={toggleMode}
-            sx={iconStyle}
-            size="small"
-          >
-            {mode === "dark" ? (
-              <LightModeIcon fontSize="small" />
-            ) : (
-              <DarkModeIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
-      </NoSsr>
     </Fragment>
   );
-};
-
-const iconStyle = {
-  top: 8,
-  right: 8,
-  boxShadow: 2,
-  position: "fixed",
-  zIndex: (theme: Theme) => theme.zIndex.modal + 1,
-  bgcolor: (theme: Theme) => theme.palette.background.paper,
-  color: (theme: Theme) => theme.palette.text.primary,
-  "&:hover": { bgcolor: (theme: Theme) => theme.palette.action.hover },
 };

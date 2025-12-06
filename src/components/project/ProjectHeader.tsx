@@ -54,6 +54,7 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         {repo?.url && (
           <Button
+            component="a"
             variant="contained"
             color="primary"
             href={repo.url}
@@ -66,6 +67,7 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
         )}
         {liveDemoUrl && (
           <Button
+            component="a"
             variant="outlined"
             href={liveDemoUrl}
             target="_blank"

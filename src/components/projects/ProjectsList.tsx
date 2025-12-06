@@ -9,9 +9,10 @@ import type { ProjectDetailData } from "@/data/project.mock";
 export interface ProjectsListProps {
   projects: ProjectDetailData[];
   onAddProject?: () => void; // non-functional placeholder
+  searchQuery?: string;
 }
 
-const ProjectsList: FC<ProjectsListProps> = ({ projects, onAddProject }) => {
+const ProjectsList: FC<ProjectsListProps> = ({ projects, onAddProject, searchQuery }) => {
   if (!projects || projects.length === 0) {
     return (
       <Container sx={{ py: 4 }}>
@@ -35,7 +36,7 @@ const ProjectsList: FC<ProjectsListProps> = ({ projects, onAddProject }) => {
       <Grid container spacing={2} columns={{ xs: 12, sm: 12, md: 12 }}>
         {projects.map((p) => (
           <Grid key={p.id} size={{ xs: 12, sm: 6, md: 4 }}>
-            <ProjectCard project={p} />
+            <ProjectCard project={p} highlightQuery={searchQuery} />
           </Grid>
         ))}
       </Grid>

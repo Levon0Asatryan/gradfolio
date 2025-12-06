@@ -1,12 +1,3 @@
-export interface Publication {
-  id: string;
-  title: string;
-  journal: string;
-  date: string;
-  authors: string[];
-  status: "published" | "inReview" | "draft";
-}
-
 export interface Project {
   id: string;
   title: string;
@@ -18,15 +9,15 @@ export interface Project {
 
 export interface Activity {
   id: string;
-  type: "publication" | "project" | "profile";
+  type: "project" | "profile";
   action: string;
   timestamp: string;
   details?: string;
 }
 
 export interface DashboardStats {
-  totalPublications: number;
   totalProjects: number;
-  profileViews: number;
+  githubStars: number;
+  linkedinConnections: number;
   recentActivities: number;
 }
