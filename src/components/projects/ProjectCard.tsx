@@ -74,6 +74,21 @@ function formatDate(date?: string) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short" });
 }
 
+const cardSx = (theme: any) => ({
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  "&:hover": {
+    transform: "translateY(-4px)",
+    boxShadow: theme.shadows[4],
+    borderColor: "primary.main",
+    "& .hero-image": {
+      transform: "scale(1.05)",
+    },
+  },
+});
+
 const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
   const href = `/projects/${id}`;
@@ -96,20 +111,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
       variant="outlined"
       component="article"
       aria-label={`Project ${title}`}
-      sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: (theme) => theme.shadows[4],
-          borderColor: "primary.main",
-          "& .hero-image": {
-            transform: "scale(1.05)",
-          },
-        },
-      }}
+      sx={cardSx}
     >
       <CardActionArea
         component={Link}

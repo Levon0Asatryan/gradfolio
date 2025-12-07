@@ -20,6 +20,18 @@ interface StatCardProps {
   icon: ReactElement;
 }
 
+const iconContainerSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 40,
+  height: 40,
+  color: "primary.main",
+  opacity: 0.8,
+  bgcolor: "action.hover",
+  borderRadius: "50%",
+};
+
 const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
   const isEmpty = value === undefined || value === null;
   return (
@@ -43,19 +55,7 @@ const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
             >
               {label}
             </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 40,
-                height: 40,
-                color: "primary.main",
-                opacity: 0.8,
-                bgcolor: "action.hover",
-                borderRadius: "50%",
-              }}
-            >
+            <Box sx={iconContainerSx}>
               {icon}
             </Box>
           </Stack>

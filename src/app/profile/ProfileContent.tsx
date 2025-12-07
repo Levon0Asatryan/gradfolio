@@ -19,6 +19,33 @@ import ProjectsGrid from "@/components/profile/ProjectsGrid";
 import CertificationsList from "@/components/profile/CertificationsList";
 import SkillsChips from "@/components/profile/SkillsChips";
 
+const toggleButtonGroupStyles = {
+  backgroundColor: "background.paper",
+  boxShadow: 2,
+  borderRadius: 2,
+  "& .MuiToggleButton-root": {
+    px: 3,
+    py: 1,
+    border: "none",
+    textTransform: "none",
+    fontWeight: 500,
+    gap: 1,
+    "&.Mui-selected": {
+      backgroundColor: "primary.main",
+      color: "primary.contrastText",
+      "&:hover": {
+        backgroundColor: "primary.dark",
+      },
+    },
+    "&:not(.Mui-selected)": {
+      color: "text.secondary",
+      "&:hover": {
+        backgroundColor: "action.hover",
+      },
+    },
+  },
+};
+
 export default function ProfileContent() {
   const [data, setData] = useState<ProfileData>(profileMock);
   const [isEditing, setIsEditing] = useState(false);
@@ -32,6 +59,15 @@ export default function ProfileContent() {
       updateField(field, value);
     },
     [updateField],
+  );
+
+  const handleModeChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, newValue: string | null) => {
+      if (newValue !== null) {
+        setIsEditing(newValue === "edit");
+      }
+    },
+    [],
   );
 
   return (
@@ -49,38 +85,9 @@ export default function ProfileContent() {
         <ToggleButtonGroup
           value={isEditing ? "edit" : "preview"}
           exclusive
-          onChange={(_, newValue) => {
-            if (newValue !== null) {
-              setIsEditing(newValue === "edit");
-            }
-          }}
+          onChange={handleModeChange}
           aria-label="profile mode"
-          sx={{
-            backgroundColor: "background.paper",
-            boxShadow: 2,
-            borderRadius: 2,
-            "& .MuiToggleButton-root": {
-              px: 3,
-              py: 1,
-              border: "none",
-              textTransform: "none",
-              fontWeight: 500,
-              gap: 1,
-              "&.Mui-selected": {
-                backgroundColor: "primary.main",
-                color: "primary.contrastText",
-                "&:hover": {
-                  backgroundColor: "primary.dark",
-                },
-              },
-              "&:not(.Mui-selected)": {
-                color: "text.secondary",
-                "&:hover": {
-                  backgroundColor: "action.hover",
-                },
-              },
-            },
-          }}
+          sx={toggleButtonGroupStyles}
         >
           <ToggleButton value="preview" aria-label="preview mode">
             <VisibilityIcon fontSize="small" />

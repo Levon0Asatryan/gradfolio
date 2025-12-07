@@ -10,6 +10,25 @@ export interface ThemeToggleButtonProps {
   collapsed?: boolean;
 }
 
+const getButtonSx = (collapsed: boolean) => (theme: any) => ({
+  px: 1,
+  py: 0.5,
+  minHeight: 40,
+  justifyContent: collapsed ? "center" : "flex-start",
+  borderRadius: 1,
+  color: theme.palette.text.secondary,
+  transition: "all 0.3s ease",
+  "& .MuiListItemIcon-root": {
+    minWidth: collapsed ? 0 : "auto",
+    mr: collapsed ? 0 : 1.5,
+    color: "inherit",
+  },
+  "&:hover": {
+    bgcolor: theme.palette.action.hover,
+    transform: "translateY(-1px)",
+  },
+});
+
 const ThemeToggleButton: FC<ThemeToggleButtonProps> = ({ collapsed = false }) => {
   const { mode, toggleMode } = useContext(DarkModeContext);
   const isDark = mode === "dark";
@@ -17,24 +36,7 @@ const ThemeToggleButton: FC<ThemeToggleButtonProps> = ({ collapsed = false }) =>
   return (
     <ListItemButton
       onClick={toggleMode}
-      sx={(theme) => ({
-        px: 1,
-        py: 0.5,
-        minHeight: 40,
-        justifyContent: collapsed ? "center" : "flex-start",
-        borderRadius: 1,
-        color: theme.palette.text.secondary,
-        transition: "all 0.3s ease",
-        "& .MuiListItemIcon-root": {
-          minWidth: collapsed ? 0 : "auto",
-          mr: collapsed ? 0 : 1.5,
-          color: "inherit",
-        },
-        "&:hover": {
-          bgcolor: theme.palette.action.hover,
-          transform: "translateY(-1px)",
-        },
-      })}
+      sx={getButtonSx(collapsed)}
     >
       <ListItemIcon>
         <Box
