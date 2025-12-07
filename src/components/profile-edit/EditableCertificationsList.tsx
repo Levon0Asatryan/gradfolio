@@ -2,6 +2,7 @@
 
 import { FC, memo, useCallback } from "react";
 import { Box, Button, IconButton, Stack, Typography, Divider } from "@mui/material";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SectionCard from "@/components/profile/shared/SectionCard";
@@ -14,6 +15,7 @@ export interface EditableCertificationsListProps {
 }
 
 const EditableCertificationsList: FC<EditableCertificationsListProps> = ({ items, onUpdate }) => {
+  const { t } = useLanguage();
   const handleUpdateItem = useCallback(
     (id: string, field: keyof Certification, value: any) => {
       const newItems = items.map((item) => {
@@ -46,10 +48,10 @@ const EditableCertificationsList: FC<EditableCertificationsListProps> = ({ items
 
   return (
     <SectionCard
-      title="Certifications"
+      title={t.profile.certifications}
       action={
         <Button startIcon={<AddIcon />} size="small" onClick={handleAddItem}>
-          Add
+          {t.profile.add}
         </Button>
       }
     >

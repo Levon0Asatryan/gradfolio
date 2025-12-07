@@ -17,7 +17,10 @@ export type StepReposProps = {
   onReposChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export const StepRepos: React.FC<StepReposProps> = ({ reposText, onReposChange }) => {
+  const { t } = useLanguage();
   const repoLines = useMemo(() => {
     return (reposText || "")
       .split(/\r?\n/)
@@ -28,11 +31,11 @@ export const StepRepos: React.FC<StepReposProps> = ({ reposText, onReposChange }
   return (
     <Stack spacing={2} sx={{ py: 1 }}>
       <Typography variant="h6" fontWeight={600}>
-        Projects (GitHub Repos)
+        {t.integrations.steps.repos.title}
       </Typography>
       <TextField
-        label="Repositories"
-        placeholder={`Paste repo URLs or names, one per line`}
+        label={t.integrations.steps.repos.label}
+        placeholder={t.integrations.steps.repos.placeholder}
         value={reposText}
         onChange={onReposChange}
         fullWidth
@@ -53,11 +56,11 @@ export const StepRepos: React.FC<StepReposProps> = ({ reposText, onReposChange }
         </List>
       ) : (
         <Typography variant="body2" color="text.disabled">
-          No repositories added yet. Paste one per line above.
+          {t.integrations.steps.repos.empty}
         </Typography>
       )}
       <Typography variant="body2" color="text.secondary">
-        You can link repos now or skip and add them later from the Projects section.
+        {t.integrations.steps.repos.hint}
       </Typography>
     </Stack>
   );

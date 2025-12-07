@@ -16,6 +16,7 @@ import {
 import GitHub from "@mui/icons-material/GitHub";
 import LinkedIn from "@mui/icons-material/LinkedIn";
 import type { IntegrationId, IntegrationStatus } from "@/data/integrations.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface IntegrationCardProps {
   id: IntegrationId;
@@ -25,6 +26,7 @@ export interface IntegrationCardProps {
   lastSyncedAt?: string;
   onConnect: (id: IntegrationId) => void;
   onDisconnect: (id: IntegrationId) => void;
+  docUrl?: string;
 }
 
 const cardSx: SxProps<Theme> = (theme) => ({
@@ -84,14 +86,16 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
   lastSyncedAt,
   onConnect,
   onDisconnect,
+  docUrl,
 }) => {
+  const { t } = useLanguage();
   const isConnected = status === "connected";
 
   const StatusChip = useMemo(() => {
     const color = isConnected ? "success" : "default";
-    const label = isConnected ? "Connected" : "Not connected";
+    const label = isConnected ? t.integrations.connected : t.integrations.notConnected;
     return <Chip size="small" color={color} label={label} />;
-  }, [isConnected]);
+  }, [isConnected, t]);
 
   const handlePrimaryClick = useCallback(() => {
     if (isConnected) {
@@ -100,6 +104,12 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
       onConnect(id);
     }
   }, [id, isConnected, onConnect, onDisconnect]);
+
+  const handleLearnMoreClick = useCallback(() => {
+    if (docUrl) {
+      window.open(docUrl, "_blank", "noopener,noreferrer");
+    }
+  }, [docUrl]);
 
   const ProviderIcon = useMemo(() => {
     if (id === "github") return <GitHub fontSize="small" />;
@@ -113,10 +123,10 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
     const formatted = isNaN(d.getTime()) ? lastSyncedAt : d.toLocaleString();
     return (
       <Typography variant="caption" color="text.secondary">
-        Last synced: {formatted}
+        {t.integrations.lastSynced} {formatted}
       </Typography>
     );
-  }, [lastSyncedAt]);
+  }, [lastSyncedAt, t]);
 
   return (
     <Card component="section" variant="outlined" sx={cardSx}>
@@ -145,10 +155,16 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
             color={isConnected ? "inherit" : "primary"}
             onClick={handlePrimaryClick}
           >
-            {isConnected ? "Disconnect" : "Connect"}
+            {isConnected ? t.integrations.disconnect : t.integrations.connect}
           </Button>
-          <Button variant="text" color="secondary" size="small">
-            Learn more
+          <Button
+            variant="text"
+            color="secondary"
+            size="small"
+            onClick={handleLearnMoreClick}
+            disabled={!docUrl}
+          >
+            {t.integrations.buttons.learnMore}
           </Button>
         </Stack>
         {/* Placeholder for potential secondary actions or badges */}

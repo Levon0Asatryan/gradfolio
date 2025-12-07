@@ -1,8 +1,11 @@
+import { Metadata } from "next";
+import ExplorePage from "@/components/search/ExplorePage";
+
+export const metadata: Metadata = {
+  title: "Explore | Gradfolio",
+  description: "Discover and explore portfolios and projects.",
+};
+
 export default function SearchPage() {
-  return (
-    <main style={{ padding: 24 }}>
-      <h1>Explore Portfolios</h1>
-      <p>Discover and explore public portfolios. Use filters and search to find inspiration.</p>
-    </main>
-  );
+  return <ExplorePage />;
 }

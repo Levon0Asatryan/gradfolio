@@ -7,6 +7,7 @@ import IntegrationCard from "@/components/integrations/IntegrationCard";
 import ConnectIntegrationDialog from "@/components/integrations/ConnectIntegrationDialog";
 import ConfirmDisconnectDialog from "@/components/integrations/ConfirmDisconnectDialog";
 import { integrationsMock, type Integration, type IntegrationId } from "@/data/integrations.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 const containerSx: SxProps<Theme> = (theme) => ({
   py: 3,
@@ -40,6 +41,7 @@ const emptyStateSx: SxProps<Theme> = () => ({
  * mock local state for connecting/disconnecting and informational context.
  */
 const IntegrationsPage: FC = () => {
+  const { t } = useLanguage();
   const [integrations, setIntegrations] = useState<Integration[]>(integrationsMock);
   const [connectOpen, setConnectOpen] = useState<boolean>(false);
   const [disconnectOpen, setDisconnectOpen] = useState<boolean>(false);
@@ -119,15 +121,16 @@ const IntegrationsPage: FC = () => {
         <IntegrationCard
           id={it.id}
           name={it.name}
-          description={it.description}
+          description={t.integrations.descriptions[it.id]}
           status={it.status}
           lastSyncedAt={it.lastSyncedAt}
           onConnect={openConnect}
           onDisconnect={openDisconnect}
+          docUrl={it.docUrl}
         />
       </Grid>
     ),
-    [openConnect, openDisconnect],
+    [openConnect, openDisconnect, t],
   );
 
   if (!integrations || integrations.length === 0) {
@@ -135,16 +138,15 @@ const IntegrationsPage: FC = () => {
       <Container maxWidth="md" sx={containerSx}>
         <Stack sx={headerSx}>
           <Typography component="h1" variant="h4">
-            Integrations
+            {t.integrations.title}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Connect your LinkedIn and GitHub accounts to import your profile data and repositories,
-            and add verification badges to your portfolio.
+            {t.integrations.subtitle}
           </Typography>
         </Stack>
         <Box sx={emptyStateSx}>
           <Typography variant="body1" color="text.secondary">
-            No integrations available.
+            {t.integrations.emptyState}
           </Typography>
         </Box>
       </Container>
@@ -155,20 +157,16 @@ const IntegrationsPage: FC = () => {
     <Container maxWidth="md" sx={containerSx}>
       <Stack sx={headerSx}>
         <Typography component="h1" variant="h4">
-          Integrations
+          {t.integrations.title}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Connect LinkedIn and GitHub. Connected integrations enable data import (LinkedIn profile
-          data, GitHub repositories) and a verification badge on your profile.
+          {t.integrations.subtitle}
         </Typography>
       </Stack>
 
       {noneConnected && (
         <Box role="status" aria-live="polite" sx={infoTextSx}>
-          <Typography variant="body2">
-            You haven’t connected any integrations yet. Connect LinkedIn or GitHub to quickly import
-            your data and add verification to your portfolio.
-          </Typography>
+          <Typography variant="body2">{t.integrations.infoText}</Typography>
         </Box>
       )}
 

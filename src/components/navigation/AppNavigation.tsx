@@ -21,10 +21,11 @@ import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInst
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
 import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
+import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import { TypographyWithTooltip } from "@/components/text/TypographyWithTooltip";
-import ThemeToggleButton from "./ThemeToggleButton";
 import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { useContext } from "react";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 interface NavItem {
   label: string;
@@ -44,35 +45,36 @@ const normalize = (path: string) => {
 
 export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => {
   const { mode } = useContext(DarkModeContext);
+  const { t } = useLanguage();
   const pathname = usePathname();
 
   const items: NavItem[] = useMemo(
     () => [
-      { label: "Dashboard", href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
-      { label: "Auth0 Login", href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
+      { label: t.common.dashboard, href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
+      { label: t.common.login, href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
       {
-        label: "Login Connections",
+        label: t.common.loginConnections,
         href: "/integrations/connections",
         icon: <LinkOutlined fontSize="small" />,
       },
       {
-        label: "My Account",
-        href: "/profile",
+        label: t.common.myAccount,
+        href: "/profile/u_001",
         icon: <AccountCircleOutlined fontSize="small" />,
       },
-      { label: "Projects", href: "/projects", icon: <FolderOutlined fontSize="small" /> },
+      { label: t.common.projects, href: "/projects", icon: <FolderOutlined fontSize="small" /> },
       {
-        label: "Integrations",
+        label: t.common.integrations,
         href: "/integrations",
         icon: <IntegrationInstructionsOutlined fontSize="small" />,
       },
       {
-        label: "Explore Portfolios",
+        label: t.common.explorePortfolios,
         href: "/search",
         icon: <TravelExploreOutlined fontSize="small" />,
       },
     ],
-    [],
+    [t],
   );
 
   const current = normalize(pathname ?? "/");
@@ -85,6 +87,11 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
     for (const item of items) {
       const t = normalize(item.href);
       if (cur === t || cur.startsWith(t + "/")) {
+        // Special case: Only highlight Projects for "my" projects (starting with prj_)
+        if (t === "/projects" && cur !== "/projects" && !cur.includes("/prj_")) {
+          continue;
+        }
+
         if (t.length > bestLen) {
           best = t;
           bestLen = t.length;
@@ -179,7 +186,51 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
         })}
       </List>
       <Stack sx={{ p: 2, mt: "auto" }}>
-        <ThemeToggleButton collapsed={collapsed} />
+        <ListItemButton
+          component={Link}
+          href="/settings"
+          selected={normalize("/settings") === activeHref}
+          sx={(theme) => ({
+            px: 1,
+            py: 0.5,
+            minHeight: 40,
+            justifyContent: collapsed ? "center" : "flex-start",
+            borderRadius: 1,
+            color: theme.palette.text.secondary,
+            transition: "all 0.3s ease",
+            "& .MuiListItemIcon-root": {
+              minWidth: collapsed ? 0 : "auto",
+              mr: collapsed ? 0 : 1.5,
+              color: "inherit",
+            },
+            "& .MuiListItemIcon-root svg": {
+              fontSize: 20,
+            },
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+              transform: "translateY(-1px)",
+            },
+            "&.Mui-selected": {
+              backgroundColor: theme.palette.action.selected,
+              "&:hover": {
+                backgroundColor: theme.palette.action.selected,
+              },
+            },
+          })}
+        >
+          <ListItemIcon
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SettingsOutlined fontSize="small" />
+          </ListItemIcon>
+          {!collapsed && (
+            <TypographyWithTooltip variant="body2" placement="right" title={t.common.settings} />
+          )}
+        </ListItemButton>
       </Stack>
     </Stack>
   );

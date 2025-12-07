@@ -6,31 +6,34 @@ import SectionCard from "./shared/SectionCard";
 import DetailDialog from "./shared/DetailDialog";
 import type { Experience } from "@/data/profile.mock";
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export interface ExperienceListProps {
   items: Experience[];
 }
 
-function formatRange(start?: string, end?: string) {
-  const fmt = (s?: string) =>
-    s ? new Date(s + "-01").toLocaleString(undefined, { year: "numeric", month: "short" }) : "";
-  const s = fmt(start);
-  const e = end ? fmt(end) : "Present";
-  return `${s} – ${e}`;
-}
-
 const ExperienceList: FC<ExperienceListProps> = ({ items }) => {
   const [openId, setOpenId] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const onOpen = useCallback((id: string) => setOpenId(id), []);
   const onClose = useCallback(() => setOpenId(null), []);
 
   const active = useMemo(() => items.find((e) => e.id === openId), [items, openId]);
 
+  const formatRange = (start?: string, end?: string) => {
+    const fmt = (s?: string) =>
+      s ? new Date(s + "-01").toLocaleString(undefined, { year: "numeric", month: "short" }) : "";
+    const s = fmt(start);
+    const e = end ? fmt(end) : t.common.present;
+    return `${s} – ${e}`;
+  };
+
   return (
-    <SectionCard title="Experience">
+    <SectionCard title={t.profile.experience}>
       {items.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No experience listed yet.
+          {t.profile.noExperience}
         </Typography>
       ) : (
         <List sx={{ py: 0 }}>
@@ -40,11 +43,11 @@ const ExperienceList: FC<ExperienceListProps> = ({ items }) => {
               divider
               secondaryAction={
                 <Button
-                  aria-label={`View details for ${exp.title} at ${exp.organization}`}
+                  aria-label={`${t.common.details} for ${exp.title} at ${exp.organization}`}
                   onClick={() => onOpen(exp.id)}
                   size="small"
                 >
-                  Details
+                  {t.common.details}
                 </Button>
               }
             >
@@ -68,7 +71,7 @@ const ExperienceList: FC<ExperienceListProps> = ({ items }) => {
 
       <DetailDialog
         open={Boolean(active)}
-        title={active ? active.title : "Experience"}
+        title={active ? active.title : t.profile.experience}
         onClose={onClose}
       >
         {active && (

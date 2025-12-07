@@ -8,6 +8,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import type { DashboardStats as DashboardStatsType } from "@/utils/types/dashboard.types";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -71,28 +72,30 @@ const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
 };
 
 const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading }) => {
+  const { t } = useLanguage();
+
   const items = [
     {
       key: "totalProjects" as const,
-      label: "Projects",
+      label: t.dashboard.stats.totalProjects,
       value: stats?.totalProjects,
       icon: <FolderIcon />,
     },
     {
       key: "githubStars" as const,
-      label: "GitHub Stars",
+      label: t.dashboard.stats.githubStars,
       value: stats?.githubStars,
       icon: <GitHubIcon />,
     },
     {
       key: "linkedinConnections" as const,
-      label: "Connections",
+      label: t.dashboard.stats.linkedinConnections,
       value: stats?.linkedinConnections,
       icon: <LinkedInIcon />,
     },
     {
       key: "recentActivities" as const,
-      label: "Activity",
+      label: t.dashboard.stats.recentActivities,
       value: stats?.recentActivities,
       icon: <TrendingUpIcon />,
     },

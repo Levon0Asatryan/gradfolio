@@ -24,6 +24,8 @@ export type StepBasicInfoProps = {
 
 const shrinkLabelProps = { shrink: true } as const;
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
   fullName,
   email,
@@ -42,40 +44,42 @@ export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
   nameError,
   emailError,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Stack spacing={2} sx={{ py: 1 }}>
       <Typography variant="h6" fontWeight={600}>
-        Basic Info
+        {t.integrations.steps.basic.title}
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box sx={{ gridColumn: "1 / -1" }}>
           <TextField
-            label="Full name"
+            label={t.integrations.steps.basic.fullName}
             value={fullName}
             onChange={onFullNameChange}
             required
             error={nameError}
-            helperText={nameError ? "Full name is required" : " "}
+            helperText={nameError ? t.integrations.steps.basic.fullNameRequired : " "}
             fullWidth
             size="small"
           />
         </Box>
         <Box>
           <TextField
-            label="Email"
+            label={t.integrations.steps.basic.email}
             type="email"
             value={email}
             onChange={onEmailChange}
             required
             error={emailError}
-            helperText={emailError ? "Enter a valid email" : " "}
+            helperText={emailError ? t.integrations.steps.basic.emailInvalid : " "}
             fullWidth
             size="small"
           />
         </Box>
         <Box>
           <TextField
-            label="Birthday"
+            label={t.integrations.steps.basic.birthday}
             type="date"
             value={birthday}
             onChange={onBirthdayChange}
@@ -86,7 +90,7 @@ export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
         </Box>
         <Box>
           <TextField
-            label="GitHub URL"
+            label={t.integrations.steps.basic.github}
             placeholder="https://github.com/username"
             value={githubUrl}
             onChange={onGithubUrlChange}
@@ -96,7 +100,7 @@ export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
         </Box>
         <Box>
           <TextField
-            label="LinkedIn URL"
+            label={t.integrations.steps.basic.linkedin}
             placeholder="https://linkedin.com/in/username"
             value={linkedinUrl}
             onChange={onLinkedinUrlChange}
@@ -105,11 +109,17 @@ export const StepBasicInfo: React.FC<StepBasicInfoProps> = ({
           />
         </Box>
         <Box>
-          <TextField label="Phone" value={phone} onChange={onPhoneChange} fullWidth size="small" />
+          <TextField
+            label={t.integrations.steps.basic.phone}
+            value={phone}
+            onChange={onPhoneChange}
+            fullWidth
+            size="small"
+          />
         </Box>
         <Box>
           <TextField
-            label="Website"
+            label={t.integrations.steps.basic.website}
             placeholder="https://your-site.com"
             value={website}
             onChange={onWebsiteChange}

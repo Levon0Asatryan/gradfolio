@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SectionCard from "@/components/profile/shared/SectionCard";
 import EditableEducationItem from "./EditableEducationItem";
 import type { Education } from "@/data/profile.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface EditableEducationListProps {
   items: Education[];
@@ -13,6 +14,8 @@ export interface EditableEducationListProps {
 }
 
 const EditableEducationList: FC<EditableEducationListProps> = ({ items, onUpdate }) => {
+  const { t } = useLanguage();
+
   const handleUpdateItem = useCallback(
     (updatedItem: Education) => {
       onUpdate(items.map((item) => (item.id === updatedItem.id ? updatedItem : item)));
@@ -51,7 +54,7 @@ const EditableEducationList: FC<EditableEducationListProps> = ({ items, onUpdate
     >
       {items.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          No education entries. Click Add to start.
+          {t.profile.noEducation}
         </Typography>
       )}
 

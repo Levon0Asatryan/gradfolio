@@ -20,6 +20,24 @@ export interface Experience {
   skills?: string[];
 }
 
+export type AttachmentType = "image" | "video" | "pdf" | "link";
+
+export interface ProjectAttachment {
+  id: string;
+  type: AttachmentType;
+  url: string;
+  title?: string;
+  thumbnailUrl?: string;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  profileUrl?: string; // e.g. /profile/id
+  role?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -27,6 +45,8 @@ export interface Project {
   category: "academic" | "personal" | "research" | "other";
   tags: string[];
   href?: string;
+  attachments?: ProjectAttachment[];
+  team?: TeamMember[];
 }
 
 export interface Certification {
@@ -127,7 +147,6 @@ export const profileMock: ProfileData = {
       summary:
         "A Next.js app that suggests eco-friendly routes using OpenStreetMap and CO2 estimates.",
       tags: ["Next.js", "TypeScript", "Mapbox", "Vercel"],
-      href: "https://example.com/projects/ecoroute",
     },
     {
       id: "prj_2",

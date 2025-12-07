@@ -6,6 +6,7 @@ import Grid from "@mui/material/Grid";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import type { Project } from "@/utils/types/dashboard.types";
 import { formatDate } from "@/utils/helpers/formatDate";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface RecentProjectsProps {
   items?: Project[];
@@ -35,6 +36,8 @@ const RecentProjects: FC<RecentProjectsProps> = ({
   loading,
   onItemClick,
 }) => {
+  const { t } = useLanguage();
+
   const top = useMemo<Project[]>(() => {
     if (items.length === 0) return [];
     return [...items]
@@ -46,13 +49,13 @@ const RecentProjects: FC<RecentProjectsProps> = ({
     return (
       <Card
         component="section"
-        aria-label="Recent Projects"
+        aria-label={t.dashboard.recentProjects}
         variant="outlined"
         sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
       >
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography variant="h6">Recent Projects</Typography>
+            <Typography variant="h6">{t.dashboard.recentProjects}</Typography>
             <Skeleton variant="text" width={60} height={20} />
           </Stack>
           <Stack spacing={1.5}>
@@ -84,26 +87,26 @@ const RecentProjects: FC<RecentProjectsProps> = ({
     return (
       <Card
         component="section"
-        aria-label="Recent Projects"
+        aria-label={t.dashboard.recentProjects}
         variant="outlined"
         sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
       >
         <CardContent>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography variant="h6">Recent Projects</Typography>
+            <Typography variant="h6">{t.dashboard.recentProjects}</Typography>
             <Link
               component="button"
               variant="body2"
               onClick={onViewAll}
               sx={{ textDecoration: "none" }}
             >
-              View All
+              {t.common.viewAll}
             </Link>
           </Stack>
           <Box sx={{ textAlign: "center", py: 5 }}>
             <FolderOpenIcon color="disabled" sx={{ fontSize: 48, mb: 1 }} />
             <Typography variant="body2" color="text.secondary">
-              No projects yet
+              {t.common.noProjectsYet}
             </Typography>
           </Box>
         </CardContent>
@@ -114,20 +117,20 @@ const RecentProjects: FC<RecentProjectsProps> = ({
   return (
     <Card
       component="section"
-      aria-label="Recent Projects"
+      aria-label={t.dashboard.recentProjects}
       variant="outlined"
       sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
     >
       <CardContent>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Typography variant="h6">Recent Projects</Typography>
+          <Typography variant="h6">{t.dashboard.recentProjects}</Typography>
           <Link
             component="button"
             variant="body2"
             onClick={onViewAll}
             sx={{ textDecoration: "none" }}
           >
-            View All
+            {t.common.viewAll}
           </Link>
         </Stack>
         <Grid container spacing={1.5} columns={{ xs: 12 }}>
@@ -168,7 +171,9 @@ const RecentProjects: FC<RecentProjectsProps> = ({
                   </Typography>
                   <Chip
                     size="small"
-                    label={p.status}
+                    label={
+                      t.projects.status[p.status as keyof typeof t.projects.status] || p.status
+                    }
                     color={statusToColor(p.status)}
                     variant="outlined"
                   />

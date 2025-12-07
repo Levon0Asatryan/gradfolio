@@ -13,6 +13,7 @@ export interface Integration {
   description: string;
   status: IntegrationStatus;
   lastSyncedAt?: string;
+  docUrl?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export const integrationsMock: Integration[] = [
     description:
       "Import education, experience, certifications, and skills. Enables profile verification.",
     status: "not_connected",
+    docUrl: "https://www.linkedin.com/help/linkedin/answer/a1339724",
   },
   {
     id: "github",
@@ -33,5 +35,6 @@ export const integrationsMock: Integration[] = [
       "Import repositories to create project entries. Verifies coding projects on your portfolio.",
     status: "connected",
     lastSyncedAt: "2025-01-15T10:00:00.000Z",
+    docUrl: "https://docs.github.com/en/apps",
   },
 ];

@@ -33,13 +33,15 @@ export const activitiesMock: Activity[] = [
   {
     id: "act-2",
     type: "project",
-    action: 'Updated project "Academic Portfolio Platform"',
+    translationKey: "projectUpdated",
+    translationParams: { name: "Academic Portfolio Platform" },
     timestamp: "2025-12-06T18:00:00.000Z", // 3 hours ago from reference
   },
   {
     id: "act-3",
     type: "profile",
-    action: "Profile viewed 18 times",
+    translationKey: "profileViewed",
+    translationParams: { count: 18 },
     timestamp: "2025-12-06T12:00:00.000Z", // 9 hours ago from reference
   },
 ];

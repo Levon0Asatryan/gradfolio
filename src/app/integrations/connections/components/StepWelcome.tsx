@@ -7,6 +7,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { TextType } from "@/components/text/TextType";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export type StepWelcomeProps = {
   ghImported: boolean;
@@ -32,11 +33,13 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
   githubColor = GITHUB_FALLBACK,
   linkedinColor = LINKEDIN_FALLBACK,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Stack spacing={2} sx={{ py: 1 }}>
       <Stack>
         <TextType
-          text={["Welcome to the Gradfolio!"]}
+          text={[t.integrations.steps.welcome]}
           variant="h5"
           typingSpeed={60}
           pauseDuration={600}
@@ -45,10 +48,7 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
           loop
           sx={{ height: 52 }}
         />
-        <Typography color="text.secondary">
-          Connect your GitHub or LinkedIn to auto-import data, or skip and fill things manually —
-          your call 🎯✨
-        </Typography>
+        <Typography color="text.secondary">{t.integrations.steps.welcomeSubtitle}</Typography>
       </Stack>
       <Stack spacing={1.25}>
         <Button
@@ -67,10 +67,10 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
           }}
         >
           {ghImported
-            ? "GitHub data imported"
+            ? t.integrations.steps.importedGithub
             : ghImporting
-              ? "Importing from GitHub..."
-              : "Import from GitHub"}
+              ? t.integrations.steps.importingGithub
+              : t.integrations.steps.importGithub}
         </Button>
         <Button
           variant="contained"
@@ -88,10 +88,10 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
           }}
         >
           {liImported
-            ? "LinkedIn data imported"
+            ? t.integrations.steps.importedLinkedin
             : liImporting
-              ? "Importing from LinkedIn..."
-              : "Import from LinkedIn"}
+              ? t.integrations.steps.importingLinkedin
+              : t.integrations.steps.importLinkedin}
         </Button>
       </Stack>
     </Stack>

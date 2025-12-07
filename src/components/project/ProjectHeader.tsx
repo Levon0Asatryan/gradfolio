@@ -13,6 +13,8 @@ export interface ProjectHeaderProps {
   liveDemoUrl?: string;
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const ProjectHeader: FC<ProjectHeaderProps> = ({
   title,
   aiSummary,
@@ -20,6 +22,8 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
   repo,
   liveDemoUrl,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Box component="header" aria-label="Project Header" sx={{ mb: 3 }}>
       {heroImageUrl && (
@@ -60,9 +64,9 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
             href={repo.url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="View GitHub repository"
+            aria-label={t.common.githubRepo}
           >
-            GitHub Repo
+            {t.common.githubRepo}
           </Button>
         )}
         {liveDemoUrl && (
@@ -72,9 +76,9 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
             href={liveDemoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Open live demo"
+            aria-label={t.common.liveDemo}
           >
-            Live Demo
+            {t.common.liveDemo}
           </Button>
         )}
       </Stack>

@@ -8,6 +8,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SectionCard from "@/components/profile/shared/SectionCard";
 import EditableText from "@/components/shared/EditableText";
 import type { Project } from "@/data/profile.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface EditableProjectsGridProps {
   items: Project[];
@@ -15,6 +16,8 @@ export interface EditableProjectsGridProps {
 }
 
 const EditableProjectsGrid: FC<EditableProjectsGridProps> = ({ items, onUpdate }) => {
+  const { t } = useLanguage();
+
   const handleUpdateItem = useCallback(
     (id: string, field: keyof Project, value: any) => {
       const newItems = items.map((item) => {
@@ -58,7 +61,7 @@ const EditableProjectsGrid: FC<EditableProjectsGridProps> = ({ items, onUpdate }
     >
       {items.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          No projects yet.
+          {t.profile.noProjects}
         </Typography>
       )}
 
@@ -81,13 +84,19 @@ const EditableProjectsGrid: FC<EditableProjectsGridProps> = ({ items, onUpdate }
                   variant="h6"
                   component="h3"
                   placeholder="Project Name"
+                  sx={{ display: "block" }}
                 />
                 <EditableText
                   value={project.category}
                   onChange={(val) => handleUpdateItem(project.id, "category", val)}
                   variant="caption"
                   component="div"
-                  sx={{ mb: 1, textTransform: "uppercase", color: "text.secondary" }}
+                  sx={{
+                    mb: 1,
+                    textTransform: "uppercase",
+                    color: "text.secondary",
+                    display: "block",
+                  }}
                   placeholder="Category"
                 />
                 <EditableText

@@ -7,6 +7,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SectionCard from "@/components/profile/shared/SectionCard";
 import EditableText from "@/components/shared/EditableText";
 import type { Experience } from "@/data/profile.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface EditableExperienceListProps {
   items: Experience[];
@@ -14,6 +15,8 @@ export interface EditableExperienceListProps {
 }
 
 const EditableExperienceList: FC<EditableExperienceListProps> = ({ items, onUpdate }) => {
+  const { t } = useLanguage();
+
   const handleUpdateItem = useCallback(
     (id: string, field: keyof Experience, value: any) => {
       const newItems = items.map((item) => {
@@ -101,7 +104,7 @@ const EditableExperienceList: FC<EditableExperienceListProps> = ({ items, onUpda
     >
       {items.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          No experience entries. Click Add to start.
+          {t.profile.noExperience}
         </Typography>
       )}
 
@@ -116,13 +119,14 @@ const EditableExperienceList: FC<EditableExperienceListProps> = ({ items, onUpda
                   onChange={(val) => handleUpdateItem(exp.id, "title", val)}
                   variant="subtitle1"
                   placeholder="Job Title"
-                  sx={{ fontWeight: "bold" }}
+                  sx={{ fontWeight: "bold", display: "block" }}
                 />
                 <EditableText
                   value={exp.organization}
                   onChange={(val) => handleUpdateItem(exp.id, "organization", val)}
                   variant="body2"
                   placeholder="Organization"
+                  sx={{ display: "block", mb: 0.5 }}
                 />
                 <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center" sx={{ mb: 1 }}>
                   <EditableText

@@ -1,9 +1,5 @@
-import ProfileContent from "./ProfileContent";
-
-export const metadata = {
-  title: "Profile",
-};
+import { redirect } from "next/navigation";
 
 export default function ProfilePage() {
-  return <ProfileContent />;
+  redirect("/profile/u_001");
 }
