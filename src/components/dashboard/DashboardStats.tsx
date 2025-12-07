@@ -55,9 +55,7 @@ const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
             >
               {label}
             </Typography>
-            <Box sx={iconContainerSx}>
-              {icon}
-            </Box>
+            <Box sx={iconContainerSx}>{icon}</Box>
           </Stack>
           {isEmpty ? (
             <Chip size="small" label="No data" />

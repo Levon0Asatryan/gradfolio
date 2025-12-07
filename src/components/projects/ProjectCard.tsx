@@ -107,12 +107,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const cat = metadata?.category ?? "other";
 
   return (
-    <Card
-      variant="outlined"
-      component="article"
-      aria-label={`Project ${title}`}
-      sx={cardSx}
-    >
+    <Card variant="outlined" component="article" aria-label={`Project ${title}`} sx={cardSx}>
       <CardActionArea
         component={Link}
         href={href}

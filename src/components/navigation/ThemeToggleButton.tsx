@@ -34,10 +34,7 @@ const ThemeToggleButton: FC<ThemeToggleButtonProps> = ({ collapsed = false }) =>
   const isDark = mode === "dark";
 
   return (
-    <ListItemButton
-      onClick={toggleMode}
-      sx={getButtonSx(collapsed)}
-    >
+    <ListItemButton onClick={toggleMode} sx={getButtonSx(collapsed)}>
       <ListItemIcon>
         <Box
           sx={{
