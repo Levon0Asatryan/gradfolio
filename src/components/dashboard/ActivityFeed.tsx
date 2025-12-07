@@ -23,8 +23,6 @@ export interface ActivityFeedProps {
 
 const typeColor = (type: Activity["type"]): "default" | "info" | "success" | "warning" => {
   switch (type) {
-    case "publication":
-      return "info";
     case "project":
       return "success";
     case "profile":
@@ -96,7 +94,7 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
       sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
     >
       <CardContent>
-        <Typography variant="h6" sx={{ mb: 1.5 }}>
+        <Typography variant="h6" sx={{ mb: 1.5 }} id="activity-feed">
           Activity Feed
         </Typography>
         <List dense>

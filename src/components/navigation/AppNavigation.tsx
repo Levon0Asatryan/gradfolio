@@ -10,8 +10,7 @@ import {
   ListItemIcon,
   Tooltip,
 } from "@mui/material";
-import { type FC, type ReactNode, useContext, useMemo } from "react";
-import { DarkModeContext } from "@/components/theme/ThemeWrapper";
+import { type FC, type ReactNode, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +22,9 @@ import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
 import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
 import { TypographyWithTooltip } from "@/components/text/TypographyWithTooltip";
+import ThemeToggleButton from "./ThemeToggleButton";
+import { DarkModeContext } from "@/components/theme/ThemeWrapper";
+import { useContext } from "react";
 
 interface NavItem {
   label: string;
@@ -53,7 +55,11 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
         href: "/integrations/connections",
         icon: <LinkOutlined fontSize="small" />,
       },
-      { label: "My Account", href: "/profile", icon: <AccountCircleOutlined fontSize="small" /> },
+      {
+        label: "My Account",
+        href: "/profile",
+        icon: <AccountCircleOutlined fontSize="small" />,
+      },
       { label: "Projects", href: "/projects", icon: <FolderOutlined fontSize="small" /> },
       {
         label: "Integrations",
@@ -172,6 +178,9 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
           );
         })}
       </List>
+      <Stack sx={{ p: 2, mt: "auto" }}>
+        <ThemeToggleButton collapsed={collapsed} />
+      </Stack>
     </Stack>
   );
 };
