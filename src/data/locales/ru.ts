@@ -9,6 +9,8 @@ export const ru: Dictionary = {
     dark: "Темная",
     dashboard: "Дашборд",
     login: "Вход Auth0",
+    loginButton: "Вход",
+    signUpButton: "Регистрация",
     loginConnections: "Подключения входа",
     myAccount: "Мой аккаунт",
     projects: "Проекты",

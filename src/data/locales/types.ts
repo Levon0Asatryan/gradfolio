@@ -9,6 +9,8 @@ export interface Dictionary {
     dark: string;
     dashboard: string;
     login: string;
+    loginButton: string;
+    signUpButton: string;
     loginConnections: string;
     myAccount: string;
     projects: string;

@@ -11,10 +11,10 @@ import {
   Tooltip,
 } from "@mui/material";
 import { type FC, type ReactNode, useMemo } from "react";
+import { useUser } from "@auth0/nextjs-auth0";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInstructionsOutlined";
@@ -26,6 +26,7 @@ import { TypographyWithTooltip } from "@/components/text/TypographyWithTooltip";
 import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { useContext } from "react";
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import AuthNavSection from "@/components/auth/AuthNavSection";
 
 interface NavItem {
   label: string;
@@ -48,10 +49,13 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
   const { t } = useLanguage();
   const pathname = usePathname();
 
-  const items: NavItem[] = useMemo(
-    () => [
+  const { user } = useUser();
+
+  const items: NavItem[] = useMemo(() => {
+    // Standard navigation items
+    const allItems: NavItem[] = [
       { label: t.common.dashboard, href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
-      { label: t.common.login, href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
+      // Login item removed from list as it is handled by AuthNavSection buttons
       {
         label: t.common.loginConnections,
         href: "/integrations/connections",
@@ -73,9 +77,16 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
         href: "/search",
         icon: <TravelExploreOutlined fontSize="small" />,
       },
-    ],
-    [t],
-  );
+    ];
+
+    if (!user) {
+      // Guest: Only show Search
+      return allItems.filter((item) => item.href === "/search");
+    }
+
+    // User: Show all items
+    return allItems;
+  }, [t, user]);
 
   const current = normalize(pathname ?? "/");
 
@@ -231,6 +242,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
             <TypographyWithTooltip variant="body2" placement="right" title={t.common.settings} />
           )}
         </ListItemButton>
+        <AuthNavSection collapsed={collapsed} />
       </Stack>
     </Stack>
   );

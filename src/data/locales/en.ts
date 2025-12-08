@@ -9,6 +9,8 @@ export const en: Dictionary = {
     dark: "Dark",
     dashboard: "Dashboard",
     login: "Auth0 Login",
+    loginButton: "Login",
+    signUpButton: "Sign Up",
     loginConnections: "Login Connections",
     myAccount: "My Account",
     projects: "Projects",
