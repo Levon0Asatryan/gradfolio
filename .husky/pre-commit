@@ -1,2 +1,4 @@
 npm run prettier
 npm run eslint-fix
+# Ensure any auto-fixes/formatting are included in the current commit
+git add -A
