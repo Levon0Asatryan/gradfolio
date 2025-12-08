@@ -55,10 +55,11 @@ export const am: Dictionary = {
     timeline: "Ժամանակացույց՝",
     category: "Կատեգորիա՝",
     course: "Դասընթաց՝",
-
     professor: "Պրոֆեսոր՝",
     teamMembers: "Թիմի անդամներ",
     technologies: "Տեխնոլոգիաներ",
+    image: "Նկար",
+    pdf: "PDF",
   },
   profile: {
     experience: "Աշխատանքային փորձ",

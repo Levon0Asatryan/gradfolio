@@ -58,6 +58,8 @@ export const ru: Dictionary = {
     professor: "Профессор:",
     teamMembers: "Команда",
     technologies: "Технологии",
+    image: "Изображение",
+    pdf: "PDF",
   },
   profile: {
     experience: "Опыт работы",
