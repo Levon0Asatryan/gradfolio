@@ -11,7 +11,10 @@ export interface ProjectNewActionsProps {
   isSaving?: boolean;
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const ProjectNewActions: FC<ProjectNewActionsProps> = ({ onSave, isSaving = false }) => {
+  const { t } = useLanguage();
   return (
     <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 4 }}>
       <Button
@@ -21,10 +24,10 @@ const ProjectNewActions: FC<ProjectNewActionsProps> = ({ onSave, isSaving = fals
         href="/projects"
         startIcon={<CancelIcon />}
       >
-        Cancel
+        {t.projects.form.cancel}
       </Button>
       <Button variant="contained" onClick={onSave} disabled={isSaving} startIcon={<SaveIcon />}>
-        {isSaving ? "Saving..." : "Create Project"}
+        {isSaving ? t.projects.form.saving : t.projects.form.createProject}
       </Button>
     </Stack>
   );

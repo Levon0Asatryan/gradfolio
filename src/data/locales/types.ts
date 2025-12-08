@@ -58,6 +58,8 @@ export interface Dictionary {
     professor: string;
     teamMembers: string;
     technologies: string;
+    image: string;
+    pdf: string;
   };
   profile: {
     experience: string;
@@ -164,6 +166,30 @@ export interface Dictionary {
       oldest: string;
       nameAZ: string;
       nameZA: string;
+    };
+    form: {
+      title: string;
+      basicInfo: string;
+      projectTitle: string;
+      projectTitlePlaceholder: string;
+      aiSummary: string;
+      aiSummaryPlaceholder: string;
+      aiSummaryHelper: string;
+      liveDemoUrl: string;
+      repoUrl: string;
+      attachments: string;
+      addMedia: string;
+      noAttachments: string;
+      addFirstAttachment: string;
+      removeAttachment: string;
+      addAttachmentTitle: string;
+      type: string;
+      url: string;
+      attachmentTitle: string;
+      cancel: string;
+      add: string;
+      saving: string;
+      createProject: string;
     };
   };
   dashboard: {

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Container, Box, ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import Grid from "@mui/material/Grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -57,6 +58,7 @@ export default function ProfileContent({
   isOwnProfile = true,
 }: ProfileContentProps) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [data, setData] = useState<ProfileData>(initialData);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -168,7 +170,7 @@ export default function ProfileContent({
               <ExperienceList items={data.experience} />
               <ProjectsGrid
                 items={data.projects}
-                onAddProject={isOwnProfile ? () => setIsEditing(true) : undefined}
+                onAddProject={isOwnProfile ? () => router.push("/projects/new") : undefined}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>

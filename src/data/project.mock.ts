@@ -377,9 +377,30 @@ export const projectsMock: ProjectDetailData[] = [
     descriptionHtml:
       "<p>A Next.js web app that finds eco-friendly driving routes using OpenStreetMap data.</p>",
     technologies: ["Next.js", "TypeScript", "Mapbox", "Vercel"],
-    liveDemoUrl: "https://example.com/projects/ecoroute",
+    liveDemoUrl: "/projects/prj_1",
     heroImageUrl: "/images/projects/ecoroute.png",
     metadata: { category: "personal" },
+    attachments: [
+      {
+        id: "ecoroute_img1",
+        type: "image",
+        url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+        title: "Map view",
+      },
+      {
+        id: "ecoroute_video1",
+        type: "video",
+        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        title: "Demo Video",
+        thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+      },
+      {
+        id: "ecoroute_pdf1",
+        type: "pdf",
+        url: "https://arxiv.org/pdf/1706.03762.pdf",
+        title: "Project Report (PDF)",
+      },
+    ],
   },
   {
     id: "prj_2",
