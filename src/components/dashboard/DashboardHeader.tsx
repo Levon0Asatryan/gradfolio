@@ -8,6 +8,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import FolderIcon from "@mui/icons-material/Folder";
 import type { DashboardStats } from "@/utils/types/dashboard.types";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface DashboardHeaderUser {
   name: string;
@@ -37,6 +38,8 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
   engagementRate = 3.7,
   onEditProfile,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Card
       component="section"
@@ -73,7 +76,7 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
               <Grid size={{ xs: 6, sm: 6 }}>
                 <Chip
                   icon={<LinkedInIcon />}
-                  label={`${stats?.linkedinConnections ?? 0} connections`}
+                  label={`${stats?.linkedinConnections ?? 0} ${t.dashboard.connections}`}
                   variant="outlined"
                   sx={{ width: "100%", userSelect: "none" }}
                 />
@@ -81,7 +84,7 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
               <Grid size={{ xs: 6, sm: 6 }}>
                 <Chip
                   icon={<AnalyticsIcon />}
-                  label={`${engagementRate.toFixed(1)}% engagement`}
+                  label={`${engagementRate.toFixed(1)}% ${t.dashboard.engagement}`}
                   color="info"
                   variant="outlined"
                   sx={{ width: "100%", userSelect: "none" }}
@@ -90,7 +93,7 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
               <Grid size={{ xs: 12, sm: 12 }}>
                 <Chip
                   icon={<FolderIcon />}
-                  label={`${stats?.totalProjects ?? 0} projects`}
+                  label={`${stats?.totalProjects ?? 0} ${t.dashboard.projects}`}
                   variant="outlined"
                   sx={{ width: "100%", userSelect: "none" }}
                 />
@@ -104,9 +107,9 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
             startIcon={<EditIcon />}
             variant="outlined"
             onClick={onEditProfile}
-            sx={{ height: 40 }}
+            sx={{ px: 2, py: 1 }}
           >
-            Edit Profile
+            {t.common.editProfile}
           </Button>
         </Stack>
       </CardContent>

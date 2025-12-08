@@ -5,47 +5,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography } from "@mui/material";
 import Tag from "./shared/Tag";
+import HighlightedText from "@/components/shared/HighlightedText";
 import type { ProjectDetailData } from "@/data/project.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectCardProps {
   project: ProjectDetailData;
   highlightQuery?: string;
 }
 
-const externalLoader = ({ src }: { src: string }) => src;
-
 // Helper to highlight matching text
-function HighlightedText({ text, query }: { text: string; query?: string }) {
-  if (!query || !text) return <>{text}</>;
-
-  const parts = text.split(
-    new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})`, "gi"),
-  );
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <Box
-            component="mark"
-            key={i}
-            sx={{
-              bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.700" : "grey.300"),
-              color: "inherit",
-              px: 0,
-              borderRadius: 0,
-              boxDecorationBreak: "clone",
-              WebkitBoxDecorationBreak: "clone",
-            }}
-          >
-            {part}
-          </Box>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  );
-}
+// Replaced by src/components/shared/HighlightedText.tsx
 
 function truncate(text: string, max = 160) {
   if (!text) return "";
@@ -92,6 +62,7 @@ const cardSx = (theme: any) => ({
 const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
   const href = `/projects/${id}`;
+  const { t } = useLanguage();
 
   const { visibleTags, remainingCount } = useMemo(() => {
     const maxTags = 4;
@@ -103,16 +74,13 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const start = formatDate(metadata?.startDate);
   const end = formatDate(metadata?.endDate);
   const range =
-    start || end ? `${start ?? ""}${start || end ? " – " : ""}${end ?? "Present"}` : undefined;
+    start || end
+      ? `${start ?? ""}${start || end ? " – " : ""}${end ?? t.common.present}`
+      : undefined;
   const cat = metadata?.category ?? "other";
 
   return (
-    <Card
-      variant="outlined"
-      component="article"
-      aria-label={`Project ${title}`}
-      sx={cardSx}
-    >
+    <Card variant="outlined" component="article" aria-label={`Project ${title}`} sx={cardSx}>
       <CardActionArea
         component={Link}
         href={href}
@@ -138,7 +106,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
         >
           {heroImageUrl ? (
             <Image
-              loader={externalLoader}
+              unoptimized
               src={heroImageUrl}
               alt={`${title} hero image`}
               fill
@@ -170,7 +138,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
             {cat && (
               <Chip
                 size="small"
-                label={cat}
+                label={t.projects.categories[cat as keyof typeof t.projects.categories] || cat}
                 color={categoryColor[cat] ?? "default"}
                 aria-label={`Category ${cat}`}
               />

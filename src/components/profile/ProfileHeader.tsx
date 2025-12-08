@@ -5,6 +5,8 @@ import { Box, Button, Stack, Tooltip, Typography, useTheme } from "@mui/material
 import Image from "next/image";
 import VerifiedBadge from "./shared/Badge";
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export interface ProfileHeaderProps {
   name: string;
   headline: string;
@@ -25,6 +27,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
   onEdit,
 }) => {
   const theme = useTheme();
+  const { t } = useLanguage();
   const avatarSize = 96;
 
   return (
@@ -73,20 +76,25 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
               </Typography>
             )}
             {email && (
-              <Tooltip title={`Contact ${name}`}>
+              <Tooltip title={`${t.common.contact} ${name}`}>
                 <Button
                   size="small"
                   variant="outlined"
                   href={`mailto:${email}`}
-                  aria-label={`Contact ${name}`}
+                  aria-label={`${t.common.contact} ${name}`}
                 >
-                  Contact
+                  {t.common.contact}
                 </Button>
               </Tooltip>
             )}
             {onEdit && (
-              <Button size="small" variant="outlined" onClick={onEdit} aria-label="Edit Profile">
-                Edit
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onEdit}
+                aria-label={t.common.editProfile}
+              >
+                {t.common.edit}
               </Button>
             )}
           </Stack>

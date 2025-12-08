@@ -24,10 +24,14 @@ function sanitize(html: string): string {
   return out;
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
   const safeHtml = useMemo(() => sanitize(html), [html]);
+  const { t } = useLanguage();
+
   return (
-    <SectionCard title="Description">
+    <SectionCard title={t.common.description}>
       <Box
         component="div"
         sx={{
@@ -39,7 +43,7 @@ const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
           "& a": { color: "primary.main" },
         }}
         dangerouslySetInnerHTML={{ __html: safeHtml }}
-        aria-label="Project description"
+        aria-label={t.common.description}
       />
     </SectionCard>
   );

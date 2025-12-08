@@ -2,6 +2,7 @@
 
 import { FC, memo, useCallback, useState, KeyboardEvent } from "react";
 import { Chip, TextField, Stack } from "@mui/material";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 import AddIcon from "@mui/icons-material/Add";
 import SectionCard from "@/components/profile/shared/SectionCard";
 
@@ -11,6 +12,7 @@ export interface EditableSkillsChipsProps {
 }
 
 const EditableSkillsChips: FC<EditableSkillsChipsProps> = ({ items, onUpdate }) => {
+  const { t } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
   const [newSkill, setNewSkill] = useState("");
 
@@ -47,7 +49,7 @@ const EditableSkillsChips: FC<EditableSkillsChipsProps> = ({ items, onUpdate }) 
   );
 
   return (
-    <SectionCard title="Skills">
+    <SectionCard title={t.profile.skills}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ alignItems: "center" }}>
         {items.map((skill) => (
           <Chip key={skill} label={skill} onDelete={() => handleDelete(skill)} />
@@ -61,13 +63,13 @@ const EditableSkillsChips: FC<EditableSkillsChipsProps> = ({ items, onUpdate }) 
             onBlur={handleAdd}
             onKeyDown={handleKeyDown}
             autoFocus
-            placeholder="New Skill"
+            placeholder={t.profile.newSkill}
             sx={{ width: 120 }}
           />
         ) : (
           <Chip
             icon={<AddIcon />}
-            label="Add"
+            label={t.profile.add}
             onClick={() => setIsAdding(true)}
             variant="outlined"
             clickable

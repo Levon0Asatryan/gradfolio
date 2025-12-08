@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { Container, Box, ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 import Grid from "@mui/material/Grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
@@ -46,8 +48,18 @@ const toggleButtonGroupStyles = {
   },
 };
 
-export default function ProfileContent() {
-  const [data, setData] = useState<ProfileData>(profileMock);
+interface ProfileContentProps {
+  initialData?: ProfileData;
+  isOwnProfile?: boolean;
+}
+
+export default function ProfileContent({
+  initialData = profileMock,
+  isOwnProfile = true,
+}: ProfileContentProps) {
+  const { t } = useLanguage();
+  const router = useRouter();
+  const [data, setData] = useState<ProfileData>(initialData);
   const [isEditing, setIsEditing] = useState(false);
 
   const updateField = useCallback((field: keyof ProfileData, value: any) => {
@@ -72,33 +84,35 @@ export default function ProfileContent() {
 
   return (
     <Container component="main" sx={{ py: 3 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          mb: 3,
-          position: "sticky",
-          top: 16,
-          zIndex: 10,
-        }}
-      >
-        <ToggleButtonGroup
-          value={isEditing ? "edit" : "preview"}
-          exclusive
-          onChange={handleModeChange}
-          aria-label="profile mode"
-          sx={toggleButtonGroupStyles}
+      {isOwnProfile && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            mb: 3,
+            position: "sticky",
+            top: 16,
+            zIndex: 10,
+          }}
         >
-          <ToggleButton value="preview" aria-label="preview mode">
-            <VisibilityIcon fontSize="small" />
-            Preview Mode
-          </ToggleButton>
-          <ToggleButton value="edit" aria-label="edit mode">
-            <EditIcon fontSize="small" />
-            Edit Mode
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <ToggleButtonGroup
+            value={isEditing ? "edit" : "preview"}
+            exclusive
+            onChange={handleModeChange}
+            aria-label="profile mode"
+            sx={toggleButtonGroupStyles}
+          >
+            <ToggleButton value="preview" aria-label="preview mode">
+              <VisibilityIcon fontSize="small" />
+              {t.profile.previewMode}
+            </ToggleButton>
+            <ToggleButton value="edit" aria-label="edit mode">
+              <EditIcon fontSize="small" />
+              {t.profile.editMode}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+      )}
 
       {isEditing ? (
         <>
@@ -147,14 +161,17 @@ export default function ProfileContent() {
             verified={data.verified}
             email={data.email}
             avatarUrl={data.avatarUrl}
-            onEdit={() => setIsEditing(true)}
+            onEdit={isOwnProfile ? () => setIsEditing(true) : undefined}
           />
 
           <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
             <Grid size={{ xs: 12, md: 8 }}>
               <EducationList items={data.education} />
               <ExperienceList items={data.experience} />
-              <ProjectsGrid items={data.projects} />
+              <ProjectsGrid
+                items={data.projects}
+                onAddProject={isOwnProfile ? () => router.push("/projects/new") : undefined}
+              />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <SkillsChips items={data.skills} />

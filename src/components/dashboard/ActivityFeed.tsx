@@ -2,63 +2,98 @@
 
 import { FC, memo } from "react";
 import {
+  Avatar,
   Box,
   Card,
   CardContent,
-  Chip,
-  List,
-  ListItem,
-  ListItemText,
   Skeleton,
   Stack,
   Typography,
+  useTheme,
+  alpha,
 } from "@mui/material";
+import {
+  Edit as EditIcon,
+  Visibility as VisibilityIcon,
+  Notifications as DefaultIcon,
+} from "@mui/icons-material";
 import type { Activity } from "@/utils/types/dashboard.types";
 import { formatDate } from "@/utils/helpers/formatDate";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ActivityFeedProps {
   items?: Activity[];
   loading?: boolean;
 }
 
-const typeColor = (type: Activity["type"]): "default" | "info" | "success" | "warning" => {
+const getActivityIcon = (type: Activity["type"]) => {
+  switch (type) {
+    case "project":
+      return <EditIcon fontSize="small" />;
+    case "profile":
+      return <VisibilityIcon fontSize="small" />;
+    default:
+      return <DefaultIcon fontSize="small" />;
+  }
+};
+
+const getActivityColor = (type: Activity["type"]): "success" | "warning" | "info" => {
   switch (type) {
     case "project":
       return "success";
     case "profile":
       return "warning";
     default:
-      return "default";
+      return "info";
   }
 };
 
+const interpolate = (text: string, params?: Record<string, string | number>) => {
+  if (!params) return text;
+  return text.replace(/{(\w+)}/g, (_, key) => String(params[key] ?? `{${key}}`));
+};
+
 const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
+  const { t } = useLanguage();
+  const theme = useTheme();
+
   if (loading) {
     return (
       <Card
         component="section"
-        aria-label="Activity Feed"
+        aria-label={t.dashboard.activityFeed}
         variant="outlined"
-        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+        sx={{
+          height: "100%",
+          transition: (t) => t.transitions.create("box-shadow"),
+          "&:hover": { boxShadow: 6 },
+        }}
       >
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 1.5 }}>
-            Activity Feed
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            {t.dashboard.activityFeed}
           </Typography>
-          <List dense disablePadding>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ListItem key={i} sx={{ px: 0.5 }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }}>
-                  <Skeleton variant="rounded" width={70} height={22} />
-                  <ListItemText
-                    primary={<Skeleton variant="text" width="70%" height={18} />}
-                    secondary={<Skeleton variant="text" width={120} height={14} />}
-                    sx={{ my: 0 }}
-                  />
+          <Stack spacing={2}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Box
+                key={i}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Stack spacing={0.5} sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="80%" height={24} />
+                    <Skeleton variant="text" width="40%" height={20} />
+                  </Stack>
                 </Stack>
-              </ListItem>
+              </Box>
             ))}
-          </List>
+          </Stack>
         </CardContent>
       </Card>
     );
@@ -68,17 +103,30 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
     return (
       <Card
         component="section"
-        aria-label="Activity Feed"
+        aria-label={t.dashboard.activityFeed}
         variant="outlined"
-        sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+        sx={{
+          height: "100%",
+          transition: (t) => t.transitions.create("box-shadow"),
+          "&:hover": { boxShadow: 6 },
+        }}
       >
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Activity Feed
+        <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            {t.dashboard.activityFeed}
           </Typography>
-          <Box sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              py: 4,
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Typography variant="body2" color="text.secondary">
-              No recent activity
+              {t.dashboard.noRecentActivity}
             </Typography>
           </Box>
         </CardContent>
@@ -89,39 +137,70 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
   return (
     <Card
       component="section"
-      aria-label="Activity Feed"
+      aria-label={t.dashboard.activityFeed}
       variant="outlined"
-      sx={{ transition: (t) => t.transitions.create("box-shadow"), "&:hover": { boxShadow: 6 } }}
+      sx={{
+        height: "100%",
+        transition: (t) => t.transitions.create("box-shadow"),
+        "&:hover": { boxShadow: 6 },
+      }}
     >
       <CardContent>
-        <Typography variant="h6" sx={{ mb: 1.5 }} id="activity-feed">
-          Activity Feed
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }} id="activity-feed">
+          {t.dashboard.activityFeed}
         </Typography>
-        <List dense>
-          {items.map((a) => (
-            <ListItem
-              key={a.id}
-              sx={{
-                px: 1,
-                py: 0.75,
-                "&:not(:last-of-type)": (t) => ({ borderBottom: `1px solid ${t.palette.divider}` }),
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }}>
-                <Chip size="small" label={a.type} color={typeColor(a.type)} variant="outlined" />
-                <ListItemText
-                  primary={<Typography variant="body2">{a.action}</Typography>}
-                  secondary={
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(a.timestamp, { withTime: true })}
-                    </Typography>
-                  }
-                  sx={{ my: 0 }}
-                />
-              </Stack>
-            </ListItem>
-          ))}
-        </List>
+        <Stack spacing={2}>
+          {items.map((a) => {
+            const rawTemplate =
+              t.dashboard.activity[a.translationKey as keyof typeof t.dashboard.activity] ||
+              a.translationKey;
+            const message = interpolate(rawTemplate, a.translationParams);
+
+            const colorKey = getActivityColor(a.type);
+            const paletteColor = theme.palette[colorKey];
+
+            return (
+              <Box
+                key={a.id}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                  borderColor: alpha(paletteColor.main, 0.3),
+                  backgroundColor: alpha(paletteColor.main, 0.02),
+                  transition: theme.transitions.create(["background-color", "border-color"]),
+                  "&:hover": {
+                    backgroundColor: alpha(paletteColor.main, 0.08),
+                    borderColor: paletteColor.main,
+                  },
+                }}
+              >
+                <Avatar
+                  sx={{
+                    bgcolor: alpha(paletteColor.main, 0.1),
+                    color: paletteColor.main,
+                    width: 40,
+                    height: 40,
+                  }}
+                >
+                  {getActivityIcon(a.type)}
+                </Avatar>
+                <Stack spacing={0.5} sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.4 }}>
+                    {message}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(a.timestamp, { withTime: true })}
+                  </Typography>
+                </Stack>
+              </Box>
+            );
+          })}
+        </Stack>
       </CardContent>
     </Card>
   );

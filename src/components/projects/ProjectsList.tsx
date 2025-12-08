@@ -6,6 +6,8 @@ import Grid from "@mui/material/Grid";
 import ProjectCard from "./ProjectCard";
 import type { ProjectDetailData } from "@/data/project.mock";
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export interface ProjectsListProps {
   projects: ProjectDetailData[];
   onAddProject?: () => void; // non-functional placeholder
@@ -13,18 +15,19 @@ export interface ProjectsListProps {
 }
 
 const ProjectsList: FC<ProjectsListProps> = ({ projects, onAddProject, searchQuery }) => {
+  const { t } = useLanguage();
   if (!projects || projects.length === 0) {
     return (
       <Container sx={{ py: 4 }}>
         <Box textAlign="center" sx={{ py: 6 }}>
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            No projects yet
+            {t.common.noProjectsYet}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Get started by adding your first project to showcase your work.
+            {t.common.getStartedProject}
           </Typography>
-          <Button variant="contained" onClick={onAddProject} aria-label="Add Project">
-            Add Project
+          <Button variant="contained" onClick={onAddProject} aria-label={t.common.addProject}>
+            {t.common.addProject}
           </Button>
         </Box>
       </Container>

@@ -10,7 +10,8 @@ export interface Project {
 export interface Activity {
   id: string;
   type: "project" | "profile";
-  action: string;
+  translationKey: string;
+  translationParams?: Record<string, string | number>;
   timestamp: string;
   details?: string;
 }

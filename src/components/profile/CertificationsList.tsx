@@ -4,17 +4,20 @@ import { FC, memo } from "react";
 import { Link as MuiLink, List, ListItem, ListItemText, Typography } from "@mui/material";
 import SectionCard from "./shared/SectionCard";
 import type { Certification } from "@/data/profile.mock";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface CertificationsListProps {
   items: Certification[];
 }
 
 const CertificationsList: FC<CertificationsListProps> = ({ items }) => {
+  const { t } = useLanguage();
+
   return (
-    <SectionCard title="Certifications">
+    <SectionCard title={t.profile.certifications}>
       {items.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No certifications listed.
+          {t.profile.noCertifications}
         </Typography>
       ) : (
         <List sx={{ py: 0 }}>
@@ -36,7 +39,7 @@ const CertificationsList: FC<CertificationsListProps> = ({ items }) => {
                         {" "}
                         —{" "}
                         <MuiLink href={c.credentialUrl} target="_blank" rel="noopener noreferrer">
-                          Verify
+                          {t.profile.verify}
                         </MuiLink>
                       </>
                     )}

@@ -4,6 +4,7 @@ import { useMemo, useState, useCallback } from "react";
 import ProjectsList from "@/components/projects/ProjectsList";
 import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
 import { projectsMock } from "@/data/project.mock";
+import { profileMock } from "@/data/profile.mock";
 import { useRouter } from "next/navigation";
 
 export default function ProjectsContent() {
@@ -13,7 +14,13 @@ export default function ProjectsContent() {
   const [sort, setSort] = useState("newest");
 
   const filteredProjects = useMemo(() => {
+    // Get valid project IDs for the current user
+    const userProjectIds = new Set(profileMock.projects.map((p) => p.id));
+
     let result = projectsMock.filter((p) => {
+      // Only show projects that belong to the user
+      if (!userProjectIds.has(p.id)) return false;
+
       const matchesSearch =
         p.title.toLowerCase().includes(search.toLowerCase()) ||
         p.technologies.some((t) => t.toLowerCase().includes(search.toLowerCase()));

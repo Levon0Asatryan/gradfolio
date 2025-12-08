@@ -17,11 +17,15 @@ export interface TeamListProps {
   members?: TeamMember[];
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const TeamList: FC<TeamListProps> = ({ members = [] }) => {
+  const { t } = useLanguage();
+
   if (!members || members.length === 0) return null;
 
   return (
-    <SectionCard title="Team Members">
+    <SectionCard title={t.common.teamMembers}>
       <List sx={{ py: 0 }}>
         {members.map((m) => (
           <ListItem key={m.id} divider>

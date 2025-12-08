@@ -13,7 +13,7 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-export default [
+const config = [
   // Target files + parser/globals
   {
     files: ["**/*.{js,ts,tsx}"],
@@ -63,3 +63,5 @@ export default [
     ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
   },
 ];
+
+export default config;

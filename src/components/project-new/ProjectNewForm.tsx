@@ -8,7 +8,10 @@ import ProjectNewActions from "./ProjectNewActions";
 import { ProjectAttachmentForm, ProjectFormState } from "./types";
 import { useRouter } from "next/navigation";
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const ProjectNewForm: FC = () => {
+  const { t } = useLanguage();
   const router = useRouter();
   const [values, setValues] = useState<ProjectFormState>({
     title: "",
@@ -47,7 +50,7 @@ const ProjectNewForm: FC = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" component="h1" sx={{ mb: 4 }}>
-          Add New Project
+          {t.projects.form.title}
         </Typography>
 
         <ProjectBasicInfo values={values} onChange={handleChange} />

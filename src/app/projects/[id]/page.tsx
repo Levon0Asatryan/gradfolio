@@ -1,7 +1,8 @@
-import { Container, Button } from "@mui/material";
+import { Container } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import Link from "next/link";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+// import Link from "next/link"; // Removed
+// import ArrowBackIcon from "@mui/icons-material/ArrowBack"; // Removed
+import BackButton from "@/components/project/BackButton";
 import ProjectHeader from "@/components/project/ProjectHeader";
 import ProjectDescription from "@/components/project/ProjectDescription";
 import AttachmentsGallery from "@/components/project/AttachmentsGallery";
@@ -29,16 +30,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
   return (
     <Container component="main" sx={{ py: 3 }}>
-      <Button
-        component={Link}
-        href="/projects"
-        variant="text"
-        startIcon={<ArrowBackIcon />}
-        aria-label="Back to Projects"
-        sx={{ mb: 1 }}
-      >
-        Back to Projects
-      </Button>
+      <BackButton />
 
       <ProjectHeader
         title={data.title}

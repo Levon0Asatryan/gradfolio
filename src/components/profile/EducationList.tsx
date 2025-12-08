@@ -6,12 +6,15 @@ import SectionCard from "./shared/SectionCard";
 import DetailDialog from "./shared/DetailDialog";
 import type { Education } from "@/data/profile.mock";
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 export interface EducationListProps {
   items: Education[];
 }
 
 const EducationList: FC<EducationListProps> = ({ items }) => {
   const [openId, setOpenId] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const onOpen = useCallback((id: string) => setOpenId(id), []);
   const onClose = useCallback(() => setOpenId(null), []);
@@ -19,29 +22,29 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
   const active = useMemo(() => items.find((e) => e.id === openId), [items, openId]);
 
   return (
-    <SectionCard title="Education">
+    <SectionCard title={t.profile.education}>
       {items.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No education entries yet.
+          {t.profile.noEducation}
         </Typography>
       ) : (
         <List sx={{ py: 0 }}>
           {items.map((edu) => {
             const primary = `${edu.degree} • ${edu.field}`;
-            const secondary = `${edu.institution} • ${edu.startYear}${edu.endYear ? "–" + edu.endYear : " – Present"}`;
+            const secondary = `${edu.institution} • ${edu.startYear}${edu.endYear ? "–" + edu.endYear : " – " + t.common.present}`;
             return (
               <ListItem
                 key={edu.id}
                 divider
                 secondaryAction={
                   <Button
-                    aria-label={`View details for ${primary} at ${edu.institution}`}
+                    aria-label={`${t.common.details} for ${primary} at ${edu.institution}`}
                     aria-haspopup="dialog"
                     aria-expanded={openId === edu.id}
                     onClick={() => onOpen(edu.id)}
                     size="small"
                   >
-                    Details
+                    {t.common.details}
                   </Button>
                 }
               >
@@ -63,7 +66,7 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
 
       <DetailDialog
         open={Boolean(active)}
-        title={active ? active.institution : "Education"}
+        title={active ? active.institution : t.profile.education}
         onClose={onClose}
       >
         {active && (
@@ -73,7 +76,7 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {active.startYear}
-              {active.endYear ? `–${active.endYear}` : " – Present"}
+              {active.endYear ? `–${active.endYear}` : " – " + t.common.present}
             </Typography>
             {active.description && (
               <Typography variant="body1" sx={{ mb: 2 }}>

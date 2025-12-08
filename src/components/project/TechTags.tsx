@@ -10,11 +10,15 @@ export interface TechTagsProps {
   onTagClick?: (tag: string) => void;
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const TechTags: FC<TechTagsProps> = ({ items, onTagClick }) => {
+  const { t } = useLanguage();
+
   if (!items || items.length === 0) return null;
   return (
-    <SectionCard title="Technologies / Skills">
-      <Stack direction="row" spacing={1} flexWrap="wrap">
+    <SectionCard title={t.common.technologies}>
+      <Stack direction="row" gap={1} flexWrap="wrap">
         {items.map((t) => (
           <Tag key={t} label={t} onClick={onTagClick} />
         ))}

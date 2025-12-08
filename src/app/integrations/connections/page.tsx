@@ -10,6 +10,7 @@ import { StepWelcome } from "./components/StepWelcome";
 import { StepBasicInfo } from "./components/StepBasicInfo";
 import { StepExperienceEducation } from "./components/StepExperienceEducation";
 import { StepRepos } from "./components/StepRepos";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 const GITHUB_COLOR = "#181717"; // GitHub brand
 const LINKEDIN_COLOR = "#0A66C2"; // LinkedIn brand
@@ -110,21 +111,23 @@ export default function LoginConnectionsPage() {
     console.log("All steps completed!", form);
   }, [form]);
 
+  const { t } = useLanguage();
+
   return (
     <Stack sx={{ p: 3, gap: 2 }}>
       <Typography variant="h4" color="text.primary">
-        Integrations Setup
+        {t.integrations.setup.title}
       </Typography>
       <Typography variant="body1" color="text.secondary">
-        Let’s get your Gradfolio ready by connecting your data sources and filling in the basics.
+        {t.integrations.setup.subtitle}
       </Typography>
 
       <Stepper
         initialStep={1}
         onStepChange={handleStepChange}
         onFinalStepCompleted={handleFinalComplete}
-        backButtonText="Previous"
-        nextButtonText="Next"
+        backButtonText={t.integrations.setup.back}
+        nextButtonText={t.integrations.setup.next}
         canProceed={canProceed}
         sx={{ width: "100%" }}
         stepperContainerSx={(theme: Theme) => ({

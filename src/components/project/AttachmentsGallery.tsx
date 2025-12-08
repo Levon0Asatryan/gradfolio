@@ -25,22 +25,25 @@ export interface AttachmentsGalleryProps {
 
 const isYouTube = (url: string) => /youtube\.com|youtu\.be/.test(url);
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const active = useMemo(() => items.find((i) => i.id === lightboxId), [items, lightboxId]);
+  const { t } = useLanguage();
 
   const open = useCallback((id: string) => setLightboxId(id), []);
   const close = useCallback(() => setLightboxId(null), []);
 
   if (!items || items.length === 0) {
     return (
-      <Card component="section" aria-label="Attachments" sx={{ mb: 3 }}>
+      <Card component="section" aria-label={t.common.attachments} sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
-            Attachments
+            {t.common.attachments}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            No attachments provided.
+            {t.common.noAttachments}
           </Typography>
         </CardContent>
       </Card>
@@ -48,10 +51,10 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
   }
 
   return (
-    <Card component="section" aria-label="Attachments" sx={{ mb: 3 }}>
+    <Card component="section" aria-label={t.common.attachments} sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-          Attachments / Evidence
+          {t.common.attachmentsEvidence}
         </Typography>
         <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
           {items.map((att) => (
@@ -59,13 +62,13 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
               {att.type === "image" ? (
                 <Card variant="outlined">
                   <CardActionArea
-                    aria-label={att.title || "Open image"}
+                    aria-label={att.title || t.common.openImage}
                     onClick={() => open(att.id)}
                   >
                     <Box sx={{ position: "relative", aspectRatio: "16 / 10" }}>
                       <Image
                         src={att.thumbnailUrl || att.url}
-                        alt={att.title || "Project image"}
+                        alt={att.title || t.common.projectImage}
                         fill
                         sizes="(max-width: 600px) 100vw, 300px"
                         style={{ objectFit: "cover" }}
@@ -86,13 +89,13 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={att.title || "Open video"}
+                    aria-label={att.title || t.common.openVideo}
                   >
                     <Box sx={{ position: "relative", aspectRatio: "16 / 9" }}>
                       {att.thumbnailUrl ? (
                         <Image
                           src={att.thumbnailUrl}
-                          alt={att.title || "Video thumbnail"}
+                          alt={att.title || t.common.videoThumbnail}
                           fill
                           sizes="(max-width: 600px) 100vw, 300px"
                           style={{ objectFit: "cover" }}
@@ -116,7 +119,12 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                       {att.title || att.url}
                     </Typography>
                     <Link href={att.url} target="_blank" rel="noopener noreferrer">
-                      Open {att.type === "pdf" ? "PDF" : isYouTube(att.url) ? "Video" : "Link"}
+                      Open{" "}
+                      {att.type === "pdf"
+                        ? "PDF"
+                        : isYouTube(att.url)
+                          ? t.common.video
+                          : t.common.link}
                     </Link>
                   </CardContent>
                 </Card>
@@ -136,10 +144,10 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
         {active && (
           <>
             <DialogTitle id="lightbox-title" sx={{ pr: 6 }}>
-              {active.title || "Preview"}
+              {active.title || t.common.preview}
               <IconButton
                 onClick={close}
-                aria-label="Close"
+                aria-label={t.common.close}
                 sx={{ position: "absolute", right: 8, top: 8 }}
               >
                 <CloseIcon />
@@ -151,7 +159,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                   <Box sx={{ position: "relative", width: "100%", aspectRatio: "16 / 9" }}>
                     <Image
                       src={active.url}
-                      alt={active.title || "Attachment image"}
+                      alt={active.title || t.common.attachmentImage}
                       fill
                       sizes="100vw"
                       style={{ objectFit: "contain" }}
@@ -164,7 +172,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                   {/* Simple embed for YouTube */}
                   {isYouTube(active.url) ? (
                     <iframe
-                      title={active.title || "Video"}
+                      title={active.title || t.common.video}
                       src={active.url.replace("watch?v=", "embed/")}
                       style={{
                         position: "absolute",
@@ -177,11 +185,13 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                       allowFullScreen
                     />
                   ) : (
-                    <Typography>Video cannot be embedded. Open externally.</Typography>
+                    <Typography>
+                      {t.common.videoNotEmbedded} {t.common.openExternally}
+                    </Typography>
                   )}
                 </Box>
               ) : (
-                <Typography>Use the link to open this attachment.</Typography>
+                <Typography>{t.common.useLinkToOpen}</Typography>
               )}
             </DialogContent>
           </>

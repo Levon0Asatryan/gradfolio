@@ -22,33 +22,39 @@ function fmtDate(d?: string): string | undefined {
   }
 }
 
+import { useLanguage } from "@/components/i18n/LanguageContext";
+
 const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
+  const { t } = useLanguage();
+
   if (!metadata) return null;
 
   const start = fmtDate(metadata.startDate);
   const end = fmtDate(metadata.endDate);
 
   return (
-    <SectionCard title="Project Info">
+    <SectionCard title={t.common.projectInfo}>
       <Stack spacing={1}>
         {(start || end) && (
           <Typography variant="body2">
-            <strong>Timeline:</strong> {start || "N/A"} {"–"} {end || "Present"}
+            <strong>{t.common.timeline}</strong> {start || "N/A"} {"–"} {end || t.common.present}
           </Typography>
         )}
         {metadata.category && (
           <Typography variant="body2">
-            <strong>Category:</strong> {metadata.category}
+            <strong>{t.common.category}</strong>{" "}
+            {t.projects.categories[metadata.category as keyof typeof t.projects.categories] ||
+              metadata.category}
           </Typography>
         )}
         {metadata.course && (
           <Typography variant="body2">
-            <strong>Course:</strong> {metadata.course}
+            <strong>{t.common.course}</strong> {metadata.course}
           </Typography>
         )}
         {metadata.professor && (
           <Typography variant="body2">
-            <strong>Professor:</strong> {metadata.professor}
+            <strong>{t.common.professor}</strong> {metadata.professor}
           </Typography>
         )}
       </Stack>
