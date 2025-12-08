@@ -24,7 +24,7 @@ const AuthNavSection: FC<AuthNavSectionProps> = ({ collapsed = false }) => {
   const { user, isLoading } = useUser();
 
   if (isLoading) {
-    return null; 
+    return null;
   }
 
   // Logged In
@@ -44,7 +44,7 @@ const AuthNavSection: FC<AuthNavSectionProps> = ({ collapsed = false }) => {
     <Stack sx={{ width: "100%", mt: "auto" }}>
       <Divider sx={{ mb: 1, mx: 2 }} />
       <Stack
-        direction={collapsed ? "column" : "row"} 
+        direction={collapsed ? "column" : "row"}
         spacing={collapsed ? 1 : 0}
         sx={{ mx: collapsed ? 0 : 1 }}
       >

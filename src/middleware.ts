@@ -1,14 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 
-
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Public paths that do not require authentication
   const publicPaths = ["/search", "/auth", "/api/auth", "/_next", "/favicon.ico"];
-  
+
   // Check if the current path is public
   const isPublic = publicPaths.some((path) => pathname.startsWith(path));
 

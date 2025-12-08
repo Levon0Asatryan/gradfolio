@@ -2,12 +2,7 @@
 
 import { memo, type FC } from "react";
 import Link from "next/link";
-import {
-  ListItemButton,
-  ListItemIcon,
-  Typography,
-  Tooltip,
-} from "@mui/material";
+import { ListItemButton, ListItemIcon, Typography, Tooltip } from "@mui/material";
 import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 

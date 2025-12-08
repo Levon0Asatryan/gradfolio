@@ -23,12 +23,7 @@ const logoutItemSx: SxProps<Theme> = (theme) => ({
 
 const LogoutButton: FC<LogoutButtonProps> = ({ collapsed = false }) => {
   return (
-    <MenuItem
-      component={Link}
-      href="/auth/logout"
-      sx={logoutItemSx}
-      disableGutters={collapsed}
-    >
+    <MenuItem component={Link} href="/auth/logout" sx={logoutItemSx} disableGutters={collapsed}>
       <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, justifyContent: "center" }}>
         <LogoutOutlined fontSize="small" color="inherit" />
       </ListItemIcon>

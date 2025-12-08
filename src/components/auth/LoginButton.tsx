@@ -2,12 +2,7 @@
 
 import { memo, type FC } from "react";
 import Link from "next/link";
-import {
-  ListItemButton,
-  ListItemIcon,
-  Typography,
-  Tooltip,
-} from "@mui/material";
+import { ListItemButton, ListItemIcon, Typography, Tooltip } from "@mui/material";
 import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
@@ -34,7 +29,7 @@ const LoginButton: FC<LoginButtonProps> = ({ collapsed = false }) => {
         color: theme.palette.text.secondary,
         transition: "all 0.3s ease",
         flex: collapsed ? "none" : 1,
-        width: collapsed ? "100%" : "auto", 
+        width: collapsed ? "100%" : "auto",
         "& .MuiListItemIcon-root": {
           minWidth: collapsed ? 0 : "auto",
           mr: collapsed ? 0 : 1,
@@ -46,7 +41,7 @@ const LoginButton: FC<LoginButtonProps> = ({ collapsed = false }) => {
         "&:hover": {
           bgcolor: theme.palette.action.hover,
           transform: "translateY(-1px)",
-          zIndex: 1, 
+          zIndex: 1,
         },
       })}
     >
@@ -63,10 +58,10 @@ const LoginButton: FC<LoginButtonProps> = ({ collapsed = false }) => {
 
   if (collapsed) {
     return (
-        <Tooltip title={t.common.loginButton} placement="right">
-            {content}
-        </Tooltip>
-    )
+      <Tooltip title={t.common.loginButton} placement="right">
+        {content}
+      </Tooltip>
+    );
   }
 
   return content;
