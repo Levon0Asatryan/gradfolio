@@ -9,6 +9,8 @@ export const am: Dictionary = {
     dark: "Մուգ",
     dashboard: "Վահանակ",
     login: "Auth0 Մուտք",
+    loginButton: "Մուտք",
+    signUpButton: "Գրանցվել",
     loginConnections: "Մուտքի կարգավորումներ",
     myAccount: "Իմ հաշիվը",
     projects: "Նախագծեր",
