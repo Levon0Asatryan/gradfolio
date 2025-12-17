@@ -1,3 +1,7 @@
+// Localization types
+// Defines supported languages and the shape of the translation dictionary
+// Used to enforce type-safe access to localized strings across the app
+
 export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
