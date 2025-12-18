@@ -25,4 +25,5 @@ const Tag: FC<TagProps> = ({ label, onClick }) => {
   );
 };
 
+// Export memoized component for performance optimization
 export default memo(Tag);
