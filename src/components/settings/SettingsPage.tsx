@@ -1,3 +1,4 @@
+// Settings page component allowing users to switch language and theme, memoized for performance
 "use client";
 
 import { FC, memo, useContext } from "react";
