@@ -1,3 +1,4 @@
+// Defines the shape of the project form state and its attachments for type safety
 export interface ProjectFormState {
   title: string;
   aiSummary: string;
