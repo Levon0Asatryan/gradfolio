@@ -1,3 +1,4 @@
+// A reusable Tag component using MUI Chip, supporting optional click handler and custom props
 "use client";
 
 import { FC, memo, ReactNode } from "react";
