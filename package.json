@@ -1,6 +1,7 @@
 {
-  "name": "portfolio",
-  "version": "0.1.0",
+  "name": "gradfolio",
+  "version": "1.0.0",
+  "description": "A professional Student Portfolio Management System bridging the gap between academia and industry with project-centric evidence and intelligent integrations.",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
