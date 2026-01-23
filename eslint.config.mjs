@@ -1,67 +1,81 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import eslintConfigPrettier from "eslint-config-prettier";
+import next from "@next/eslint-plugin-next";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
+import prettier from "eslint-config-prettier/flat";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const config = [
-  // Target files + parser/globals
+export default [
+  // Ignore build output + env files
   {
-    files: ["**/*.{js,ts,tsx}"],
+    ignores: [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/build/**",
+      "**/dist/**",
+      "**/.env*",
+      "next-env.d.ts",
+    ],
+  },
+
+  // Base JS rules
+  js.configs.recommended,
+
+  // TypeScript recommended
+  ...tseslint.configs.recommended,
+
+  // App code
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
-        project: true,
       },
-      globals: globals.browser,
+      globals: { ...globals.browser, ...globals.node },
     },
-  },
-
-  // Next.js recommended configs (via compat) + TS recommended
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  ...tseslint.configs.recommended,
-
-  // Plugins & rules
-  {
+    settings: {
+      react: { version: "detect" },
+    },
     plugins: {
-      "@typescript-eslint": tseslint.plugin,
+      "@next/next": next,
+      react,
+      "react-hooks": reactHooks,
       "unused-imports": unusedImports,
+      "@typescript-eslint": tseslint.plugin,
     },
     rules: {
-      // ---- unblock build: allow explicit any (flip to "warn" later if desired)
+      ...next.configs["core-web-vitals"].rules,
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+
+      // React 17+ / Next.js: no need for `import React`
+      "react/react-in-jsx-scope": "off",
+      "react/jsx-uses-react": "off",
+
+      // This rule is noisy in real apps; disable or change to "warn"
+      "react-hooks/set-state-in-effect": "off",
+
       "@typescript-eslint/no-explicit-any": "off",
 
-      // Unused imports & vars (remove on --fix, allow _-prefixed)
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "error",
         { vars: "all", varsIgnorePattern: "^_", args: "after-used", argsIgnorePattern: "^_" },
       ],
 
-      // A few sensible strict rules
       "prefer-const": "error",
       "no-console": ["error", { allow: ["error", "warn"] }],
+
+      // allow `catch {}` patterns
+      "no-empty": ["error", { allowEmptyCatch: true }],
     },
   },
 
-  // Turn off stylistic rules that conflict with Prettier
-  eslintConfigPrettier,
-
-  // Ignores
-  {
-    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
-  },
+  // Prettier turns off stylistic conflicts
+  prettier,
 ];
-
-export default config;

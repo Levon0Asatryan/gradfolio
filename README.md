@@ -42,6 +42,28 @@ The goal of Gradfolio is to provide a "show, don't tell" platform for students. 
 - **Resume PDF Generator**: Instantly generate a professional, formatted resume from your portfolio data.
 - **Portfolio Sharing**: Streamlined email sharing integration for job applications.
 
+---
+
+## 📝 Feature Specification & Design Philosophy
+
+Gradfolio is built upon a detailed feature specification that addresses the gaps in current academic portfolio platforms.
+
+### Core Principles
+1.  **"Show, Don't Tell"**: Every skill or claim is backed by tangible artifacts (code, videos, reports).
+2.  **Unified Narrative**: A single, longitudinal record from freshman year to first job and beyond.
+3.  **Academic Rigor meets Industry Needs**: Translating complex academic projects into clear, recruiter-friendly case studies.
+
+### Competitive Analysis
+The design was informed by analyzing platforms like **Portfolium** and **Bulb**, identifying the need for:
+-   Deeper technical integration (GitHub README support, code previews).
+-   Independent, student-driven identity (not locked to a single institution).
+-   Standardized, scannable layouts optimized for recruiters.
+
+> [!TIP]
+> **View the Full Specification**: For a deep dive into the architecture, verification mechanisms, and future roadmap, read the [Detailed Feature Specification](https://docs.google.com/document/d/1dfI7A_QsUfCoHWueaTIaX2YbUwtEqMPpre1g22f0-3c/edit?tab=t.0#heading=h.i7q2hhm9v8ma).
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)

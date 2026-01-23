@@ -78,7 +78,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   );
 };
 
-export const CheckIcon: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => (
+const CheckIcon: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => (
   <Box
     component="svg"
     sx={{ height: 16, width: 16, color: (t) => t.palette.common.white, ...(sx as any) }}
