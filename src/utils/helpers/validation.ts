@@ -4,5 +4,5 @@ export const isValidEmail = (email: string | null | undefined): boolean => {
   if (!email) return false;
   const value = email.trim();
   // Simple RFC5322-ish check
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{1,}$/.test(value);
 };
