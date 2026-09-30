@@ -1,2 +1,8 @@
-npm run format
-npm run lint:fix
+# Format and lint only what is staged: fast, and it fixes in place.
+npx lint-staged
+
+# Then check the whole tree. Staged-file linting cannot see a change that
+# breaks a file it did not touch, and a commit that does not typecheck or
+# whose tests fail should not exist in history.
+npm run typecheck
+npm test
