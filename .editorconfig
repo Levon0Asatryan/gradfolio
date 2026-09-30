@@ -1,0 +1,16 @@
+# Editor-agnostic baseline. Prettier owns TypeScript, JSON, YAML and Markdown;
+# this covers the files it does not (shell scripts, hooks), and editors that open
+# a file before any tooling runs.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Trailing spaces are a line break in Markdown.
+trim_trailing_whitespace = false
