@@ -2,6 +2,7 @@
   "name": "gradfolio",
   "version": "1.0.0",
   "description": "A professional Student Portfolio Management System bridging the gap between academia and industry with project-centric evidence and intelligent integrations.",
+  "license": "MIT",
   "private": true,
   "engines": {
     "node": ">=24 <25"
