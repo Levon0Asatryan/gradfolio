@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A professional Student Portfolio Management System bridging the gap between academia and industry with project-centric evidence and intelligent integrations.",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -37,7 +40,7 @@
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
     "@next/eslint-plugin-next": "^16.3.7",
-    "@types/node": "^20",
+    "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.2",
