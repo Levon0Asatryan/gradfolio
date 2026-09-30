@@ -35,10 +35,10 @@ export default defineConfig({
       // A ratchet, not an aspiration: at or just below what the suite
       // achieves, so coverage cannot silently fall. Raise it as tests land.
       thresholds: {
-        lines: 1.2,
-        functions: 0.6,
-        branches: 0.9,
-        statements: 1.3,
+        lines: 1.8,
+        functions: 1.2,
+        branches: 1.7,
+        statements: 1.9,
       },
     },
   },
