@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    # Mondays and Thursdays at 10:00 Yerevan (GMT+4, no DST), as in gradfolio-api.
+    schedule:
+      interval: cron
+      cronjob: "0 10 * * 1,4"
+      timezone: Asia/Yerevan
+    open-pull-requests-limit: 5
+    # Patch and minor updates arrive as one PR per group, so routine bumps do
+    # not consume five slots and hide a security update behind them.
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+    # Majors come one at a time: they need a human reading the changelog.
+    ignore:
+      # @types/node's major tracks the runtime it describes. Node 24 is pinned
+      # in three places (.nvmrc, engines, CI via .nvmrc) and selects Vercel's
+      # runtime; a newer major types APIs Node 24 does not have, so tsc passes
+      # while the call crashes at runtime. It moves with the other three.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: cron
+      cronjob: "0 10 * * 1,4"
+      timezone: Asia/Yerevan
+    commit-message:
+      prefix: ci
