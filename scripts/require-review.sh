@@ -24,9 +24,12 @@ fi
 
 updates=""
 [ -t 0 ] || updates=$(cat)
-pushed=$(printf '%s\n' "$updates" | while read -r _local_ref local_oid _remote_ref _remote_oid; do
-  # Deletions push no commit.
-  [ -n "$local_oid" ] && [ "$local_oid" != "$zero" ] && [ "$local_oid" != "$head" ] && echo "$local_oid"
+pushed=$(printf '%s\n' "$updates" | while read -r _local_ref local_oid remote_ref _remote_oid; do
+  # Only branch updates carry code toward a pull request. Tags merge nothing
+  # (and an annotated tag's oid is the tag object, never HEAD); deletions push
+  # no commit.
+  case "$remote_ref" in (refs/heads/*) ;; (*) continue ;; esac
+  [ "$local_oid" != "$zero" ] && [ "$local_oid" != "$head" ] && echo "$local_oid"
 done || true)
 if [ -n "$pushed" ]; then
   cat >&2 <<MSG

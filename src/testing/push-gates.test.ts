@@ -201,6 +201,18 @@ describe("require-review.sh", () => {
     expect(r.err).toContain("which is not HEAD");
   });
 
+  it("passes an annotated tag pushed alongside HEAD (--follow-tags)", () => {
+    receipt(feat);
+    git("tag", "-a", "v1", "-m", "v1");
+    const tag = git("rev-parse", "v1");
+    expect(tag).not.toBe(feat);
+    const r = gate(
+      REQUIRE_REVIEW,
+      push(feat, "feat") + `refs/tags/v1 ${tag} refs/tags/v1 ${ZERO}\n`,
+    );
+    expect(r.code).toBe(0);
+  });
+
   it("refuses a code push without a receipt, or with one for another commit", () => {
     expect(gate(REQUIRE_REVIEW, push(feat, "feat")).code).toBe(1);
     receipt(base);
