@@ -6,5 +6,5 @@
   "printWidth": 100,
   "tabWidth": 2,
   "arrowParens": "always",
-  "bracketSpacing": true,
+  "bracketSpacing": true
 }
