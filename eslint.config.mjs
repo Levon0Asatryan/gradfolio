@@ -77,6 +77,14 @@ export default [
     },
   },
 
+  // Runs in Claude Code's workflow runtime, which injects these.
+  {
+    files: [".claude/workflows/**/*.js"],
+    languageOptions: {
+      globals: { agent: "readonly", pipeline: "readonly", phase: "readonly", log: "readonly" },
+    },
+  },
+
   // Prettier turns off stylistic conflicts
   prettier,
 ];
