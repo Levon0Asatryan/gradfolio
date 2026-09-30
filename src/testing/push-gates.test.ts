@@ -1,23 +1,49 @@
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 /**
- * The pre-push gates, run against a throwaway repository. As the hook, git
- * hands them the refs being pushed on stdin; these tests feed that stdin, so
- * what is judged is the pushed ref, not the checked-out branch.
+ * The pre-push gates and request-review.sh, run against a throwaway
+ * repository. As the hook, git hands the gates the refs being pushed on stdin;
+ * these tests feed that stdin, so what is judged is the pushed ref, not the
+ * checked-out branch.
  */
 const CHECK_BRANCH = resolve(import.meta.dirname, "../../scripts/check-branch.sh");
 const REQUIRE_REVIEW = resolve(import.meta.dirname, "../../scripts/require-review.sh");
+const REQUEST_REVIEW = resolve(import.meta.dirname, "../../scripts/request-review.sh");
 const ZERO = "0".repeat(40);
 
-// Answers `gh pr view <branch> --json state --jq .state` from $FIXTURES.
+// The gh calls the scripts make, answered from $FIXTURES:
+//   pr view <branch> --json state         -> state-<branch>
+//   pr view <n> --json headRefName        -> head-branch
+//   pr view <n> --json headRefOid         -> old-head for the first
+//                                            <stale-calls> calls, then new-head
+//   pr edit / pr comment --body <b>       -> appended to log
 const FAKE_GH = `#!/bin/sh
-f="$FIXTURES/state-$(printf '%s' "$3" | tr '/' '_')"
-[ -f "$f" ] && cat "$f" || exit 1
+fx="$FIXTURES"
+case "$1 $2" in
+  "pr view")
+    case "$5" in
+      state) f="$fx/state-$(printf '%s' "$3" | tr '/' '_')"; [ -f "$f" ] && cat "$f" || exit 1 ;;
+      headRefName) cat "$fx/head-branch" ;;
+      headRefOid)
+        n=$(($(cat "$fx/calls" 2>/dev/null || echo 0) + 1)); echo "$n" > "$fx/calls"
+        if [ "$n" -le "$(cat "$fx/stale-calls" 2>/dev/null || echo 0)" ]; then cat "$fx/old-head"; else cat "$fx/new-head"; fi ;;
+    esac ;;
+  "pr edit") echo "edit" >> "$fx/log" ;;
+  "pr comment") printf '%s\\n' "$5" >> "$fx/log" ;;
+esac
 `;
 
 let dir: string;
@@ -65,9 +91,19 @@ const receipt = (sha: string, open = 0) => {
 };
 
 /** Runs a gate with `stdin` as git would write it; "" is a run by hand. */
-function gate(script: string, stdin: string): { code: number; err: string } {
+function gate(
+  script: string,
+  stdin: string,
+  args: string[] = [],
+  extraEnv: Record<string, string> = {},
+): { code: number; err: string } {
   try {
-    execFileSync("sh", [script], { cwd: dir, env: env(), input: stdin, stdio: "pipe" });
+    execFileSync("sh", [script, ...args], {
+      cwd: dir,
+      env: { ...env(), ...extraEnv },
+      input: stdin,
+      stdio: "pipe",
+    });
     return { code: 0, err: "" };
   } catch (e) {
     const x = e as { status: number; stderr: Buffer };
@@ -187,5 +223,44 @@ describe("require-review.sh", () => {
     expect(gate(REQUIRE_REVIEW, "").code).toBe(0);
     receipt(base);
     expect(gate(REQUIRE_REVIEW, "").code).toBe(1);
+  });
+});
+
+describe("request-review.sh", () => {
+  const fx = (name: string, value: string) => writeFileSync(join(fixtures, name), value);
+  const log = () => {
+    try {
+      return readFileSync(join(fixtures, "log"), "utf8");
+    } catch {
+      return "";
+    }
+  };
+
+  it("waits until GitHub reports this checkout's HEAD, then names it", () => {
+    fx("head-branch", "feat");
+    fx("old-head", base);
+    fx("new-head", feat);
+    fx("stale-calls", "2");
+    expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
+    expect(log()).toContain(`head \`${feat.slice(0, 7)}\``);
+    expect(log()).not.toContain(base.slice(0, 7));
+  });
+
+  it("gives up without requesting anything if GitHub never catches up", () => {
+    fx("head-branch", "feat");
+    fx("old-head", base);
+    fx("new-head", feat);
+    fx("stale-calls", "999");
+    const r = gate(REQUEST_REVIEW, "", ["7"], { REQUEST_REVIEW_WAIT_S: "1" });
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("Push first");
+    expect(log()).toBe("");
+  });
+
+  it("uses GitHub's head as is for another branch's PR", () => {
+    fx("head-branch", "other");
+    fx("new-head", other);
+    expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
+    expect(log()).toContain(`head \`${other.slice(0, 7)}\``);
   });
 });

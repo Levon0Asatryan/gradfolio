@@ -19,6 +19,24 @@ fi
 pr=${1:-$(gh pr view --json number --jq .number)}
 scope=${2:-}
 head=$(gh pr view "$pr" --json headRefOid --jq .headRefOid)
+
+# Right after a push GitHub can still report the previous head for a few
+# seconds. A request naming that commit is judged against the wrong one by
+# review-status.sh, so when this checkout is the PR's branch, wait for GitHub
+# to catch up with it. Tested by src/testing/push-gates.test.ts.
+if [ "$(gh pr view "$pr" --json headRefName --jq .headRefName)" = "$(git rev-parse --abbrev-ref HEAD)" ]; then
+  local_head=$(git rev-parse HEAD)
+  waited=0
+  while [ "$head" != "$local_head" ]; do
+    if [ "$waited" -ge "${REQUEST_REVIEW_WAIT_S:-30}" ]; then
+      echo "request-review: GitHub reports $(printf '%s' "$head" | cut -c1-7) for #$pr, this checkout is at $(printf '%s' "$local_head" | cut -c1-7). Push first." >&2
+      exit 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+    head=$(gh pr view "$pr" --json headRefOid --jq .headRefOid)
+  done
+fi
 short=$(printf '%s' "$head" | cut -c1-7)
 
 gh pr edit "$pr" --add-reviewer @copilot >/dev/null
