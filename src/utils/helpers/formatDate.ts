@@ -19,5 +19,3 @@ export const formatDate = (iso: string, options?: FormatDateOptions): string => 
   }
   return datePart;
 };
-
-export type FormatDate = typeof formatDate;
