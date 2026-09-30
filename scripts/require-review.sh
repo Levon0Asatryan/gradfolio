@@ -5,14 +5,37 @@
 #
 # The point is that the review happens BEFORE the reviewer sees the branch: a
 # defect found here costs minutes; found by the reviewer it costs a round.
+#
+# The receipt, and the verify step after this in the hook, are about HEAD. As
+# the pre-push hook, git writes the refs being pushed to stdin; a push of any
+# other commit (`git push origin other-branch`) is refused, or a clean receipt
+# for this branch would carry an unreviewed one out. Run by hand with nothing on
+# stdin, it judges HEAD. Tested by src/testing/push-gates.test.ts.
 set -eu
 
 receipt=".review/.last-review.json"
 head=$(git rev-parse HEAD)
+zero=0000000000000000000000000000000000000000
 
 if [ "${SKIP_REVIEW_GATE:-}" = "1" ]; then
   echo "review gate: skipped by SKIP_REVIEW_GATE=1. Say so in the PR's 'Not verified'." >&2
   exit 0
+fi
+
+updates=""
+[ -t 0 ] || updates=$(cat)
+pushed=$(printf '%s\n' "$updates" | while read -r _local_ref local_oid _remote_ref _remote_oid; do
+  # Deletions push no commit.
+  [ -n "$local_oid" ] && [ "$local_oid" != "$zero" ] && [ "$local_oid" != "$head" ] && echo "$local_oid"
+done || true)
+if [ -n "$pushed" ]; then
+  cat >&2 <<MSG
+refusing: this push sends $(printf '%s' "$pushed" | head -1 | cut -c1-7), which is not HEAD ($(printf '%s' "$head" | cut -c1-7)).
+
+The review receipt and verify both judge HEAD. Check out the branch you are
+pushing, then push it from there.
+MSG
+  exit 1
 fi
 
 # Docs-only pushes do not need a code review.
