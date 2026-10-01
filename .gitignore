@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 .gitconfig*
+
+# review gate (local receipts)
+.review/.last-review.json
+.review/violations.jsonl
+
+# personal Claude Code settings
+.claude/settings.local.json

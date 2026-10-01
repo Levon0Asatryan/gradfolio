@@ -3,15 +3,33 @@
   "version": "1.0.0",
   "description": "A professional Student Portfolio Management System bridging the gap between academia and industry with project-centric evidence and intelligent integrations.",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "prettier": "prettier -w src",
-    "eslint": "eslint .",
-    "eslint-fix": "eslint --fix .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "knip": "knip",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts,mjs,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.30.0",
@@ -21,11 +39,8 @@
     "@fontsource/roboto": "^5.2.8",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.4",
-    "@mui/material-nextjs": "^7.3.7",
-    "@mui/system": "^7.3.3",
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
-    "knip": "^5.66.0",
     "motion": "^12.23.24",
     "next": "^16.3.7",
     "react": "^19.2.3",
@@ -34,22 +49,28 @@
     "rooks": "^9.3.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
     "@next/eslint-plugin-next": "^16.3.7",
-    "@types/node": "^20",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "^9.39.2",
-    "eslint-config-next": "^16.3.7",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-unused-imports": "^4.2.0",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
+    "jsdom": "^30.1.1",
+    "knip": "^5.88.1",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.6.2",
     "typescript": "^5",
-    "typescript-eslint": "^8.45.0"
+    "typescript-eslint": "^8.45.0",
+    "vitest": "^5.0.3"
   }
 }

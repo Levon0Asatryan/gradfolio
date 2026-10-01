@@ -16,6 +16,7 @@ export default [
       "**/out/**",
       "**/build/**",
       "**/dist/**",
+      "**/coverage/**",
       "**/.env*",
       "next-env.d.ts",
     ],

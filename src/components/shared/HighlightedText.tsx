@@ -11,9 +11,7 @@ export interface HighlightedTextProps {
 const HighlightedText: FC<HighlightedTextProps> = ({ text, query }) => {
   if (!query || !text) return <>{text}</>;
 
-  const parts = text.split(
-    new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})`, "gi"),
-  );
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
 
   return (
     <>
