@@ -106,23 +106,46 @@ describe("gradfolio-web-review workflow receipt", () => {
 
   it("counts a surviving finding, and not a rejected one", async () => {
     const lens = { security: { findings: [finding] } };
-    expect(
-      (await receiptFor({ lens, rank: { findings: [{ ...finding, deferred: false }] } }))
-        .findings_open,
-    ).toBe(1);
+    const rank = { findings: [{ ...finding, sources: [0], deferred: false }] };
+    expect((await receiptFor({ lens, rank })).findings_open).toBe(1);
     expect((await receiptFor({ lens, verdict: "REJECTED" })).findings_open).toBe(0);
   });
 
-  it("subtracts a finding only when a recorded deferral is quoted for it", async () => {
-    const lens = { security: { findings: [finding] } };
-    const quoted = { findings: [{ ...finding, deferred: true, deferral: "Deferred: row 2.9" }] };
-    const bare = { findings: [{ ...finding, deferred: true }] };
-    expect((await receiptFor({ lens, rank: quoted })).findings_open).toBe(0);
-    expect((await receiptFor({ lens, rank: bare })).findings_open).toBe(1);
+  it("counts a merged pair of findings once", async () => {
+    const lens = { security: { findings: [finding] }, auth: { findings: [finding] } };
+    const rank = { findings: [{ ...finding, sources: [0, 1], deferred: false }] };
+    expect((await receiptFor({ lens, rank })).findings_open).toBe(1);
   });
 
-  it("counts every surviving finding when the ranking returns nothing", async () => {
+  it("counts every survivor when the ranking leaves one out", async () => {
+    const lens = { security: { findings: [finding, { ...finding, line: 4 }] } };
+    const partial = { findings: [{ ...finding, sources: [0], deferred: false }] };
+    expect((await receiptFor({ lens, rank: partial })).findings_open).toBe(2);
+    expect((await receiptFor({ lens, rank: { findings: [] } })).findings_open).toBe(2);
+  });
+
+  it("counts every survivor when the ranking returns nothing", async () => {
     const lens = { security: { findings: [finding, { ...finding, line: 4 }] } };
     expect((await receiptFor({ lens, rank: null })).findings_open).toBe(2);
+  });
+
+  it("subtracts a finding only for a deferral gathered from the PR, verbatim", async () => {
+    const lens = { security: { findings: [finding] } };
+    const recorded = "Deferred: tokens in props, tracker row 2.9";
+    const rank = (deferral?: string) => ({
+      findings: [{ ...finding, sources: [0], deferred: true, deferral }],
+    });
+    expect(
+      (await receiptFor({ lens, rank: rank(recorded), deferrals: [recorded] })).findings_open,
+    ).toBe(0);
+    // Invented by the ranking: nothing was gathered.
+    expect((await receiptFor({ lens, rank: rank(recorded) })).findings_open).toBe(1);
+    // Not the recorded text.
+    expect(
+      (await receiptFor({ lens, rank: rank("Deferred."), deferrals: [recorded] })).findings_open,
+    ).toBe(1);
+    expect(
+      (await receiptFor({ lens, rank: rank(undefined), deferrals: [recorded] })).findings_open,
+    ).toBe(1);
   });
 });
