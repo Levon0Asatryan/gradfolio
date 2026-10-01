@@ -33,6 +33,10 @@ on macOS, Node 24.20.0, npm 11.19.0. Every result below was observed, not assume
 | `npm start`             | PASS   | `/`, `/profile/u_001`, `/projects`, `/search`: 200            |
 | `npm run dev`           | PASS   | the same four: 200                                            |
 
+After that run, #10's last fix (`e5dc693`: the workflow and its test, 77 tests) was
+merged in; at the final head, `verify`, `test:coverage`, `knip` and `build` were re-run
+and pass.
+
 That is every command in `CLAUDE.md`'s Commands table except the two review
 scripts, which ran against real PRs (§4).
 
@@ -59,7 +63,7 @@ Run for real (`git commit`, `git push --dry-run`, which runs pre-push).
 ## 3. CI
 
 Every job green on each PR's head (`gh pr checks`): #8 at `1d6ffa1`, #10 at
-`8fced7a` and #11: `Format, lint, types, knip`, `Unit tests + coverage`, `Production build`,
+`e5dc693` and #11: `Format, lint, types, knip`, `Unit tests + coverage`, `Production build`,
 plus `Vercel`. #7 has no CI yet (it predates the workflow): `Vercel` green.
 
 Red paths, on a throwaway draft PR (#9, pushed with `--no-verify` on purpose, then
@@ -80,15 +84,16 @@ closed and its branch deleted):
   `Copilot: FAILED … quota limit` and `Codex: reviewed 1d6ffa1 (review)`, exit 1.
 - **Regression tests, each proved by breaking what it tests:**
 
-| Broken                                                                                                | Test that failed                                                                              |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `review-status.sh` head binding (`select(.commit_id == $head)`)                                       | `does not count a review of an older head`                                                    |
-| `check-branch.sh` before the stdin fix                                                                | `refuses pushing to main …`, `… whose PR is merged …`                                         |
-| `require-review.sh` before the stdin fix                                                              | `refuses a push of another commit …`                                                          |
-| `require-review.sh` before the tag fix                                                                | `passes an annotated tag pushed alongside HEAD`                                               |
-| `request-review.sh` before the race fix                                                               | `waits until GitHub reports …`, `gives up without requesting …`                               |
-| `push-gates.test.ts` without its `GIT_*` filter, in a hook env                                        | all 11 refuse to run (`refusing to run git with GIT_DIR …`); the clone it ran in is unchanged |
-| review workflow: a missing check, a lost lens, a bare deferral, a counted regex match (one at a time) | the matching `review-workflow.test.ts` case; all 10 fail on `7c7bf43`                         |
+| Broken                                                                                                | Test that failed                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `review-status.sh` head binding (`select(.commit_id == $head)`)                                       | `does not count a review of an older head`                                                                                                                      |
+| `check-branch.sh` before the stdin fix                                                                | `refuses pushing to main …`, `… whose PR is merged …`                                                                                                           |
+| `require-review.sh` before the stdin fix                                                              | `refuses a push of another commit …`                                                                                                                            |
+| `require-review.sh` before the tag fix                                                                | `passes an annotated tag pushed alongside HEAD`                                                                                                                 |
+| `request-review.sh` before the race fix                                                               | `waits until GitHub reports …`, `gives up without requesting …`                                                                                                 |
+| `push-gates.test.ts` without its `GIT_*` filter, in a hook env                                        | all 11 refuse to run (`refusing to run git with GIT_DIR …`); the clone it ran in is unchanged                                                                   |
+| review workflow: a missing check, a lost lens, a bare deferral, a counted regex match (one at a time) | the matching `review-workflow.test.ts` case; all 10 fail on `7c7bf43`                                                                                           |
+| review workflow: the ranking-coverage check; the verbatim-deferral check (one at a time)              | `counts every survivor when the ranking leaves one out`; `subtracts a finding only for a deferral gathered from the PR, verbatim` (both also fail on `8fced7a`) |
 
 ## 5. Unit tests, each proved by breaking what it tests
 
