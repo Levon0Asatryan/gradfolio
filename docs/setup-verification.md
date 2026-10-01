@@ -16,12 +16,12 @@ on macOS, Node 24.20.0, npm 11.19.0. Every result below was observed, not assume
 
 ## 1. Fresh clone of the final head
 
-`git clone <worktree> <dir> && git -C <dir> checkout setup/hygiene` at `0b66775` (the code of this PR's head; this record is the only later change):
+`git clone <worktree> <dir> && git -C <dir> checkout setup/hygiene` at `c375a75`: the final code (later commits change only this record):
 
 | Command                 | Result | Output                                                        |
 | ----------------------- | ------ | ------------------------------------------------------------- |
 | `npm ci`                | PASS   | 479 packages; `npm audit`: 0 vulnerabilities (17 on `main`)   |
-| `npm run verify`        | PASS   | Prettier clean; 75 tests passed                               |
+| `npm run verify`        | PASS   | Prettier clean; 77 tests passed                               |
 | `npm run test:coverage` | PASS   | statements 1.95%, branches 1.7%, functions 1.21%, lines 1.82% |
 | `npm run build`         | PASS   | Next.js 16.3.7, compiled; no Auth0 variables set              |
 | `npm run typecheck`     | PASS   |                                                               |
@@ -29,13 +29,9 @@ on macOS, Node 24.20.0, npm 11.19.0. Every result below was observed, not assume
 | `npm run lint:fix`      | PASS   | changed nothing                                               |
 | `npm run format:check`  | PASS   |                                                               |
 | `npm run knip`          | PASS   |                                                               |
-| `npm test`              | PASS   | 75 tests                                                      |
+| `npm test`              | PASS   | 77 tests                                                      |
 | `npm start`             | PASS   | `/`, `/profile/u_001`, `/projects`, `/search`: 200            |
 | `npm run dev`           | PASS   | the same four: 200                                            |
-
-After that run, #10's last fix (`e5dc693`: the workflow and its test, 77 tests) was
-merged in; at the final head, `verify`, `test:coverage`, `knip` and `build` were re-run
-and pass.
 
 That is every command in `CLAUDE.md`'s Commands table except the two review
 scripts, which ran against real PRs (§4).
