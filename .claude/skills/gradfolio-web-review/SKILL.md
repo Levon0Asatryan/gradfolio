@@ -24,8 +24,10 @@ Invoked:
 Run from `CLAUDE.md` → "Commands" and report failures as a block: **verify**,
 **coverage ≥ floor**, **knip**, **build**. Then the `**Check:**` regexes in
 `.review/rules/gradfolio-web.md` against the changed files, reporting file:line
-plus the message. If pass 0 fails, stop: there is no point reviewing code that
-does not build.
+plus the message. A match is a pointer for pass 1 to judge, not a failure by
+itself: correct code can match. Every command must have run; one that did not is
+not clean. If a command fails, stop: there is no point reviewing code that does
+not build.
 
 ## Pass 1: the rule corpus
 
