@@ -16,12 +16,12 @@ on macOS, Node 24.20.0, npm 11.19.0. Every result below was observed, not assume
 
 ## 1. Fresh clone of the final head
 
-`git clone <worktree> <dir> && git -C <dir> checkout setup/hygiene` at `065c686`:
+`git clone <worktree> <dir> && git -C <dir> checkout setup/hygiene` at `0b66775` (the code of this PR's head; this record is the only later change):
 
 | Command                 | Result | Output                                                        |
 | ----------------------- | ------ | ------------------------------------------------------------- |
 | `npm ci`                | PASS   | 479 packages; `npm audit`: 0 vulnerabilities (17 on `main`)   |
-| `npm run verify`        | PASS   | Prettier clean; 65 tests passed                               |
+| `npm run verify`        | PASS   | Prettier clean; 75 tests passed                               |
 | `npm run test:coverage` | PASS   | statements 1.95%, branches 1.7%, functions 1.21%, lines 1.82% |
 | `npm run build`         | PASS   | Next.js 16.3.7, compiled; no Auth0 variables set              |
 | `npm run typecheck`     | PASS   |                                                               |
@@ -29,7 +29,7 @@ on macOS, Node 24.20.0, npm 11.19.0. Every result below was observed, not assume
 | `npm run lint:fix`      | PASS   | changed nothing                                               |
 | `npm run format:check`  | PASS   |                                                               |
 | `npm run knip`          | PASS   |                                                               |
-| `npm test`              | PASS   | 65 tests                                                      |
+| `npm test`              | PASS   | 75 tests                                                      |
 | `npm start`             | PASS   | `/`, `/profile/u_001`, `/projects`, `/search`: 200            |
 | `npm run dev`           | PASS   | the same four: 200                                            |
 
@@ -58,8 +58,8 @@ Run for real (`git commit`, `git push --dry-run`, which runs pre-push).
 
 ## 3. CI
 
-Every job green on each PR's head (`gh pr checks`): #8 at `1d6ffa1` and #10 at
-`7c7bf43`: `Format, lint, types, knip`, `Unit tests + coverage`, `Production build`,
+Every job green on each PR's head (`gh pr checks`): #8 at `1d6ffa1`, #10 at
+`8fced7a` and #11: `Format, lint, types, knip`, `Unit tests + coverage`, `Production build`,
 plus `Vercel`. #7 has no CI yet (it predates the workflow): `Vercel` green.
 
 Red paths, on a throwaway draft PR (#9, pushed with `--no-verify` on purpose, then
@@ -80,14 +80,15 @@ closed and its branch deleted):
   `Copilot: FAILED … quota limit` and `Codex: reviewed 1d6ffa1 (review)`, exit 1.
 - **Regression tests, each proved by breaking what it tests:**
 
-| Broken                                                          | Test that failed                                                                              |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `review-status.sh` head binding (`select(.commit_id == $head)`) | `does not count a review of an older head`                                                    |
-| `check-branch.sh` before the stdin fix                          | `refuses pushing to main …`, `… whose PR is merged …`                                         |
-| `require-review.sh` before the stdin fix                        | `refuses a push of another commit …`                                                          |
-| `require-review.sh` before the tag fix                          | `passes an annotated tag pushed alongside HEAD`                                               |
-| `request-review.sh` before the race fix                         | `waits until GitHub reports …`, `gives up without requesting …`                               |
-| `push-gates.test.ts` without its `GIT_*` filter, in a hook env  | all 11 refuse to run (`refusing to run git with GIT_DIR …`); the clone it ran in is unchanged |
+| Broken                                                                                                | Test that failed                                                                              |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `review-status.sh` head binding (`select(.commit_id == $head)`)                                       | `does not count a review of an older head`                                                    |
+| `check-branch.sh` before the stdin fix                                                                | `refuses pushing to main …`, `… whose PR is merged …`                                         |
+| `require-review.sh` before the stdin fix                                                              | `refuses a push of another commit …`                                                          |
+| `require-review.sh` before the tag fix                                                                | `passes an annotated tag pushed alongside HEAD`                                               |
+| `request-review.sh` before the race fix                                                               | `waits until GitHub reports …`, `gives up without requesting …`                               |
+| `push-gates.test.ts` without its `GIT_*` filter, in a hook env                                        | all 11 refuse to run (`refusing to run git with GIT_DIR …`); the clone it ran in is unchanged |
+| review workflow: a missing check, a lost lens, a bare deferral, a counted regex match (one at a time) | the matching `review-workflow.test.ts` case; all 10 fail on `7c7bf43`                         |
 
 ## 5. Unit tests, each proved by breaking what it tests
 
