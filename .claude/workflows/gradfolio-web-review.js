@@ -1,8 +1,8 @@
 export const meta = {
   name: "gradfolio-web-review",
   description:
-    "Adversarial pre-push review: independent reviewers by lens, each finding attacked by a separate agent, then ranked. Writes .review/.last-review.json so the pre-push gate passes.",
-  phases: ["Gather", "Review by lens", "Attack the findings", "Rank and record"],
+    "Adversarial pre-push review: the mechanical gate, then independent reviewers by lens, each finding attacked by a separate agent, then ranked. Writes .review/.last-review.json; the pre-push gate passes only when nothing is left open.",
+  phases: ["Gather", "Mechanical", "Review by lens", "Attack the findings", "Rank and record"],
 };
 
 phase("Gather");
@@ -31,6 +31,39 @@ the current HEAD sha.`,
 
 if (!ctx) return "Could not gather the branch context; nothing reviewed.";
 
+phase("Mechanical");
+
+// Pass 0 of the skill. A failure here is an open finding: the receipt must not
+// say clean for a branch that does not build, or whose tests or knip fail.
+const mechanical = await agent(
+  `Run these from the repository root, one at a time, and report each that exits
+non-zero, with the last lines of its output: npm run verify; npm run test:coverage;
+npm run knip; npm run build. Then apply every "**Check:**" regex in
+.review/rules/gradfolio-web.md to the changed files (${ctx.files.length} files) and
+report each match as file:line plus the rule's message. Change nothing.`,
+  {
+    label: "pass 0",
+    schema: {
+      type: "object",
+      required: ["failures"],
+      properties: {
+        failures: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["check", "detail"],
+            properties: { check: { type: "string" }, detail: { type: "string" } },
+          },
+        },
+      },
+    },
+  },
+);
+
+// A pass that did not run is not clean.
+const mechanicalOpen = mechanical ? mechanical.failures.length : 1;
+if (!mechanical) log("pass 0 returned nothing; it counts as one open finding.");
+
 const lenses = [
   {
     label: "security",
@@ -56,6 +89,11 @@ const lenses = [
     label: "accessibility",
     brief:
       "Interactive elements are buttons or links, or have a role, keyboard handling and focus. Every control and image has an accessible name. Dialogs move and return focus; no keyboard traps; visible focus. No information by colour alone; WCAG AA contrast in light and dark.",
+  },
+  {
+    label: "plan",
+    brief:
+      "Trace each changed page from request to pixels: route policy and middleware, the server component, route handler or server action, where the caller comes from (the session), what it asks the API for and with which token, what crosses into client components, what is rendered. Then walk the plan's normative sentences (must, is excluded from, is anchored on) and point at the implementing line; a sentence with no line is a finding.",
   },
   {
     label: "tests",
@@ -117,9 +155,10 @@ const found = reviews.flatMap((r, i) =>
   (r?.findings ?? []).map((f) => ({ ...f, lens: lenses[i].label })),
 );
 
+// A lens that returned nothing did not review its part; that is open, not clean.
 const lost = reviews.filter((r) => !r).length;
 if (lost > 0)
-  log(`${lost} of ${lenses.length} lenses returned nothing — findings may be incomplete.`);
+  log(`${lost} of ${lenses.length} lenses returned nothing; each counts as an open finding.`);
 
 phase("Attack the findings");
 
@@ -157,8 +196,11 @@ const report = await agent(
   `Rank these surviving findings, most severe first, and deduplicate ones that
 are the same defect seen through two lenses. Then write .review/.last-review.json
 containing exactly:
-{"sha": "${ctx.sha}", "at": "<ISO timestamp from the date command>", "findings_open": <deduplicated count>, "method": "gradfolio-web-review-workflow", "lenses": ${lenses.length}, "attacked": ${found.length}, "rejected": ${found.length - survived.length}}
-Do not round findings_open down.
+{"sha": "${ctx.sha}", "at": "<ISO timestamp from the date command>", "findings_open": <deduplicated count + ${mechanicalOpen + lost}>, "method": "gradfolio-web-review-workflow", "lenses": ${lenses.length}, "attacked": ${found.length}, "rejected": ${found.length - survived.length}, "pass0_failures": ${mechanicalOpen}, "lenses_lost": ${lost}}
+Do not round findings_open down: ${mechanicalOpen} is pass 0 failures and ${lost} is
+lenses that did not run, each already open.
+Pass 0 failures:
+${JSON.stringify(mechanical?.failures ?? [{ check: "pass 0", detail: "did not run" }], null, 2)}
 Findings:
 ${JSON.stringify(survived, null, 2)}
 Return the ranked findings and one line on how many were raised, rejected, and
