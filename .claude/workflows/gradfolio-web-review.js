@@ -235,13 +235,15 @@ phase("Rank and record");
 const ranked = survived.length
   ? await agent(
       `Rank these surviving findings, most severe first, and merge ones that are the
-same defect seen through two lenses. Mark a finding deferred ONLY when one of the
-recorded deferrals below answers that same defect, and quote that deferral. Do not
-write any file.
+same defect seen through two lenses. For each ranked finding, list in "sources"
+the numbers of every finding below it covers: together they must cover every
+number. Mark a finding deferred ONLY when one of the recorded deferrals below
+answers that same defect, and copy that deferral into "deferral" exactly as it
+appears in the list. Do not write any file.
 Recorded deferrals:
 ${ctx.deferrals.length ? ctx.deferrals.join("\n") : "none"}
 Findings:
-${JSON.stringify(survived, null, 2)}`,
+${survived.map((f, i) => `${i}. ${JSON.stringify(f)}`).join("\n")}`,
       {
         label: "rank",
         schema: {
@@ -252,8 +254,9 @@ ${JSON.stringify(survived, null, 2)}`,
               type: "array",
               items: {
                 type: "object",
-                required: ["file", "line", "claim", "deferred"],
+                required: ["file", "line", "claim", "sources", "deferred"],
                 properties: {
+                  sources: { type: "array", items: { type: "number" } },
                   file: { type: "string" },
                   line: { type: "number" },
                   claim: { type: "string" },
@@ -268,12 +271,19 @@ ${JSON.stringify(survived, null, 2)}`,
     )
   : { findings: [] };
 
-// Without a ranking nothing can be merged or matched to a deferral, so every
-// surviving finding counts as open. A deferral must quote what it answers.
-const openFindings = ranked
-  ? ranked.findings.filter((f) => !(f.deferred && f.deferral)).length
+// The ranking is trusted only when it accounts for every survivor; otherwise,
+// or without a ranking, every surviving finding counts as open. A finding is
+// deferred only by a deferral gathered from the PR, copied verbatim: the
+// ranking cannot invent one.
+const covered = new Set((ranked?.findings ?? []).flatMap((f) => f.sources ?? []));
+const complete = ranked !== null && survived.every((_, i) => covered.has(i));
+const isDeferred = (f) => f.deferred && ctx.deferrals.includes(f.deferral);
+const openFindings = complete
+  ? ranked.findings.filter((f) => !isDeferred(f)).length
   : survived.length;
-const deferred = ranked ? ranked.findings.length - openFindings : 0;
+const deferred = complete ? ranked.findings.length - openFindings : 0;
+if (!complete && survived.length)
+  log("the ranking did not account for every finding; all count as open.");
 const findingsOpen = openFindings + failedChecks.length + lost;
 
 const receipt = {
