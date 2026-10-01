@@ -5,18 +5,25 @@ export const meta = {
   phases: ["Gather", "Mechanical", "Review by lens", "Attack the findings", "Rank and record"],
 };
 
+// The open count is computed here, not by an agent, so a receipt cannot say
+// clean by omission. Tested by src/testing/review-workflow.test.ts, which runs
+// this file with fake agents.
+
 phase("Gather");
 
 const ctx = await agent(
   `Collect the review context for the current branch. Do not review anything yet.
 Return: the diff against origin/main (paths and full patch), the contents of
 .review/rules/gradfolio-web.md, the plan this branch implements if one applies
-(docs/*-plan.md here, or ../gradfolio-api/docs/mN-plan.md), the "Code Review Rules" section of AGENTS.md, and
-the current HEAD sha.`,
+(docs/*-plan.md here, or ../gradfolio-api/docs/mN-plan.md), the "Code Review Rules"
+section of AGENTS.md, the current HEAD sha, and the deferrals recorded in this
+branch's pull request, if it has one: each review-thread reply or PR comment by
+the author that defers a finding ("Deferred …") with its proposed tracker row,
+quoted with the finding it answers. No pull request means no deferrals.`,
   {
     schema: {
       type: "object",
-      required: ["sha", "files", "diff", "rules", "plan", "contract"],
+      required: ["sha", "files", "diff", "rules", "plan", "contract", "deferrals"],
       properties: {
         sha: { type: "string" },
         files: { type: "array", items: { type: "string" } },
@@ -24,6 +31,7 @@ the current HEAD sha.`,
         rules: { type: "string" },
         plan: { type: "string" },
         contract: { type: "string" },
+        deferrals: { type: "array", items: { type: "string" } },
       },
     },
   },
@@ -33,26 +41,48 @@ if (!ctx) return "Could not gather the branch context; nothing reviewed.";
 
 phase("Mechanical");
 
-// Pass 0 of the skill. A failure here is an open finding: the receipt must not
-// say clean for a branch that does not build, or whose tests or knip fail.
+// Pass 0 of the skill. Every required check must report that it ran and how it
+// exited: a check missing from the answer did not run, and a check that did not
+// run is not clean.
+const REQUIRED = ["verify", "test:coverage", "knip", "build", "rule-checks"];
+
 const mechanical = await agent(
-  `Run these from the repository root, one at a time, and report each that exits
-non-zero, with the last lines of its output: npm run verify; npm run test:coverage;
-npm run knip; npm run build. Then apply every "**Check:**" regex in
+  `Run these from the repository root, one at a time, and report each one's exit
+code: npm run verify; npm run test:coverage; npm run knip; npm run build (names:
+"verify", "test:coverage", "knip", "build"). Then apply every "**Check:**" regex in
 .review/rules/gradfolio-web.md to the changed files (${ctx.files.length} files) and
-report each match as file:line plus the rule's message. Change nothing.`,
+report it as the check "rule-checks" (exit 0 when the scan completed), with each
+match listed separately. Report a check you could not run with ran: false. Change
+nothing.`,
   {
     label: "pass 0",
     schema: {
       type: "object",
-      required: ["failures"],
+      required: ["checks", "ruleMatches"],
       properties: {
-        failures: {
+        checks: {
           type: "array",
           items: {
             type: "object",
-            required: ["check", "detail"],
-            properties: { check: { type: "string" }, detail: { type: "string" } },
+            required: ["name", "ran", "exitCode", "detail"],
+            properties: {
+              name: { type: "string" },
+              ran: { type: "boolean" },
+              exitCode: { type: "number" },
+              detail: { type: "string" },
+            },
+          },
+        },
+        ruleMatches: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["file", "line", "message"],
+            properties: {
+              file: { type: "string" },
+              line: { type: "number" },
+              message: { type: "string" },
+            },
           },
         },
       },
@@ -60,9 +90,17 @@ report each match as file:line plus the rule's message. Change nothing.`,
   },
 );
 
-// A pass that did not run is not clean.
-const mechanicalOpen = mechanical ? mechanical.failures.length : 1;
-if (!mechanical) log("pass 0 returned nothing; it counts as one open finding.");
+const failedChecks = REQUIRED.filter((name) => {
+  const check = mechanical?.checks.find((c) => c.name === name);
+  return !check || !check.ran || check.exitCode !== 0;
+});
+if (failedChecks.length) log(`pass 0 not clean: ${failedChecks.join(", ")}`);
+
+// A Check regex is a pointer, not a verdict: a match can be correct code. The
+// lenses judge each match like any other line of the diff.
+const ruleMatches = (mechanical?.ruleMatches ?? [])
+  .map((m) => `${m.file}:${m.line} ${m.message}`)
+  .join("\n");
 
 const lenses = [
   {
@@ -117,6 +155,8 @@ Changed files:
 ${ctx.files.join("\n")}
 Rules corpus:
 ${ctx.rules}
+Lines the corpus's Check regexes matched (pointers: judge each, most are fine):
+${ruleMatches || "none"}
 Severity contract:
 ${ctx.contract}
 Plan:
@@ -192,20 +232,71 @@ const survived = found
 
 phase("Rank and record");
 
-const report = await agent(
-  `Rank these surviving findings, most severe first, and deduplicate ones that
-are the same defect seen through two lenses. Then write .review/.last-review.json
-containing exactly:
-{"sha": "${ctx.sha}", "at": "<ISO timestamp from the date command>", "findings_open": <deduplicated count + ${mechanicalOpen + lost}>, "method": "gradfolio-web-review-workflow", "lenses": ${lenses.length}, "attacked": ${found.length}, "rejected": ${found.length - survived.length}, "pass0_failures": ${mechanicalOpen}, "lenses_lost": ${lost}}
-Do not round findings_open down: ${mechanicalOpen} is pass 0 failures and ${lost} is
-lenses that did not run, each already open.
-Pass 0 failures:
-${JSON.stringify(mechanical?.failures ?? [{ check: "pass 0", detail: "did not run" }], null, 2)}
+const ranked = survived.length
+  ? await agent(
+      `Rank these surviving findings, most severe first, and merge ones that are the
+same defect seen through two lenses. Mark a finding deferred ONLY when one of the
+recorded deferrals below answers that same defect, and quote that deferral. Do not
+write any file.
+Recorded deferrals:
+${ctx.deferrals.length ? ctx.deferrals.join("\n") : "none"}
 Findings:
-${JSON.stringify(survived, null, 2)}
-Return the ranked findings and one line on how many were raised, rejected, and
-what the receipt says.`,
-  { label: "rank and write receipt" },
+${JSON.stringify(survived, null, 2)}`,
+      {
+        label: "rank",
+        schema: {
+          type: "object",
+          required: ["findings"],
+          properties: {
+            findings: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["file", "line", "claim", "deferred"],
+                properties: {
+                  file: { type: "string" },
+                  line: { type: "number" },
+                  claim: { type: "string" },
+                  deferred: { type: "boolean" },
+                  deferral: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
+    )
+  : { findings: [] };
+
+// Without a ranking nothing can be merged or matched to a deferral, so every
+// surviving finding counts as open. A deferral must quote what it answers.
+const openFindings = ranked
+  ? ranked.findings.filter((f) => !(f.deferred && f.deferral)).length
+  : survived.length;
+const deferred = ranked ? ranked.findings.length - openFindings : 0;
+const findingsOpen = openFindings + failedChecks.length + lost;
+
+const receipt = {
+  sha: ctx.sha,
+  at: "<ISO timestamp>",
+  findings_open: findingsOpen,
+  method: "gradfolio-web-review-workflow",
+  lenses: lenses.length,
+  attacked: found.length,
+  rejected: found.length - survived.length,
+  deferred,
+  pass0_failed: failedChecks,
+  lenses_lost: lost,
+};
+
+const report = await agent(
+  `Write .review/.last-review.json containing exactly this JSON, with "<ISO timestamp>"
+replaced by the output of \`date -u +%FT%TZ\`. Change no other value.
+${JSON.stringify(receipt)}
+Then return the ranked findings, the pass 0 result and one line on the receipt.
+Ranked findings:
+${JSON.stringify(ranked?.findings ?? survived, null, 2)}`,
+  { label: "write receipt" },
 );
 
-return report ?? "Review ran but the ranking agent returned nothing; receipt not written.";
+return report ?? "Review ran but the receipt agent returned nothing; receipt not written.";
