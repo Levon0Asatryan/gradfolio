@@ -107,6 +107,7 @@ npm run knip          # Find unused exports/dependencies
 ## Pre-commit Hooks
 
 Husky runs on every commit (`.husky/pre-commit`):
+
 1. `npm run prettier` — auto-formats code
 2. `npm run eslint-fix` — lints and fixes
 
@@ -126,6 +127,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 ## Key Architecture Patterns
 
 ### Provider Hierarchy (layout.tsx)
+
 ```
 <html>
   <body>
@@ -147,6 +149,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 ```
 
 ### Sidebar Layout
+
 - Uses `react-resizable-panels` with `PanelGroup` (horizontal)
 - Left panel: `AppNavigation` (collapsible sidebar with nav items)
 - Right panel: page content (scrollable)
@@ -156,6 +159,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - Sidebar can be hidden entirely (e.g., 404 page) via `SidebarVisibilityContext`
 
 ### Navigation
+
 - Sidebar nav items: Dashboard (`/`), Login (`/auth/login`), Login Connections (`/integrations/connections`), My Account (`/profile/u_001`), Projects (`/projects`), Integrations (`/integrations`), Explore Portfolios (`/search`)
 - Settings link pinned to bottom of sidebar
 - Active route detection: longest matching href prefix, with special handling for `/projects` to only highlight for user's own projects
@@ -163,6 +167,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - Tooltips shown when sidebar is collapsed
 
 ### Theme System
+
 - `ThemeWrapper` creates MUI theme via `getTheme(mode)`:
   - Light: primary `#000000`, navigation bg `grey[50]`
   - Dark: primary `grey[300]`, navigation bg `#1e1e1e`
@@ -172,6 +177,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - `ThemeRegistry` handles Emotion SSR with `useServerInsertedHTML`
 
 ### Data Layer
+
 - **No backend/database yet** — all data is mock
 - `src/data/profile.mock.ts`: Single user profile (`ProfileData` interface) with education, experience, projects, certifications, skills, social links
 - `src/data/portfolios.mock.ts`: 6 mock users (u_001 through u_006) with full profiles; `getProfileById(id)` lookup function
@@ -182,6 +188,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 ### Data Types
 
 **Profile types** (`src/data/profile.mock.ts`):
+
 - `ProfileData`: id, name, headline, location, verified, email, avatarUrl, education[], experience[], projects[], certifications[], skills[], socialLinks
 - `Education`: institution, degree, field, startYear, endYear, description, highlights
 - `Experience`: title, organization, start (ISO month), end, summary, achievements, skills
@@ -189,6 +196,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - `Certification`: name, issuer, date (YYYY-MM), credentialUrl
 
 **Project detail types** (`src/data/project.mock.ts`):
+
 - `ProjectDetailData`: id, title, aiSummary, heroImageUrl, descriptionHtml, attachments[], links[], files[], repo (RepoInfo), technologies[], team (TeamMember[]), metadata (ProjectMetadata), liveDemoUrl
 - `ProjectAttachment`: id, type (image|video|pdf|link), url, title, thumbnailUrl
 - `RepoInfo`: url, latestCommitDate, readmeUrl
@@ -196,11 +204,13 @@ Husky runs on every commit (`.husky/pre-commit`):
 - `ProjectMetadata`: startDate, endDate, category (course|personal|research|hackathon|academic|other), course, professor
 
 **Dashboard types** (`src/utils/types/dashboard.types.ts`):
+
 - `Project`: id, title, description, status (ongoing|completed|archived), technologies[], lastUpdated
 - `Activity`: id, type (project|profile), translationKey, translationParams, timestamp, details
 - `DashboardStats`: totalProjects, githubStars, linkedinConnections, recentActivities
 
 ### Auth
+
 - Auth0 v4 server-side SDK initialized in `src/lib/auth0.ts`
 - `authorizationParameters` explicitly passes `AUTH0_SCOPE` and `AUTH0_AUDIENCE` (v4 SDK no longer auto-reads these)
 - Middleware wraps all routes with `auth0.middleware(request)`, catches errors gracefully
@@ -208,6 +218,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - Current user is hardcoded as `u_001` (no real auth session reading yet)
 
 ### i18n System
+
 - Type-safe: `Dictionary` interface in `src/data/locales/types.ts` enforces every key exists in all 3 languages
 - Sections: `common`, `profile`, `integrations` (with nested `steps`, `dialog`, `setup`), `projects` (with `categories`, `status`, `sort`, `form`), `dashboard` (with `stats`, `activity`, `activityTypes`), `search` (with `categories`)
 - Language stored in `localStorage` under key `"language"`
@@ -215,6 +226,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 - Access pattern: `const { t, language, setLanguage } = useLanguage()`
 
 ### Stepper Component
+
 - Reusable multi-step wizard in `src/components/stepper/`
 - Exports: `Stepper` (root), `Step` (child)
 - Features: step indicators, connectors, slide transitions, back/next buttons, `canProceed` validation per step, `onStepChange` and `onFinalStepCompleted` callbacks
@@ -224,11 +236,13 @@ Husky runs on every commit (`.husky/pre-commit`):
 ## Page-by-Page Details
 
 ### Dashboard (`/`, `src/app/page.tsx`)
+
 - Client component showing: DashboardHeader (user info + stats + engagement rate), DashboardStats (summary cards), RecentProjects (grid with click-to-navigate), QuickActions (add project, edit profile), ActivityFeed
 - Data from `dashboard.mock.ts` and `profile.mock.ts`
 - `/dashboard` redirects to `/`
 
 ### Profile (`/profile/[id]`, `src/app/profile/[id]/page.tsx`)
+
 - Server component: fetches profile via `getProfileById(id)`, returns 404 if not found
 - `isOwnProfile` determined by `id === "u_001"` (hardcoded)
 - `ProfileContent` (client): toggle between Preview and Edit modes via `ToggleButtonGroup`
@@ -239,32 +253,38 @@ Husky runs on every commit (`.husky/pre-commit`):
 - `/profile/edit` redirects to `/profile` (edit is now inline)
 
 ### Projects List (`/projects`, `src/app/projects/ProjectsContent.tsx`)
+
 - Client component with: search input, category filter, sort dropdown (newest/oldest/name asc/desc)
 - Filters projects from `project.mock.ts` that belong to current user (cross-references `profileMock.projects` IDs)
 - "Add Project" button navigates to `/projects/new`
 
 ### Project Detail (`/projects/[id]`, `src/app/projects/[id]/page.tsx`)
+
 - Server component with `generateMetadata()` for dynamic title/description
 - Shows: BackButton, ProjectHeader (title, AI summary, hero image, repo link, live demo), ProjectDescription (HTML content), AttachmentsGallery, ProjectMetadataCard (dates, category, course, professor), TechTags (clickable), TeamList (avatars + roles)
 - Layout: 8/4 grid
 
 ### New Project (`/projects/new`, `src/components/project-new/ProjectNewForm.tsx`)
+
 - Form with: title, AI summary, live demo URL, repo URL, attachments management
 - Attachments: add/remove with type (image/video/pdf/link), URL, title
 - Mock save (1s delay) then redirect to `/projects`
 
 ### Search/Explore (`/search`, `src/components/search/ExplorePage.tsx`)
+
 - Search across all portfolios by name, headline, skills, project names/summaries
 - Category filter: All, Developers, Designers, Product Managers, Data Scientists, Researchers (keyword-based heuristic matching against headline + skills)
 - Results shown in a grid of portfolio cards
 
 ### Integrations (`/integrations`, `src/components/integrations/IntegrationsPage.tsx`)
+
 - Shows LinkedIn and GitHub integration cards
 - Connect/disconnect via confirmation dialogs (mock local state, no real OAuth)
 - Shows connection status, last synced date
 - Info banner when nothing is connected
 
 ### Connections Onboarding (`/integrations/connections`)
+
 - 4-step stepper wizard:
   1. **Welcome**: Import from GitHub/LinkedIn buttons (simulated 900ms import)
   2. **Basic Info**: Full name (required), email (validated), birthday, GitHub URL, LinkedIn URL, phone, website
@@ -274,14 +294,17 @@ Husky runs on every commit (`.husky/pre-commit`):
 - Uses the reusable `Stepper` component
 
 ### Settings (`/settings`, `src/components/settings/SettingsPage.tsx`)
+
 - Language toggle: English / Русский / Հայերեն
 - Theme toggle: Light (with sun icon) / Dark (with moon icon)
 
 ### Account (`/account`)
+
 - Static placeholder page with title and description text
 - No interactive functionality yet
 
 ### 404 (`not-found.tsx`)
+
 - Hides sidebar via `SidebarVisibilityContext`
 - Shows Noise visual effect, gradient text "404 — Page not found"
 - Buttons: "Go to Dashboard" and "Explore Portfolios"
@@ -289,6 +312,7 @@ Husky runs on every commit (`.husky/pre-commit`):
 ## Environment Variables
 
 Auth0 requires (loaded automatically by the SDK unless noted):
+
 - `AUTH0_SECRET`
 - `AUTH0_BASE_URL`
 - `AUTH0_ISSUER_BASE_URL`
@@ -300,6 +324,7 @@ Auth0 requires (loaded automatically by the SDK unless noted):
 ## Remote Image Domains
 
 Configured in `next.config.ts`:
+
 - `i.pravatar.cc` — mock avatar images
 - `images.unsplash.com` — mock project/attachment images
 
@@ -308,6 +333,7 @@ Configured in `next.config.ts`:
 A MySQL 8.4 database schema exists in the sibling repo at `../gradfolio-sql/`. It runs via Docker Compose (MySQL 8.4 + Adminer web UI) and is designed to replace the current mock data layer.
 
 **Connection string** (for `.env.local`):
+
 ```
 DATABASE_URL=mysql://gradfolio:gradfolio_pass@localhost:3306/gradfolio
 ```
@@ -327,6 +353,7 @@ users                       ← ProfileData + socialLinks (github/linkedin inlin
 ```
 
 ### Key design decisions:
+
 - All PKs are `VARCHAR(36)` with `DEFAULT (UUID())`
 - `users.auth0_id` is UNIQUE — maps to Auth0 identity
 - `education.highlights`, `experience.achievements`, `experience.skills`, `projects.tags`, `projects.technologies`, `projects.links`, `projects.files` are JSON columns (arrays)
@@ -341,7 +368,7 @@ users                       ← ProfileData + socialLinks (github/linkedin inlin
 ### Table → TypeScript type mapping:
 
 | Table                 | TS type                                                          |
-|-----------------------|------------------------------------------------------------------|
+| --------------------- | ---------------------------------------------------------------- |
 | `users`               | `ProfileData` + `ProfileData.socialLinks`                        |
 | `education`           | `Education` (`highlights` → JSON)                                |
 | `experience`          | `Experience` (`achievements` + `skills` → JSON)                  |
@@ -375,7 +402,9 @@ users                       ← ProfileData + socialLinks (github/linkedin inlin
 The full product vision is documented in spec files located at `../` (parent directory). The core philosophy is **"Show, Don't Tell"** — every skill or experience must be backed by tangible proof (code, documents, media).
 
 ### Competitive positioning
+
 Gradfolio fills the gap between:
+
 - **Portfolium (Canvas Folio)**: Strong on artifacts/collaboration but institution-centric, no native code integration, limited peer-to-peer features
 - **Bulb Digital Portfolios**: Rich media + longitudinal records but reflection-heavy, no social graph, narrative over structure
 
@@ -384,18 +413,21 @@ Gradfolio's differentiator: **academic depth packaged in a recruiter-friendly fo
 ### Feature Roadmap (from specification, not yet implemented)
 
 #### 1. Authentication & Onboarding
+
 - Multi-option sign-up: email/password + OAuth (Google, LinkedIn, GitHub)
 - Profile initialization during first login (pre-fill from OAuth)
 - Email & phone verification (OTP) — marks profile as credible
 - External account linking post-registration (LinkedIn, GitHub)
 
 #### 2. LinkedIn & GitHub Integration (Data Import)
+
 - **LinkedIn import**: Work experience, education, certifications, skills via LinkedIn API
 - **GitHub import**: List repos → user selects which become projects → import name, description, language, stars, README content
 - Review/edit imported data before publishing
 - Manual re-sync option (user-triggered, no auto-overwrite)
 
 #### 3. Verification & Credibility (optional, can be deferred)
+
 - **Email/phone verification** → verified profile indicator
 - **LinkedIn/GitHub verification** → "Verified LinkedIn/GitHub" badge via OAuth confirmation
 - **Education verification** → manual document upload (transcript/diploma), admin review → checkmark
@@ -405,6 +437,7 @@ Gradfolio's differentiator: **academic depth packaged in a recruiter-friendly fo
 - Privacy: verification documents kept private, only status displayed
 
 #### 4. Search & Discovery (enhanced)
+
 - Global search across names, skills, project titles, school names
 - Clickable tech tags → show all projects/profiles with that tag
 - Browse Projects page: gallery with sorting (newest, most viewed, by category), thumbnail cards
@@ -414,28 +447,33 @@ Gradfolio's differentiator: **academic depth packaged in a recruiter-friendly fo
 - Public/private content controls: users can mark projects as private
 
 #### 5. Utilities & Export
+
 - **Automated CV/Resume PDF**: generate from profile data, choose template, select sections
 - **Portfolio PDF export**: full portfolio with text + images for offline use
 - **Email sharing**: "Share via Email" button with recipient input, auto-generated email template with highlights + portfolio link
 - **Notifications**: teammate tags, project verification, comments, employer contact requests
 
 #### 6. AI Features
+
 - AI-generated project summaries (2-3 sentences from description/README, editable)
 - Auto-suggest tags from project description ("You used Python, do you want to tag Python?")
 - Description improvement suggestions
 
 #### 7. Social Features (future scope)
+
 - Comments/feedback on project pages
 - Skill endorsements from peers
 - Follow/bookmark other students' projects
 - Activity feed beyond own actions
 
 #### 8. Admin Interface (future scope)
+
 - Content moderation
 - Verification document review/approval
 - Site-wide settings management
 
 ### Example End-to-End User Journey (from spec)
+
 1. **Onboarding**: Student signs up with university email → verifies → links Google + LinkedIn → imports LinkedIn data (education, internship, skills auto-filled)
 2. **Adding projects**: GitHub import for personal project (screenshots + AI summary added); manual entry for group class project (description, video demo, tag teammate)
 3. **Verification**: Upload diploma PDF → admin verifies; enter Cisco cert number → auto-verified; profile shows "Verified" badge
