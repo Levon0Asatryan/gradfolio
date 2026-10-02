@@ -143,7 +143,7 @@ beforeEach(() => {
     throw new Error(`git resolves to ${top}, not the test repository; refusing to continue`);
   }
   git("config", "core.hooksPath", "/dev/null");
-  writeFileSync(join(dir, ".gitignore"), ".bin/\n.fx/\n.review/\n");
+  writeFileSync(join(dir, ".gitignore"), ".bin/\n.fx/\n.review/\n.origin.git/\n");
   base = commit("README.md");
   git("update-ref", "refs/remotes/origin/main", base);
   git("checkout", "-q", "-b", "other");
@@ -248,7 +248,16 @@ describe("request-review.sh", () => {
     }
   };
 
-  it("waits until GitHub reports this checkout's HEAD, then names it", () => {
+  // The PR's branch on a real (local, bare) origin, so `git ls-remote` answers.
+  const origin = (refspec: string) => {
+    const bare = join(dir, ".origin.git");
+    git("init", "-q", "--bare", bare);
+    git("remote", "add", "origin", bare);
+    git("push", "-q", "origin", refspec);
+  };
+
+  it("waits until GitHub reports what the PR's branch holds, then names it", () => {
+    origin("feat:refs/heads/feat");
     fx("head-branch", "feat");
     fx("old-head", base);
     fx("new-head", feat);
@@ -258,19 +267,32 @@ describe("request-review.sh", () => {
     expect(log()).not.toContain(base.slice(0, 7));
   });
 
+  it("waits the same when the branch was pushed under another name (HEAD:review)", () => {
+    origin("HEAD:refs/heads/review");
+    fx("head-branch", "review");
+    fx("old-head", base);
+    fx("new-head", feat);
+    fx("stale-calls", "2");
+    expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
+    expect(log()).toContain(`head \`${feat.slice(0, 7)}\``);
+    expect(log()).not.toContain(base.slice(0, 7));
+  });
+
   it("gives up without requesting anything if GitHub never catches up", () => {
+    origin("feat:refs/heads/feat");
     fx("head-branch", "feat");
     fx("old-head", base);
     fx("new-head", feat);
     fx("stale-calls", "999");
     const r = gate(REQUEST_REVIEW, "", ["7"], { REQUEST_REVIEW_WAIT_S: "1" });
     expect(r.code).toBe(1);
-    expect(r.err).toContain("Push first");
+    expect(r.err).toContain("Try again");
     expect(log()).toBe("");
   });
 
-  it("uses GitHub's head as is for another branch's PR", () => {
-    fx("head-branch", "other");
+  it("uses GitHub's head as is when origin has no such branch (a fork's PR)", () => {
+    origin("feat:refs/heads/feat");
+    fx("head-branch", "someone-else");
     fx("new-head", other);
     expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
     expect(log()).toContain(`head \`${other.slice(0, 7)}\``);
