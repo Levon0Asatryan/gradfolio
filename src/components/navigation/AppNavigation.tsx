@@ -136,9 +136,14 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
 
       <List sx={{ py: 0 }}>
         {items.map((item) => {
+          // /auth/* routes are handled by the Auth0 SDK and redirect to Auth0's own
+          // domain. A Next <Link> would fetch them client-side (?_rsc=), and the
+          // browser then follows that redirect as a cross-origin fetch, which
+          // Auth0 rejects (CORS). They must be full page navigations: a plain <a>.
+          const isAuthRoute = item.href.startsWith("/auth/");
           const button = (
             <ListItemButton
-              component={Link}
+              component={isAuthRoute ? "a" : Link}
               href={item.href}
               selected={normalize(item.href) === activeHref}
               sx={(theme) => ({
