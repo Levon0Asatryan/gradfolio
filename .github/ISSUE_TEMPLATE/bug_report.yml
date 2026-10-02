@@ -1,0 +1,51 @@
+name: Bug report
+description: A page behaves differently from what it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issue?** Do not file it here. Report it privately, as described in [SECURITY.md](https://github.com/Levon0Asatryan/gradfolio/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: |
+        The page (URL path), and the shortest sequence of clicks or input that shows it.
+        Leave out passwords, tokens and personal data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot or console output
+      description: A screenshot, or errors from the browser console. Redact anything secret.
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Production (gradfolio-navy.vercel.app)
+        - A Vercel preview
+        - npm run dev
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and language
+      placeholder: e.g. Chrome 140, Armenian, dark mode
+    validations:
+      required: true

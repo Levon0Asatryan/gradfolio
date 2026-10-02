@@ -75,64 +75,80 @@ The design was informed by analyzing platforms like **Portfolium** and **Bulb**,
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Library**: [React 19](https://react.dev/)
-- **UI Components**: [Material UI (MUI) v7](https://mui.com/)
-- **Authentication**: [Auth0](https://auth0.com/)
-- **Styling**: [Emotion](https://emotion.sh/) & Styled Components
-- **Animations**: [Motion](https://www.framer.com/motion/)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- **Library**: [React 19](https://react.dev/), TypeScript
+- **UI Components**: [Material UI (MUI) v7](https://mui.com/), styled with [Emotion](https://emotion.sh/)
+- **Authentication**: [Auth0](https://auth0.com/) (`@auth0/nextjs-auth0` v4)
+- **Animations**: [Motion](https://motion.dev/)
+- **Languages**: English, Russian, Armenian
+- **Tests**: [Vitest](https://vitest.dev/) and Testing Library
 - **Deployment**: [Vercel](https://vercel.com/)
+
+The backend is [gradfolio-api](https://github.com/Levon0Asatryan/gradfolio-api)
+(NestJS, MySQL). Today every page still reads mock data; features move to the API
+milestone by milestone, as tracked in its
+[`docs/tracker.md`](https://github.com/Levon0Asatryan/gradfolio-api/blob/main/docs/tracker.md).
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18.17 or later
-- npm / yarn / pnpm
+- Node.js 24 (see `.nvmrc`; `nvm use` picks it up)
+- npm (the lockfile is npm's)
 
 ### Installation
 
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/gradfolio.git
+   git clone https://github.com/Levon0Asatryan/gradfolio.git
    cd gradfolio
    ```
 
 2. **Install dependencies**
 
    ```bash
-   npm install
+   npm ci
    ```
 
-3. **Set up environment variables**
-   Create a `.env.local` file in the root and add your Auth0 credentials:
+3. **Set up environment variables** (only needed to log in; every page renders
+   without them)
 
-   ```env
-   AUTH0_SECRET='your_secret'
-   APP_BASE_URL='http://localhost:3000'
-   AUTH0_DOMAIN='your-domain.auth0.com'
-   AUTH0_CLIENT_ID='your_client_id'
-   AUTH0_CLIENT_SECRET='your_client_secret'
+   ```bash
+   cp .env.example .env.local
    ```
+
+   Then fill in the Auth0 values. The variable names are Auth0 v4's:
+   `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`,
+   `APP_BASE_URL`, plus `AUTH0_SCOPE` and `AUTH0_AUDIENCE`.
 
 4. **Run the development server**
+
    ```bash
    npm run dev
    ```
-   Visit [http://localhost:3000](http://localhost:3000) to see the application in action.
+
+   Visit [http://localhost:3000](http://localhost:3000).
+
+### Checks
+
+`npm run verify` runs formatting, lint, types and tests, the same as the pre-push
+hook. The full command list is in [CLAUDE.md](CLAUDE.md#commands), and how to
+contribute is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📂 Project Structure
 
 ```text
 src/
-├── app/             # Next.js App Router (pages, layouts, API)
-├── components/      # Reusable UI components (Dashboard, Profile, Stepper)
-├── data/            # Mock data and localizations (locales)
-├── lib/             # Third-party library configurations (Auth0)
-├── utils/           # Helper functions, types, and constants
-├── styles/          # Global styles and MUI theme
-└── features/        # Feature-specific logic and components
+├── app/             # Next.js App Router pages and layout
+├── components/      # UI, grouped by feature (dashboard, profile, project, search, …) plus shared
+├── data/            # Mock data (*.mock.ts) and translations (locales/)
+├── lib/             # Auth0 client
+├── utils/           # Helpers, types and constants
+├── testing/         # Test setup and helpers
+└── middleware.ts    # Auth0 middleware
+scripts/             # Push gates and review scripts
+docs/                # Setup plan and verification; the tracker lives in gradfolio-api
 ```
 
 ---
