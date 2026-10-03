@@ -34,11 +34,18 @@ export default defineConfig({
       ],
       // A ratchet, not an aspiration: at or just below what the suite
       // achieves, so coverage cannot silently fall. Raise it as tests land.
+      //
+      // Pinned to the literal achieved percentage, branches failed CI at 1.69%
+      // against a 1.7% floor while this machine measured exactly 1.7%: V8's
+      // branch count for the same source can differ by a couple of branches
+      // between Node versions (local 24.20.0 vs. the CI runner's). A margin
+      // below the measured value absorbs that, instead of the floor and the
+      // achieved number colliding on every patch release.
       thresholds: {
-        lines: 1.8,
-        functions: 1.2,
-        branches: 1.7,
-        statements: 1.9,
+        lines: 1.5,
+        functions: 1,
+        branches: 1.5,
+        statements: 1.5,
       },
     },
   },

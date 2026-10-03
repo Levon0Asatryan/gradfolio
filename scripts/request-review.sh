@@ -20,16 +20,27 @@ pr=${1:-$(gh pr view --json number --jq .number)}
 scope=${2:-}
 head=$(gh pr view "$pr" --json headRefOid --jq .headRefOid)
 
-# Right after a push GitHub can still report the previous head for a few
+# Right after a push GitHub's API can still report the previous head for a few
 # seconds. A request naming that commit is judged against the wrong one by
-# review-status.sh, so when this checkout is the PR's branch, wait for GitHub
-# to catch up with it. Tested by src/testing/push-gates.test.ts.
-if [ "$(gh pr view "$pr" --json headRefName --jq .headRefName)" = "$(git rev-parse --abbrev-ref HEAD)" ]; then
-  local_head=$(git rev-parse HEAD)
+# review-status.sh. git itself is authoritative on what the PR's branch holds,
+# whatever the local branch is called (`git push origin HEAD:other-name`), so
+# wait until the API reports what `git ls-remote` sees there -- but only for a
+# same-repository PR: `origin` is this repository, not a fork's, so for a
+# cross-repository PR a same-named branch here would silently check the wrong
+# ref. Skip the wait there and trust the API's head as given. Tested by
+# src/testing/push-gates.test.ts.
+pr_json=$(gh pr view "$pr" --json headRefName,isCrossRepository)
+cross=$(printf '%s' "$pr_json" | jq -r .isCrossRepository)
+pushed=""
+if [ "$cross" = "false" ]; then
+  branch=$(printf '%s' "$pr_json" | jq -r .headRefName)
+  pushed=$(git ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1)
+fi
+if [ -n "$pushed" ]; then
   waited=0
-  while [ "$head" != "$local_head" ]; do
+  while [ "$head" != "$pushed" ]; do
     if [ "$waited" -ge "${REQUEST_REVIEW_WAIT_S:-30}" ]; then
-      echo "request-review: GitHub reports $(printf '%s' "$head" | cut -c1-7) for #$pr, this checkout is at $(printf '%s' "$local_head" | cut -c1-7). Push first." >&2
+      echo "request-review: GitHub reports $(printf '%s' "$head" | cut -c1-7) for #$pr, its branch holds $(printf '%s' "$pushed" | cut -c1-7). Try again in a minute." >&2
       exit 1
     fi
     sleep 1
