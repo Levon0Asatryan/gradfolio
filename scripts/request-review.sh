@@ -24,9 +24,18 @@ head=$(gh pr view "$pr" --json headRefOid --jq .headRefOid)
 # seconds. A request naming that commit is judged against the wrong one by
 # review-status.sh. git itself is authoritative on what the PR's branch holds,
 # whatever the local branch is called (`git push origin HEAD:other-name`), so
-# wait until the API reports what `git ls-remote` does. Tested by
+# wait until the API reports what `git ls-remote` sees there -- but only for a
+# same-repository PR: `origin` is this repository, not a fork's, so for a
+# cross-repository PR a same-named branch here would silently check the wrong
+# ref. Skip the wait there and trust the API's head as given. Tested by
 # src/testing/push-gates.test.ts.
-pushed=$(git ls-remote origin "refs/heads/$(gh pr view "$pr" --json headRefName --jq .headRefName)" 2>/dev/null | cut -f1)
+pr_json=$(gh pr view "$pr" --json headRefName,isCrossRepository)
+cross=$(printf '%s' "$pr_json" | jq -r .isCrossRepository)
+pushed=""
+if [ "$cross" = "false" ]; then
+  branch=$(printf '%s' "$pr_json" | jq -r .headRefName)
+  pushed=$(git ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1)
+fi
 if [ -n "$pushed" ]; then
   waited=0
   while [ "$head" != "$pushed" ]; do

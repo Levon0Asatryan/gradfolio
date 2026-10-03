@@ -25,11 +25,13 @@ const REQUEST_REVIEW = resolve(import.meta.dirname, "../../scripts/request-revie
 const ZERO = "0".repeat(40);
 
 // The gh calls the scripts make, answered from $FIXTURES:
-//   pr view <branch> --json state         -> state-<branch>
-//   pr view <n> --json headRefName        -> head-branch
-//   pr view <n> --json headRefOid         -> old-head for the first
-//                                            <stale-calls> calls, then new-head
-//   pr edit / pr comment --body <b>       -> appended to log
+//   pr view <branch> --json state                        -> state-<branch>
+//   pr view <n> --json headRefName --jq ...               -> head-branch
+//   pr view <n> --json headRefOid --jq ...                -> old-head for the
+//                                 first <stale-calls> calls, then new-head
+//   pr view <n> --json headRefName,isCrossRepository      -> {"headRefName":
+//                                 head-branch, "isCrossRepository": cross}
+//   pr edit / pr comment --body <b>                        -> appended to log
 const FAKE_GH = `#!/bin/sh
 fx="$FIXTURES"
 case "$1 $2" in
@@ -37,6 +39,9 @@ case "$1 $2" in
     case "$5" in
       state) f="$fx/state-$(printf '%s' "$3" | tr '/' '_')"; [ -f "$f" ] && cat "$f" || exit 1 ;;
       headRefName) cat "$fx/head-branch" ;;
+      headRefName,isCrossRepository)
+        printf '{"headRefName": "%s", "isCrossRepository": %s}\\n' \\
+          "$(cat "$fx/head-branch")" "$(cat "$fx/cross" 2>/dev/null || echo false)" ;;
       headRefOid)
         n=$(($(cat "$fx/calls" 2>/dev/null || echo 0) + 1)); echo "$n" > "$fx/calls"
         if [ "$n" -le "$(cat "$fx/stale-calls" 2>/dev/null || echo 0)" ]; then cat "$fx/old-head"; else cat "$fx/new-head"; fi ;;
@@ -293,6 +298,17 @@ describe("request-review.sh", () => {
   it("uses GitHub's head as is when origin has no such branch (a fork's PR)", () => {
     origin("feat:refs/heads/feat");
     fx("head-branch", "someone-else");
+    fx("new-head", other);
+    expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
+    expect(log()).toContain(`head \`${other.slice(0, 7)}\``);
+  });
+
+  it("does not query origin for a cross-repository PR, even when a same-named branch exists there", () => {
+    // origin's own "feat" is unrelated to the fork's "feat": querying it would
+    // never match the fork's head, and the wait would time out and request nothing.
+    origin("feat:refs/heads/feat");
+    fx("head-branch", "feat");
+    fx("cross", "true");
     fx("new-head", other);
     expect(gate(REQUEST_REVIEW, "", ["7"]).code).toBe(0);
     expect(log()).toContain(`head \`${other.slice(0, 7)}\``);
