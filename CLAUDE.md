@@ -274,6 +274,20 @@ Active route = the longest matching `href` prefix.
 - The current user comes from the API (`getMe().id`); `/profile` redirects to
   `/profile/<id>`. Nothing hardcodes a user id (2.12).
 
+### Writes
+
+Edits go through server actions (`src/lib/profile/actions.ts`), which are public
+endpoints: they take no user id (the Auth0 session's token tells the API who is
+writing) and run `parseHeaderPatch` (`src/lib/profile/headerPatch.ts`, shared with the
+forms) before forwarding. A failed save keeps the form and says so; the form warns
+before the tab closes with unsaved changes. Section item edits (education,
+experience, certifications, skills) and account deletion wait for the API's later
+contracts.
+
+First-login onboarding (2.14): `/` renders `OnboardingGate`, which offers a dialog
+while `getMe().onboarded` is false; every way out calls `completeOnboarding`. It never
+blocks the page if the account cannot be read.
+
 ### The API
 
 `src/lib/api/client.ts` (`import "server-only"`) calls gradfolio-api with
@@ -324,7 +338,7 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 | Route                       | What it does                                                                                         |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/` |
-| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; read-only until M3 edit   |
+| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header    |
 | `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                   |
 | `/projects`                 | Your projects: search, category filter, sort (in the browser)                                        |
 | `/projects/[id]`            | Detail with `generateMetadata()`: header, description HTML (F1), attachments, metadata, tags, team   |
@@ -333,7 +347,7 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 | `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                         |
 | `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                      |
 | `/settings`                 | Language and theme                                                                                   |
-| `/account`                  | The signed-in account from `GET /v1/me` (settings come in M3, 3.9); login required                   |
+| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email; login required             |
 | 404                         | Hides the sidebar, Noise effect                                                                      |
 
 ## What is not built yet
