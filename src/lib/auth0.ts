@@ -1,4 +1,5 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
+import { previewAppBaseUrl } from "@/lib/auth/appBaseUrl";
 
 /**
  * The Auth0 client (SDK v4). Domain, client id and secret, the cookie secret
@@ -11,10 +12,13 @@ import { Auth0Client } from "@auth0/nextjs-auth0/server";
  *   access token as JSON at /auth/access-token to any script in the page. The
  *   API is called from this app's server only (Q11), so the browser never needs
  *   it.
+ * - `appBaseUrl`: on a Vercel preview, the branch host (`previewAppBaseUrl`);
+ *   elsewhere undefined, so the SDK reads APP_BASE_URL.
  * - `tokenRefreshBuffer`: refresh an access token a minute before it expires,
  *   so a token never expires on its way to the API.
  */
 export const auth0 = new Auth0Client({
+  appBaseUrl: previewAppBaseUrl(),
   authorizationParameters: {
     scope: process.env.AUTH0_SCOPE,
     audience: process.env.AUTH0_AUDIENCE,

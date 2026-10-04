@@ -13,19 +13,21 @@ import { getProjectById } from "@/data/project.mock";
 import { notFound } from "next/navigation";
 
 interface ProjectPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: ProjectPageProps) {
-  const project = getProjectById(params.id);
+  const { id } = await params;
+  const project = getProjectById(id);
   return {
     title: project ? `${project.title} – Project` : "Project",
     description: project?.aiSummary,
   };
 }
 
-export default function ProjectDetailPage({ params }: ProjectPageProps) {
-  const data = getProjectById(params.id);
+export default async function ProjectDetailPage({ params }: ProjectPageProps) {
+  const { id } = await params;
+  const data = getProjectById(id);
   if (!data) return notFound();
 
   return (
