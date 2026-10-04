@@ -1,0 +1,701 @@
+openapi: 3.0.3
+info:
+  title: Gradfolio API
+  version: 0.1.0
+  description: Backend for Gradfolio, a student portfolio platform. Every route except the health checks is under `/v1` and needs an Auth0 access token, except reading a public profile (`GET /v1/users/{id}`). Every failure answers with an `ErrorResponse`.
+  license:
+    name: MIT
+tags:
+  - name: health
+    description: Liveness and readiness, outside `/v1`
+  - name: me
+    description: The caller’s own account
+  - name: profiles
+    description: "Profiles: reading anyone’s, editing your own"
+paths:
+  /healthz:
+    get:
+      operationId: liveness
+      tags:
+        - health
+      summary: "Liveness: the process is running"
+      description: Touches no dependency, so it stays 200 while the database is down.
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                required:
+                  - status
+                additionalProperties: false
+  /readyz:
+    get:
+      operationId: readiness
+      tags:
+        - health
+      summary: "Readiness: the process can serve traffic"
+      description: Runs `SELECT 1` against MySQL, bounded by HEALTH_TIMEOUT_MS.
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  database:
+                    type: string
+                    enum:
+                      - ok
+                required:
+                  - status
+                  - database
+                additionalProperties: false
+        "503":
+          description: "DATABASE_UNAVAILABLE: MySQL is unreachable or too slow"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me:
+    get:
+      operationId: getMe
+      tags:
+        - me
+      summary: The caller’s own account
+      description: The first call after a login creates the account from the access token’s profile claims (name, email, picture); later calls return the same id. `verified` follows the token’s `email_verified`.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The caller’s account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The user id (UUID)
+                    example: 0b6f2c1e-…
+                  name:
+                    type: string
+                  email:
+                    nullable: true
+                    type: string
+                  avatarUrl:
+                    nullable: true
+                    type: string
+                  headline:
+                    type: string
+                  verified:
+                    type: boolean
+                    description: Email verified with Auth0 (GitHub from M7).
+                  isPublic:
+                    type: boolean
+                  onboarded:
+                    type: boolean
+                    description: "false: the frontend should offer first-login onboarding."
+                  identities:
+                    type: array
+                    items:
+                      type: string
+                    description: Login providers linked to the account, e.g. `google-oauth2`.
+                required:
+                  - id
+                  - name
+                  - email
+                  - avatarUrl
+                  - headline
+                  - verified
+                  - isPublic
+                  - onboarded
+                  - identities
+                additionalProperties: false
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/onboarding/complete:
+    post:
+      operationId: completeOnboarding
+      tags:
+        - me
+      summary: Finish (or skip) first-login onboarding
+      description: "Sets `onboarded` on `GET /v1/me`. Idempotent: a repeat call keeps the first timestamp."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Onboarding is complete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  onboarded:
+                    type: boolean
+                    enum:
+                      - true
+                required:
+                  - onboarded
+                additionalProperties: false
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: the account no longer exists"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/profile:
+    get:
+      operationId: getMyProfile
+      tags:
+        - profiles
+      summary: The caller’s editable profile header
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileHeader"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: the account no longer exists"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMyProfile
+      tags:
+        - profiles
+      summary: Change profile header fields
+      description: "Any non-empty subset of the fields. `null` (or a blank string) clears a nullable field; `links` changes only the keys it names. Unknown keys are rejected, so `verified`, `email` and the like cannot be written. `isPublic: false` hides the profile from everyone but the owner immediately."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                headline:
+                  type: string
+                bio:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                location:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                avatarUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                contactEmail:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                isPublic:
+                  type: boolean
+                links:
+                  type: object
+                  properties:
+                    github:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                    linkedin:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                    twitter:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                    website:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                  additionalProperties: false
+              additionalProperties: false
+      responses:
+        "200":
+          description: The header after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileHeader"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: the account no longer exists"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/users/{id}:
+    get:
+      operationId: getProfile
+      tags:
+        - profiles
+      summary: A profile with its sections
+      description: Needs no token when the profile is public; a token, when sent, identifies the owner (`isOwner`). A private profile answers 404 to everyone but its owner, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. Never includes birthday, phone, the login email or any token.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The user id (UUID)
+            example: 0b6f2c1e-…
+      responses:
+        "200":
+          description: The profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such profile, or it is private and the caller is not its owner"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable code. Branch on this, never on `message`.
+          example: NOT_FOUND
+        message:
+          type: string
+          description: Human-readable; not part of the contract.
+        details:
+          description: Field-level detail, for VALIDATION_FAILED only.
+      required:
+        - code
+        - message
+      additionalProperties: false
+    Certification:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        issuer:
+          type: string
+        date:
+          type: string
+          description: YYYY-MM
+          example: 2025-01
+        credentialUrl:
+          nullable: true
+          type: string
+      required:
+        - id
+        - name
+        - issuer
+        - date
+        - credentialUrl
+      additionalProperties: false
+    Education:
+      type: object
+      properties:
+        id:
+          type: string
+        institution:
+          type: string
+        degree:
+          type: string
+        field:
+          type: string
+        startYear:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        endYear:
+          nullable: true
+          description: "null: still studying."
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        description:
+          nullable: true
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - institution
+        - degree
+        - field
+        - startYear
+        - endYear
+        - description
+        - highlights
+      additionalProperties: false
+    Experience:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        organization:
+          type: string
+        start:
+          type: string
+          description: YYYY-MM
+          example: 2024-06
+        end:
+          nullable: true
+          description: "YYYY-MM; null: present."
+          type: string
+        summary:
+          type: string
+        achievements:
+          type: array
+          items:
+            type: string
+        skills:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - title
+        - organization
+        - start
+        - end
+        - summary
+        - achievements
+        - skills
+      additionalProperties: false
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        headline:
+          type: string
+        bio:
+          nullable: true
+          type: string
+        location:
+          nullable: true
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+        verified:
+          type: boolean
+        contactEmail:
+          nullable: true
+          type: string
+        links:
+          $ref: "#/components/schemas/ProfileLinks"
+        isOwner:
+          type: boolean
+          description: The caller is the profile owner.
+        isPublic:
+          type: boolean
+        education:
+          type: array
+          items:
+            $ref: "#/components/schemas/Education"
+        experience:
+          type: array
+          items:
+            $ref: "#/components/schemas/Experience"
+        certifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Certification"
+        skills:
+          type: array
+          items:
+            type: string
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileProject"
+          description: Own and accepted-team projects, newest first. Others see public, published ones only; the owner also sees their own private and draft ones.
+      required:
+        - id
+        - name
+        - headline
+        - bio
+        - location
+        - avatarUrl
+        - verified
+        - contactEmail
+        - links
+        - isOwner
+        - isPublic
+        - education
+        - experience
+        - certifications
+        - skills
+        - projects
+      additionalProperties: false
+    ProfileHeader:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        headline:
+          type: string
+        bio:
+          nullable: true
+          description: Plain text. Never HTML.
+          type: string
+        location:
+          nullable: true
+          type: string
+        avatarUrl:
+          nullable: true
+          description: An http(s) URL (URL-only until M4).
+          type: string
+        contactEmail:
+          nullable: true
+          description: Public contact address the user chose. Not the login email.
+          type: string
+        isPublic:
+          type: boolean
+          description: "false: only the owner can read the profile."
+        links:
+          $ref: "#/components/schemas/ProfileLinks"
+      required:
+        - id
+        - name
+        - headline
+        - bio
+        - location
+        - avatarUrl
+        - contactEmail
+        - isPublic
+        - links
+      additionalProperties: false
+    ProfileLinks:
+      type: object
+      properties:
+        github:
+          nullable: true
+          type: string
+        linkedin:
+          nullable: true
+          type: string
+        twitter:
+          nullable: true
+          type: string
+        website:
+          nullable: true
+          type: string
+      required:
+        - github
+        - linkedin
+        - twitter
+        - website
+      additionalProperties: false
+    ProfileProject:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          nullable: true
+          type: string
+        category:
+          type: string
+          enum:
+            - academic
+            - personal
+            - research
+            - hackathon
+            - course
+            - other
+        status:
+          type: string
+          enum:
+            - ongoing
+            - completed
+            - archived
+        heroImageUrl:
+          nullable: true
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+          enum:
+            - owner
+            - member
+          description: "owner: the profile owner created it; member: accepted team member."
+        isPublic:
+          type: boolean
+        isDraft:
+          type: boolean
+      required:
+        - id
+        - title
+        - summary
+        - category
+        - status
+        - heroImageUrl
+        - tags
+        - role
+        - isPublic
+        - isDraft
+      additionalProperties: false
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: An Auth0 access token for the Gradfolio API audience.

@@ -19,6 +19,7 @@ export default [
       "**/coverage/**",
       "**/.env*",
       "next-env.d.ts",
+      "src/lib/api/schema.d.ts",
     ],
   },
 
