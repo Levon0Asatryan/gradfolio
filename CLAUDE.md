@@ -264,6 +264,13 @@ Active route = the longest matching `href` prefix.
   parameter is invalid". Log in on the production host itself
   (`gradfolio-navy.vercel.app`): a login started on a Vercel alias host returns to
   `APP_BASE_URL`, where its cookie is missing.
+- **Previews pin their own base URL** (`src/lib/auth/appBaseUrl.ts`): on
+  `VERCEL_ENV=preview` the Auth0 client uses `https://$VERCEL_BRANCH_URL`, not
+  `APP_BASE_URL` (one value for Production and Preview). Log in on the branch host
+  (`gradfolio-git-<branch>-levons-projects-4fb86c2e.vercel.app`), not the per-commit
+  one. Auth0 lists that host's `/auth/callback` and logout URL as exact entries, one
+  per tested branch, never a `*.vercel.app` wildcard. Allowed Origins and Web Origins
+  stay empty (server-side flow; nothing calls Auth0 from the browser).
 - The current user is still hardcoded as `u_001` in three places until the profile
   pages use the API (F3; moved to M3 with 2.12).
 

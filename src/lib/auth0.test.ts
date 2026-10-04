@@ -16,6 +16,7 @@ describe("the Auth0 client options", () => {
     vi.stubEnv("AUTH0_SCOPE", "openid profile email offline_access");
     await import("./auth0");
     expect(constructed.options).toEqual({
+      appBaseUrl: undefined,
       authorizationParameters: {
         scope: "openid profile email offline_access",
         audience: "https://api.gradfolio.app",
@@ -23,6 +24,17 @@ describe("the Auth0 client options", () => {
       // Q11: no /auth/access-token route handing the token to browser scripts.
       enableAccessTokenEndpoint: false,
       tokenRefreshBuffer: 60,
+    });
+    vi.unstubAllEnvs();
+  });
+
+  it("pins the base URL to the branch host on a preview", async () => {
+    vi.resetModules();
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_BRANCH_URL", "gradfolio-git-x-levons-projects-4fb86c2e.vercel.app");
+    await import("./auth0");
+    expect(constructed.options).toMatchObject({
+      appBaseUrl: "https://gradfolio-git-x-levons-projects-4fb86c2e.vercel.app",
     });
     vi.unstubAllEnvs();
   });
