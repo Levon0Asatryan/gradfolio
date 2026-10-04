@@ -15,14 +15,16 @@ import {
   navbarCollapsedDefaultSize,
   useLayoutConfigHook,
 } from "@/components/sidebar/utils/hooks/useLayoutConfigHook";
-import { AppNavigation } from "@/components/navigation/AppNavigation";
+import { AppNavigation, type NavUser } from "@/components/navigation/AppNavigation";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
 
 interface SideBarWrapperProps {
   children: ReactNode;
+  /** The signed-in user, or null for a visitor (read by the layout). */
+  user?: NavUser | null;
 }
 
-export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
+export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null }) => {
   const { hidden } = useSidebarVisibility();
   const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const sideBarRef = useRef<ImperativePanelHandle>(null);
@@ -121,7 +123,7 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children }) => {
           }}
           style={{ zIndex: theme.zIndex.drawer }}
         >
-          <AppNavigation collapsed={isMobile || isCollapsed} />
+          <AppNavigation collapsed={isMobile || isCollapsed} user={user} />
         </Panel>
 
         {!isMobile && (

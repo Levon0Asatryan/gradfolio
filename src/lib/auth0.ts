@@ -1,21 +1,24 @@
-// lib/auth0.js
-
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
 
-// Initialize the Auth0 client
+/**
+ * The Auth0 client (SDK v4). Domain, client id and secret, the cookie secret
+ * and APP_BASE_URL come from the environment (.env.example).
+ *
+ * - `audience` and `scope` are passed explicitly: v4 does not read
+ *   AUTH0_AUDIENCE/AUTH0_SCOPE itself. The audience makes Auth0 issue access
+ *   tokens for gradfolio-api.
+ * - `enableAccessTokenEndpoint: false`: the SDK would otherwise serve the
+ *   access token as JSON at /auth/access-token to any script in the page. The
+ *   API is called from this app's server only (Q11), so the browser never needs
+ *   it.
+ * - `tokenRefreshBuffer`: refresh an access token a minute before it expires,
+ *   so a token never expires on its way to the API.
+ */
 export const auth0 = new Auth0Client({
-  // Options are loaded from environment variables by default
-  // Ensure necessary environment variables are properly set
-  // domain: process.env.AUTH0_DOMAIN,
-  // clientId: process.env.AUTH0_CLIENT_ID,
-  // clientSecret: process.env.AUTH0_CLIENT_SECRET,
-  // appBaseUrl: process.env.APP_BASE_URL,
-  // secret: process.env.AUTH0_SECRET,
-
   authorizationParameters: {
-    // In v4, the AUTH0_SCOPE and AUTH0_AUDIENCE environment variables for API authorized applications are no longer automatically picked up by the SDK.
-    // Instead, we need to provide the values explicitly.
     scope: process.env.AUTH0_SCOPE,
     audience: process.env.AUTH0_AUDIENCE,
   },
+  enableAccessTokenEndpoint: false,
+  tokenRefreshBuffer: 60,
 });

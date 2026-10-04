@@ -42,10 +42,10 @@ export default defineConfig({
       // below the measured value absorbs that, instead of the floor and the
       // achieved number colliding on every patch release.
       thresholds: {
-        lines: 1.5,
-        functions: 1,
-        branches: 1.5,
-        statements: 1.5,
+        lines: 12,
+        functions: 8,
+        branches: 12.5,
+        statements: 12,
       },
     },
   },
