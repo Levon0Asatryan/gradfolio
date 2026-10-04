@@ -1,5 +1,5 @@
 import "server-only";
-import { AccessTokenError } from "@auth0/nextjs-auth0/errors";
+import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
 import type { Me, Profile, ProfileHeader, ProfileHeaderPatch } from "./types";
 
@@ -40,13 +40,18 @@ function isEnvelope(value: unknown): value is { code: string; message: string } 
   );
 }
 
-async function accessToken(): Promise<string> {
+/**
+ * The session's access token. `null` only for a visitor with no session at all
+ * (and only when the caller allows it); an expired session, a lost refresh token
+ * or any other failure is never anonymous: the user must sign in again.
+ */
+async function accessToken(allowAnonymous: boolean): Promise<string | null> {
   try {
     const { token } = await auth0.getAccessToken();
     return token;
   } catch (error) {
-    // No session, or the refresh token is gone: the user has to sign in again.
     if (error instanceof AccessTokenError) {
+      if (allowAnonymous && error.code === AccessTokenErrorCode.MISSING_SESSION) return null;
       throw new ApiError(401, LOCAL_CODES.unauthenticated, "sign in again");
     }
     throw error;
@@ -69,11 +74,8 @@ async function request<T>({ method, path, body, auth = "required" }: Call): Prom
   if (!base) throw new ApiError(503, LOCAL_CODES.notConfigured, "API_BASE_URL is not set");
 
   const headers: Record<string, string> = { Accept: "application/json" };
-  try {
-    headers.Authorization = `Bearer ${await accessToken()}`;
-  } catch (error) {
-    if (auth === "required" || !(error instanceof ApiError)) throw error;
-  }
+  const token = await accessToken(auth === "optional");
+  if (token !== null) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   let response: Response;

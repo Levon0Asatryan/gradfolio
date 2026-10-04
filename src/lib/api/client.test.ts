@@ -124,6 +124,16 @@ describe("getProfile", () => {
     expect(call(fetchMock)[1].headers.Authorization).toBeUndefined();
   });
 
+  it("does not read anonymously when the session has expired", async () => {
+    sdk.getAccessToken.mockRejectedValue(
+      new AccessTokenError("missing_refresh_token", "The access token has expired."),
+    );
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getProfile(UID)).rejects.toMatchObject({ status: 401, code: "UNAUTHENTICATED" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("still fails on an unexpected SDK error instead of reading anonymously", async () => {
     sdk.getAccessToken.mockRejectedValue(new Error("config broken"));
     vi.stubGlobal("fetch", vi.fn());
