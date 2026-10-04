@@ -31,6 +31,19 @@ describe("AccountSummary", () => {
     expect(screen.getByText(/google-oauth2/)).toBeInTheDocument();
   });
 
+  it("does not render an avatar from a non-http(s) URL", () => {
+    show({ me: { ...ME, avatarUrl: "data:image/svg+xml;base64,PHN2Zz4=" } });
+    expect(document.querySelector('img[src^="data:"]')).toBeNull();
+  });
+
+  it("renders an http(s) avatar", () => {
+    show({ me: { ...ME, avatarUrl: "https://lh3.googleusercontent.com/a/ani" } });
+    expect(document.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://lh3.googleusercontent.com/a/ani",
+    );
+  });
+
   it("says when the email is missing or not verified", () => {
     show({ me: { ...ME, email: null, verified: false, identities: [] } });
     expect(screen.getByText("No email on this account")).toBeInTheDocument();

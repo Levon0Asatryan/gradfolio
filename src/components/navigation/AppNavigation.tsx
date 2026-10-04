@@ -29,6 +29,7 @@ import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { useContext } from "react";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { navLinkComponent } from "./navLinkComponent";
+import { safeImageUrl } from "@/utils/helpers/safeImageUrl";
 
 interface NavItem {
   label: string;
@@ -209,7 +210,11 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user 
             sx={{ px: 1 }}
             data-testid="nav-user"
           >
-            <Avatar src={user.picture} alt={user.name} sx={{ width: 28, height: 28 }} />
+            <Avatar
+              src={safeImageUrl(user.picture)}
+              alt={user.name}
+              sx={{ width: 28, height: 28 }}
+            />
             {!collapsed && (
               <TypographyWithTooltip variant="body2" placement="right" title={user.name} />
             )}
@@ -221,6 +226,9 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user 
             // through Auth0, like login (navLinkComponent).
             component="a"
             href="/auth/logout"
+            // The text below is hidden when the sidebar is collapsed (always on
+            // mobile); the label keeps the control named for screen readers.
+            aria-label={t.common.logout}
             sx={(theme) => ({
               px: 1,
               py: 0.5,

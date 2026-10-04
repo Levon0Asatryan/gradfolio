@@ -27,6 +27,22 @@ const show = (user: NavUser | null) =>
 const hrefs = () => screen.getAllByRole("link").map((a) => a.getAttribute("href"));
 
 describe("AppNavigation (tracker 2.13)", () => {
+  it("keeps the logout link named when the sidebar is collapsed (mobile)", () => {
+    render(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider>
+          <AppNavigation user={{ name: "Ani" }} collapsed />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(screen.getByRole("link", { name: "Log out" })).toHaveAttribute("href", "/auth/logout");
+  });
+
+  it("does not render an avatar from a non-http(s) picture", () => {
+    show({ name: "Ani", picture: "javascript:alert(1)" });
+    expect(document.querySelector('img[src^="javascript:"]')).toBeNull();
+  });
+
   it("offers login and the login-connections stepper to a visitor, and no logout", () => {
     show(null);
     expect(hrefs()).toContain("/auth/login");
