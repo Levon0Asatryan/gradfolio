@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { safeImageUrl } from "./safeImageUrl";
+import { safeHttpUrl } from "./safeHttpUrl";
 
-describe("safeImageUrl", () => {
+describe("safeHttpUrl", () => {
   it.each(["https://lh3.googleusercontent.com/a/x", "http://example.com/a.png"])(
     "keeps %s",
     (url) => {
-      expect(safeImageUrl(url)).toBe(url);
+      expect(safeHttpUrl(url)).toBe(url);
     },
   );
 
@@ -19,6 +19,6 @@ describe("safeImageUrl", () => {
     null,
     undefined,
   ])("drops %j", (url) => {
-    expect(safeImageUrl(url)).toBeUndefined();
+    expect(safeHttpUrl(url)).toBeUndefined();
   });
 });

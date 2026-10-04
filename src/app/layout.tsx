@@ -13,7 +13,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import ThemeRegistry from "@/components/theme/ThemeRegistry";
 import type { NavUser } from "@/components/navigation/AppNavigation";
 import { auth0 } from "@/lib/auth0";
-import { safeImageUrl } from "@/utils/helpers/safeImageUrl";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,7 +42,7 @@ async function navUser(): Promise<NavUser | null> {
     const { name, email, picture } = session.user;
     return {
       name: typeof name === "string" && name ? name : typeof email === "string" ? email : "",
-      picture: typeof picture === "string" ? safeImageUrl(picture) : undefined,
+      picture: typeof picture === "string" ? safeHttpUrl(picture) : undefined,
     };
   } catch (error) {
     console.error("layout: session unreadable", {

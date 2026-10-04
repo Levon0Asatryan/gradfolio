@@ -6,7 +6,8 @@ vi.mock("server-only", () => ({}));
 const sdk = vi.hoisted(() => ({ getAccessToken: vi.fn() }));
 vi.mock("@/lib/auth0", () => ({ auth0: sdk }));
 
-const { ApiError, getMe } = await import("./client");
+const { ApiError, getMe, getProfile, getMyProfile, updateMyProfile, completeOnboarding } =
+  await import("./client");
 
 const ME = {
   id: "0b6f2c1e-1111-4222-8333-444455556666",
@@ -16,6 +17,7 @@ const ME = {
   headline: "",
   verified: true,
   isPublic: true,
+  onboarded: true,
   identities: ["google-oauth2"],
 };
 
@@ -96,5 +98,98 @@ describe("getMe", () => {
   it("does not hide an unexpected error from the SDK", async () => {
     sdk.getAccessToken.mockRejectedValue(new Error("config broken"));
     await expect(getMe()).rejects.toThrow("config broken");
+  });
+});
+
+const UID = "0b6f2c1e-1111-4222-8333-444455556666";
+const call = (fetchMock: ReturnType<typeof vi.fn>) =>
+  fetchMock.mock.calls[0] as [URL, RequestInit & { headers: Record<string, string> }];
+
+describe("getProfile", () => {
+  it("sends the token when there is a session", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await getProfile(UID);
+    const [url, init] = call(fetchMock);
+    expect(url.pathname).toBe(`/v1/users/${UID}`);
+    expect(init.method).toBe("GET");
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("reads anonymously when there is no session", async () => {
+    sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await getProfile(UID);
+    expect(call(fetchMock)[1].headers.Authorization).toBeUndefined();
+  });
+
+  it("still fails on an unexpected SDK error instead of reading anonymously", async () => {
+    sdk.getAccessToken.mockRejectedValue(new Error("config broken"));
+    vi.stubGlobal("fetch", vi.fn());
+    await expect(getProfile(UID)).rejects.toThrow("config broken");
+  });
+
+  it.each(["..", "%2e%2e", "u_001", `${UID}/x`, ""])(
+    "never sends %j to the API: NOT_FOUND",
+    async (id) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(getProfile(id)).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("passes the API's 404 through", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(json(404, { code: "NOT_FOUND", message: "no such profile" })),
+    );
+    await expect(getProfile(UID)).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
+  });
+});
+
+describe("writes and the caller's own profile", () => {
+  it("requires a session for GET /v1/me/profile", async () => {
+    sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
+    vi.stubGlobal("fetch", vi.fn());
+    await expect(getMyProfile()).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+
+  it("PATCHes the header as JSON with the token", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await updateMyProfile({ isPublic: false, links: { github: null } });
+    const [url, init] = call(fetchMock);
+    expect([url.pathname, init.method, init.body]).toEqual([
+      "/v1/me/profile",
+      "PATCH",
+      '{"isPublic":false,"links":{"github":null}}',
+    ]);
+    expect(init.headers["Content-Type"]).toBe("application/json");
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("surfaces VALIDATION_FAILED", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(json(400, { code: "VALIDATION_FAILED", message: "bad" })),
+    );
+    await expect(updateMyProfile({ name: "" })).rejects.toMatchObject({
+      status: 400,
+      code: "VALIDATION_FAILED",
+    });
+  });
+
+  it("POSTs onboarding completion", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { onboarded: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(completeOnboarding()).resolves.toEqual({ onboarded: true });
+    const [url, init] = call(fetchMock);
+    expect([url.pathname, init.method, init.body]).toEqual([
+      "/v1/me/onboarding/complete",
+      "POST",
+      undefined,
+    ]);
   });
 });

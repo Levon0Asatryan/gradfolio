@@ -1,6 +1,7 @@
 import "server-only";
 import { AccessTokenError } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
+import type { Me, Profile, ProfileHeader, ProfileHeaderPatch } from "./types";
 
 /**
  * gradfolio-api, called from this app's server only (Q11): the access token
@@ -8,18 +9,6 @@ import { auth0 } from "@/lib/auth0";
  * stable `code` (its error envelope is `{ code, message }`), or one of ours
  * for failures that never reached the API.
  */
-
-/** The caller's account, `GET /v1/me` (gradfolio-api openapi.yaml `getMe`). */
-export interface Me {
-  id: string;
-  name: string;
-  email: string | null;
-  avatarUrl: string | null;
-  headline: string;
-  verified: boolean;
-  isPublic: boolean;
-  identities: string[];
-}
 
 /** Codes produced here, before or instead of an API answer. */
 const LOCAL_CODES = {
@@ -64,15 +53,35 @@ async function accessToken(): Promise<string> {
   }
 }
 
-async function apiGet<T>(path: string): Promise<T> {
+/** The API's user ids are UUIDs; anything else is never sent (no path tricks like `..`). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface Call {
+  method: "GET" | "PATCH" | "POST";
+  path: string;
+  body?: unknown;
+  /** `optional`: send the token when there is a session, read anonymously otherwise. */
+  auth?: "required" | "optional";
+}
+
+async function request<T>({ method, path, body, auth = "required" }: Call): Promise<T> {
   const base = process.env.API_BASE_URL;
   if (!base) throw new ApiError(503, LOCAL_CODES.notConfigured, "API_BASE_URL is not set");
 
-  const token = await accessToken();
+  const headers: Record<string, string> = { Accept: "application/json" };
+  try {
+    headers.Authorization = `Bearer ${await accessToken()}`;
+  } catch (error) {
+    if (auth === "required" || !(error instanceof ApiError)) throw error;
+  }
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+
   let response: Response;
   try {
     response = await fetch(new URL(path, base), {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
       cache: "no-store",
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -80,15 +89,37 @@ async function apiGet<T>(path: string): Promise<T> {
     throw new ApiError(503, LOCAL_CODES.unreachable, "the API did not answer");
   }
 
-  const body: unknown = await response.json().catch(() => undefined);
+  const parsed: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
-    if (isEnvelope(body)) throw new ApiError(response.status, body.code, body.message);
+    if (isEnvelope(parsed)) throw new ApiError(response.status, parsed.code, parsed.message);
     throw new ApiError(response.status, LOCAL_CODES.unknown, `HTTP ${response.status}`);
   }
-  return body as T;
+  return parsed as T;
 }
 
 /** The signed-in user's account; the API creates it on the first call. */
 export function getMe(): Promise<Me> {
-  return apiGet<Me>("/v1/me");
+  return request<Me>({ method: "GET", path: "/v1/me" });
+}
+
+/**
+ * Anyone's profile. Sends the token when there is a session, so the owner sees
+ * their own private profile and `isOwner`; a visitor reads public ones. A private
+ * profile is a 404 for everyone else, as an unknown id is.
+ */
+export async function getProfile(id: string): Promise<Profile> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such profile");
+  return request<Profile>({ method: "GET", path: `/v1/users/${id}`, auth: "optional" });
+}
+
+export function getMyProfile(): Promise<ProfileHeader> {
+  return request<ProfileHeader>({ method: "GET", path: "/v1/me/profile" });
+}
+
+export function updateMyProfile(patch: ProfileHeaderPatch): Promise<ProfileHeader> {
+  return request<ProfileHeader>({ method: "PATCH", path: "/v1/me/profile", body: patch });
+}
+
+export function completeOnboarding(): Promise<{ onboarded: true }> {
+  return request<{ onboarded: true }>({ method: "POST", path: "/v1/me/onboarding/complete" });
 }

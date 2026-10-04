@@ -11,6 +11,7 @@ const ME = {
   headline: "",
   verified: true,
   isPublic: true,
+  onboarded: true,
   identities: ["google-oauth2"],
 };
 
