@@ -9,8 +9,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
-import type { Me } from "@/lib/api/client";
-import { safeImageUrl } from "@/utils/helpers/safeImageUrl";
+import type { Me } from "@/lib/api/types";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
 /** What the server page hands over: the account, or the API's error code. */
 export type AccountResult = { me: Me } | { errorCode: string };
@@ -58,7 +58,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
         <>
           <Typography color="text.secondary">{text.intro}</Typography>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar src={safeImageUrl(result.me.avatarUrl)} alt={result.me.name} />
+            <Avatar src={safeHttpUrl(result.me.avatarUrl)} alt={result.me.name} />
             <Stack>
               <Typography variant="h6" component="p">
                 {result.me.name}

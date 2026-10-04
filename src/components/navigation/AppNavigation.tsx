@@ -29,7 +29,7 @@ import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { useContext } from "react";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { navLinkComponent } from "./navLinkComponent";
-import { safeImageUrl } from "@/utils/helpers/safeImageUrl";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
 interface NavItem {
   label: string;
@@ -73,7 +73,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user 
       },
       {
         label: t.common.myAccount,
-        href: "/profile/u_001",
+        href: "/profile",
         icon: <AccountCircleOutlined fontSize="small" />,
       },
       { label: t.common.projects, href: "/projects", icon: <FolderOutlined fontSize="small" /> },
@@ -211,7 +211,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user 
             data-testid="nav-user"
           >
             <Avatar
-              src={safeImageUrl(user.picture)}
+              src={safeHttpUrl(user.picture)}
               alt={user.name}
               sx={{ width: 28, height: 28 }}
             />

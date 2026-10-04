@@ -78,6 +78,23 @@ export const en: Dictionary = {
     noCertifications: "No certifications listed.",
     noProjects: "No projects yet.",
     verify: "Verify",
+    privateNotice:
+      "Only you can see this profile. Turn on “Public profile” in your account settings to share it.",
+    links: {
+      github: "GitHub",
+      linkedin: "LinkedIn",
+      twitter: "Twitter",
+      website: "Website",
+    },
+    draft: "Draft",
+    privateProject: "Private",
+    loadErrorTitle: "This profile could not be loaded",
+    errorNotConfigured: "The Gradfolio API is not connected to this site yet.",
+    errorUnreachable: "The Gradfolio API is not responding. Please try again in a moment.",
+    errorGeneric: "Something went wrong while loading this profile. Please try again.",
+    errorSignInAgain: "Your session has expired. Please sign in again.",
+    tryAgain: "Try again",
+    loading: "Loading profile…",
   },
   integrations: {
     title: "Integrations",

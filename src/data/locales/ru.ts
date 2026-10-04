@@ -78,6 +78,23 @@ export const ru: Dictionary = {
     noCertifications: "Сертификаты не указаны.",
     noProjects: "Проекты еще не добавлены.",
     verify: "Проверить",
+    privateNotice:
+      "Этот профиль видите только вы. Включите «Публичный профиль» в настройках аккаунта, чтобы поделиться им.",
+    links: {
+      github: "GitHub",
+      linkedin: "LinkedIn",
+      twitter: "Twitter",
+      website: "Сайт",
+    },
+    draft: "Черновик",
+    privateProject: "Приватный",
+    loadErrorTitle: "Не удалось загрузить профиль",
+    errorNotConfigured: "API Gradfolio ещё не подключён к этому сайту.",
+    errorUnreachable: "API Gradfolio не отвечает. Попробуйте ещё раз чуть позже.",
+    errorGeneric: "При загрузке профиля что-то пошло не так. Попробуйте ещё раз.",
+    errorSignInAgain: "Сессия истекла. Войдите снова.",
+    tryAgain: "Повторить",
+    loading: "Загрузка профиля…",
   },
   integrations: {
     title: "Интеграции",

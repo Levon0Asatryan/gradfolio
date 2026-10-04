@@ -4,7 +4,7 @@ import { FC, memo, useCallback, useMemo, useState } from "react";
 import { Box, Button, List, ListItem, ListItemText, Stack, Typography } from "@mui/material";
 import SectionCard from "./shared/SectionCard";
 import DetailDialog from "./shared/DetailDialog";
-import type { Education } from "@/data/profile.mock";
+import type { Education } from "@/lib/api/types";
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
@@ -31,14 +31,14 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
         <List sx={{ py: 0 }}>
           {items.map((edu) => {
             const primary = `${edu.degree} • ${edu.field}`;
-            const secondary = `${edu.institution} • ${edu.startYear}${edu.endYear ? "–" + edu.endYear : " – " + t.common.present}`;
+            const secondary = `${edu.institution} • ${edu.startYear}${edu.endYear !== null ? "–" + edu.endYear : " – " + t.common.present}`;
             return (
               <ListItem
                 key={edu.id}
                 divider
                 secondaryAction={
                   <Button
-                    aria-label={`${t.common.details} for ${primary} at ${edu.institution}`}
+                    aria-label={`${t.common.details}: ${primary}, ${edu.institution}`}
                     aria-haspopup="dialog"
                     aria-expanded={openId === edu.id}
                     onClick={() => onOpen(edu.id)}
@@ -76,14 +76,14 @@ const EducationList: FC<EducationListProps> = ({ items }) => {
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {active.startYear}
-              {active.endYear ? `–${active.endYear}` : " – " + t.common.present}
+              {active.endYear !== null ? `–${active.endYear}` : " – " + t.common.present}
             </Typography>
             {active.description && (
               <Typography variant="body1" sx={{ mb: 2 }}>
                 {active.description}
               </Typography>
             )}
-            {active.highlights && active.highlights.length > 0 && (
+            {active.highlights.length > 0 && (
               <Box component="ul" sx={{ pl: 3, m: 0 }}>
                 {active.highlights.map((h, i) => (
                   <Typography component="li" key={i} variant="body2" sx={{ mb: 0.5 }}>

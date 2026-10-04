@@ -8,3 +8,5 @@ package-lock.json
 public/
 # IDE state, owned by the IDE, not by this repository's formatter.
 .idea/
+src/lib/api/openapi.yaml
+src/lib/api/schema.d.ts

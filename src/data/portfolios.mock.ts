@@ -335,7 +335,3 @@ export const portfoliosMock: ProfileData[] = [
     skills: ["Swift", "SwiftUI", "iOS", "Combine", "XCode"],
   },
 ];
-
-export function getProfileById(id: string): ProfileData | undefined {
-  return portfoliosMock.find((p) => p.id === id);
-}

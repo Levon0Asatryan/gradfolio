@@ -21,7 +21,7 @@ const SkillsChips: FC<SkillsChipsProps> = ({ items }) => {
       ) : (
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
           {items.map((s) => (
-            <Chip key={s} label={s} size="small" aria-label={`Skill ${s}`} />
+            <Chip key={s} label={s} size="small" />
           ))}
         </Stack>
       )}

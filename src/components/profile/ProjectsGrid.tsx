@@ -1,30 +1,22 @@
 "use client";
 
 import { FC, memo } from "react";
-import {
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Stack,
-  Typography,
-  Avatar,
-  Tooltip,
-} from "@mui/material";
+import { Button, Card, CardActionArea, CardContent, Stack, Chip, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import SectionCard from "./shared/SectionCard";
 import Tag from "./shared/Tag";
-import type { Project } from "@/data/profile.mock";
+import type { ProfileProject } from "@/lib/api/types";
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectsGridProps {
-  items: Project[];
+  items: ProfileProject[];
   onAddProject?: () => void;
 }
 
 const ProjectsGrid: FC<ProjectsGridProps> = ({ items, onAddProject }) => {
   const { t } = useLanguage();
+  const categories: Record<string, string> = t.projects.categories;
 
   return (
     <SectionCard
@@ -52,14 +44,11 @@ const ProjectsGrid: FC<ProjectsGridProps> = ({ items, onAddProject }) => {
             <Grid key={p.id} size={{ xs: 12, sm: 6, md: 4 }}>
               <Card
                 variant="outlined"
-                aria-label={`Project ${p.name}`}
                 sx={{ height: "100%", display: "flex", flexDirection: "column" }}
               >
                 <CardActionArea
                   component="a"
-                  href={p.href || `/projects/${p.id}`}
-                  target={p.href ? "_blank" : undefined}
-                  rel={p.href ? "noopener noreferrer" : undefined}
+                  href={`/projects/${encodeURIComponent(p.id)}`}
                   sx={{
                     flex: 1,
                     display: "flex",
@@ -72,30 +61,23 @@ const ProjectsGrid: FC<ProjectsGridProps> = ({ items, onAddProject }) => {
                     sx={{ width: "100%", display: "flex", flexDirection: "column", flex: 1 }}
                   >
                     <Typography variant="subtitle1" component="h3" sx={{ mb: 1 }}>
-                      {p.name}
+                      {p.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {p.summary}
-                    </Typography>
-                    <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 2 }}>
-                      {p.tags.map((t) => (
-                        <Tag key={t} label={t} />
+                    {p.summary && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {p.summary}
+                      </Typography>
+                    )}
+                    <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
+                      <Chip size="small" variant="outlined" label={categories[p.category]} />
+                      {p.isDraft && <Chip size="small" color="warning" label={t.profile.draft} />}
+                      {!p.isPublic && (
+                        <Chip size="small" color="warning" label={t.profile.privateProject} />
+                      )}
+                      {p.tags.map((tag) => (
+                        <Tag key={tag} label={tag} />
                       ))}
                     </Stack>
-
-                    {p.team && p.team.length > 0 && (
-                      <Stack direction="row" spacing={-1} sx={{ mt: "auto" }}>
-                        {p.team.map((member) => (
-                          <Tooltip key={member.id} title={member.name}>
-                            <Avatar
-                              src={member.avatarUrl}
-                              alt={member.name}
-                              sx={{ width: 24, height: 24, border: "2px solid white" }}
-                            />
-                          </Tooltip>
-                        ))}
-                      </Stack>
-                    )}
                   </CardContent>
                 </CardActionArea>
               </Card>

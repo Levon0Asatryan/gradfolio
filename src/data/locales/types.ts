@@ -82,6 +82,17 @@ export interface Dictionary {
     noCertifications: string;
     noProjects: string;
     verify: string;
+    privateNotice: string;
+    links: { github: string; linkedin: string; twitter: string; website: string };
+    draft: string;
+    privateProject: string;
+    loadErrorTitle: string;
+    errorNotConfigured: string;
+    errorUnreachable: string;
+    errorGeneric: string;
+    errorSignInAgain: string;
+    tryAgain: string;
+    loading: string;
   };
   integrations: {
     title: string;

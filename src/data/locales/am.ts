@@ -78,6 +78,23 @@ export const am: Dictionary = {
     noCertifications: "Սերտիֆիկատներ դեռ չեն նշված:",
     noProjects: "Նախագծեր դեռ չեն ավելացվել:",
     verify: "Ստուգել",
+    privateNotice:
+      "Այս պրոֆիլը տեսնում եք միայն դուք։ Միացրեք «Հանրային պրոֆիլ»-ը հաշվի կարգավորումներում՝ այն կիսելու համար։",
+    links: {
+      github: "GitHub",
+      linkedin: "LinkedIn",
+      twitter: "Twitter",
+      website: "Կայք",
+    },
+    draft: "Սևագիր",
+    privateProject: "Մասնավոր",
+    loadErrorTitle: "Չհաջողվեց բեռնել պրոֆիլը",
+    errorNotConfigured: "Gradfolio API-ն դեռ միացված չէ այս կայքին։",
+    errorUnreachable: "Gradfolio API-ն չի պատասխանում։ Խնդրում ենք փորձել մի փոքր ուշ։",
+    errorGeneric: "Պրոֆիլը բեռնելիս սխալ տեղի ունեցավ։ Խնդրում ենք կրկին փորձել։",
+    errorSignInAgain: "Ձեր սեանսը ավարտվել է։ Խնդրում ենք կրկին մուտք գործել։",
+    tryAgain: "Կրկին փորձել",
+    loading: "Պրոֆիլը բեռնվում է…",
   },
   integrations: {
     title: "Ինտեգրացիաներ",
