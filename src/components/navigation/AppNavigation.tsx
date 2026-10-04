@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Avatar,
   Stack,
   Typography,
   Divider,
@@ -15,6 +16,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LoginOutlined from "@mui/icons-material/LoginOutlined";
+import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInstructionsOutlined";
@@ -34,8 +36,18 @@ interface NavItem {
   icon: ReactNode;
 }
 
+/** The signed-in user, from the session the layout read on the server. */
+export interface NavUser {
+  name: string;
+  picture?: string;
+}
+
+/** Shown only to a signed-out visitor: login, and the login-connections stepper. */
+const SIGNED_OUT_ONLY = new Set(["/auth/login", "/integrations/connections"]);
+
 type AppNavigationProps = {
   collapsed?: boolean;
+  user?: NavUser | null;
 };
 
 const normalize = (path: string) => {
@@ -44,7 +56,7 @@ const normalize = (path: string) => {
   return path.endsWith("/") ? path.slice(0, -1) : path;
 };
 
-export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => {
+export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user = null }) => {
   const { mode } = useContext(DarkModeContext);
   const { t } = useLanguage();
   const pathname = usePathname();
@@ -77,6 +89,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
     ],
     [t],
   );
+  const visibleItems = user ? items.filter((item) => !SIGNED_OUT_ONLY.has(item.href)) : items;
 
   const current = normalize(pathname ?? "/");
 
@@ -136,7 +149,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
       <Divider />
 
       <List sx={{ py: 0 }}>
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const button = (
             <ListItemButton
               component={navLinkComponent(item.href)}
@@ -186,7 +199,52 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false }) => 
           );
         })}
       </List>
-      <Stack sx={{ p: 2, mt: "auto" }}>
+      <Stack sx={{ p: 2, mt: "auto" }} spacing={1}>
+        {user && (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            justifyContent={collapsed ? "center" : "flex-start"}
+            sx={{ px: 1 }}
+            data-testid="nav-user"
+          >
+            <Avatar src={user.picture} alt={user.name} sx={{ width: 28, height: 28 }} />
+            {!collapsed && (
+              <TypographyWithTooltip variant="body2" placement="right" title={user.name} />
+            )}
+          </Stack>
+        )}
+        {user && (
+          <ListItemButton
+            // A full page load: /auth/logout clears the session and redirects
+            // through Auth0, like login (navLinkComponent).
+            component="a"
+            href="/auth/logout"
+            sx={(theme) => ({
+              px: 1,
+              py: 0.5,
+              minHeight: 40,
+              justifyContent: collapsed ? "center" : "flex-start",
+              borderRadius: 1,
+              color: theme.palette.text.secondary,
+              "& .MuiListItemIcon-root": {
+                minWidth: collapsed ? 0 : "auto",
+                mr: collapsed ? 0 : 1.5,
+                color: "inherit",
+              },
+              "& .MuiListItemIcon-root svg": { fontSize: 20 },
+              "&:hover": { bgcolor: theme.palette.action.hover },
+            })}
+          >
+            <ListItemIcon sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <LogoutOutlined fontSize="small" />
+            </ListItemIcon>
+            {!collapsed && (
+              <TypographyWithTooltip variant="body2" placement="right" title={t.common.logout} />
+            )}
+          </ListItemButton>
+        )}
         <ListItemButton
           component={Link}
           href="/settings"
