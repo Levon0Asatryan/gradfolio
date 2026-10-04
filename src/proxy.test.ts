@@ -57,7 +57,12 @@ describe("proxy", () => {
     const res = await proxy(request("/account"));
     expect(res.status).toBe(503);
     expect(res.headers.get("retry-after")).toBe("30");
-    expect(await res.text()).not.toMatch(/decrypt/);
+    const body = await res.text();
+    expect(body).not.toMatch(/decrypt/);
+    // In every UI language: the proxy cannot know which one the user chose.
+    expect(body).toContain("Sign-in is temporarily unavailable");
+    expect(body).toContain("Вход временно недоступен");
+    expect(body).toContain("Մուտքը ժամանակավորապես անհասանելի է");
   });
 
   it("fails closed when the SDK itself throws on a protected page", async () => {

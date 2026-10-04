@@ -11,6 +11,13 @@ import { isProtectedPath } from "@/lib/auth/routePolicy";
  *   protected page answers 503 instead of being served. Public pages still
  *   render (they need no session), and the error is logged either way.
  */
+/** en / ru / am, one per line. */
+const UNAVAILABLE_MESSAGE = [
+  "Sign-in is temporarily unavailable. Please try again.",
+  "Вход временно недоступен. Попробуйте ещё раз.",
+  "Մուտքը ժամանակավորապես անհասանելի է։ Խնդրում ենք կրկին փորձել։",
+].join("\n");
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname, search } = request.nextUrl;
 
@@ -37,7 +44,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       error: error instanceof Error ? error.name : typeof error,
     });
     if (!protectedPath) return NextResponse.next();
-    return new NextResponse("Sign-in is temporarily unavailable. Please try again.", {
+    // The proxy cannot see the chosen language (it lives in the browser), so
+    // the message comes in all three.
+    return new NextResponse(UNAVAILABLE_MESSAGE, {
       status: 503,
       headers: { "content-type": "text/plain; charset=utf-8", "retry-after": "30" },
     });
