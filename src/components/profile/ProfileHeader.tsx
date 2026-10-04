@@ -18,6 +18,8 @@ export interface ProfileHeaderProps {
   links: ProfileLinks;
   /** Owner viewing a profile nobody else can see. */
   privateNotice?: boolean;
+  /** Owner only: open the editor. */
+  onEdit?: () => void;
 }
 
 const LINK_KEYS = ["github", "linkedin", "twitter", "website"] as const;
@@ -32,6 +34,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
   avatarUrl,
   links,
   privateNotice,
+  onEdit,
 }) => {
   const { t } = useLanguage();
   const visibleLinks = LINK_KEYS.flatMap((key) => {
@@ -90,6 +93,16 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
                   {t.common.contact}
                 </Button>
               </Tooltip>
+            )}
+            {onEdit && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onEdit}
+                aria-label={t.common.editProfile}
+              >
+                {t.common.edit}
+              </Button>
             )}
             {visibleLinks.map(({ key, href }) => (
               <Link key={key} href={href} target="_blank" rel="noopener noreferrer" variant="body2">
