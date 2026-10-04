@@ -196,10 +196,11 @@ src/
                 project-new/, search/, integrations/, settings/), plus shared UI (shared/,
                 stepper/, text/, theme/, i18n/, layout/, navigation/, sidebar/, effects/).
   data/         Mock data (*.mock.ts) until each feature is wired to the API; locales/.
-  lib/          auth0.ts (the Auth0Client).
+  lib/          auth0.ts (the Auth0Client); auth/routePolicy.ts (which pages need a login);
+                api/client.ts (gradfolio-api, server only).
   utils/        constants/, helpers/ (formatDate, validation), types/.
   testing/      Test-only setup and helpers; never imported by shipped code.
-  middleware.ts Auth0 middleware.
+  proxy.ts      Auth0 session handling and the login requirement (Next 16's `proxy`).
 scripts/        Review and push-gate scripts (shared with gradfolio-api).
 ```
 
@@ -241,23 +242,46 @@ extension declared by module augmentation.
 auto-collapses below `sm`, saves its state (`autoSaveId`), and can be hidden (404).
 Active route = the longest matching `href` prefix.
 
-### Auth (today)
+### Auth
 
 - `src/lib/auth0.ts` constructs the client at module load; `scope` and `audience` are
-  passed explicitly (v4 does not read `AUTH0_SCOPE`/`AUTH0_AUDIENCE` itself).
-- `src/middleware.ts` runs `auth0.middleware(request)`, which mounts `/auth/*` and
-  rolls sessions. **It does not require a login on any route**, and it catches every
-  error and lets the request through (F2, tracker 2.11).
-- The current user is hardcoded as `u_001` in three places (F3, tracker 2.12).
-- Next 16 renamed `middleware` to `proxy`; the build warns. Not yet migrated.
+  passed explicitly (v4 does not read `AUTH0_SCOPE`/`AUTH0_AUDIENCE` itself). The
+  SDK's `/auth/access-token` route is **off**: the access token never reaches the
+  browser (Q11). Tokens refresh a minute before they expire.
+- `src/proxy.ts` runs `auth0.middleware(request)` (mounts `/auth/*`, rolls the
+  session) and enforces the route policy in `src/lib/auth/routePolicy.ts`: a
+  protected page without a session redirects to `/auth/login?returnTo=…`. It **fails
+  closed**: if the session cannot be checked, a protected page answers 503; public
+  pages still render (tracker 2.10, 2.11).
+- Public pages: `/profile/<id>`, `/projects/<id>`, `/search`, `/settings`. Everything
+  showing or changing the user's own data needs a login, `/` (the dashboard) included.
+- **Links to `/auth/*` are plain `<a>`, never `<Link>`** (`navLinkComponent`): a
+  client-side fetch of `/auth/login` follows Auth0's redirect as a cross-origin
+  request and fails CORS.
+- The layout reads the session for the navigation only (name, picture, logout); a
+  signed-in user does not see "Login" or "Login Connections" (2.13).
+- Each `/auth/callback?code=…` URL works once: reloading it answers 500 "The state
+  parameter is invalid". Log in on the production host itself
+  (`gradfolio-navy.vercel.app`): a login started on a Vercel alias host returns to
+  `APP_BASE_URL`, where its cookie is missing.
+- The current user is still hardcoded as `u_001` in three places until the profile
+  pages use the API (F3; moved to M3 with 2.12).
+
+### The API
+
+`src/lib/api/client.ts` (`import "server-only"`) calls gradfolio-api with
+`Authorization: Bearer` from `auth0.getAccessToken()`, from server components, route
+handlers and server actions only. Every failure is an `ApiError` carrying the API's
+stable `code` (its `{ code, message }` envelope), or one of ours: `API_NOT_CONFIGURED`
+(no `API_BASE_URL`), `API_UNREACHABLE`, `UNAUTHENTICATED` (no token: sign in again).
+Branch on `code`, never on `message`. `/account` is its first caller (`GET /v1/me`).
 
 ### Data
 
 All data is mock (`src/data/*.mock.ts`). Each feature moves to the API as its
-milestone lands (tracker M2–M8). Per the Q11 proposal, the API is called **from the
-Next.js server only** (server components, route handlers, server actions), with the
-access token from `auth0.getAccessToken()` kept server-side. Types will come from the
-API's `openapi.yaml` (Q5). Where frontend types and the schema disagree today:
+milestone lands (tracker M2–M8). Per Q11 (decided), the API is called **from the
+Next.js server only** through `src/lib/api/client.ts`. Types are hand-written there
+until Q5 (types generated from the API's `openapi.yaml`) is decided. Where frontend types and the schema disagree today:
 `gradfolio-api/docs/investigation.md` §4.3.
 
 ## Environment variables
@@ -271,6 +295,7 @@ API's `openapi.yaml` (Q5). Where frontend types and the schema disagree today:
 | `AUTH0_SECRET`                           | Session cookie encryption (`openssl rand -hex 32`)               |
 | `APP_BASE_URL`                           | This app's URL (`http://localhost:3000` locally)                 |
 | `AUTH0_SCOPE`, `AUTH0_AUDIENCE`          | Passed explicitly in `src/lib/auth0.ts`; the audience is the API |
+| `API_BASE_URL`                           | gradfolio-api's base URL, server only (`src/lib/api/client.ts`)  |
 
 There is no `vercel.json`; Vercel builds with its Next.js preset.
 
@@ -291,13 +316,13 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 | `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                      |
 | `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                             |
 | `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                         |
-| `/integrations/connections` | Four-step onboarding stepper (to be redesigned in 2.14)                                              |
+| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                      |
 | `/settings`                 | Language and theme                                                                                   |
-| `/account`                  | Placeholder                                                                                          |
+| `/account`                  | The signed-in account from `GET /v1/me` (settings come in M3, 3.9); login required                   |
 | 404                         | Hides the sidebar, Noise effect                                                                      |
 
 ## What is not built yet
 
-Real data, login-required routes, file uploads, notifications UI, privacy controls,
+Real data (beyond `/account`), file uploads, notifications UI, privacy controls,
 AI summaries, PDF export: each is a tracker milestone. The product spec is in the
 workspace `docs/`; its scope decisions are in the tracker's "Release definition".

@@ -146,7 +146,7 @@ src/
 ├── lib/             # Auth0 client
 ├── utils/           # Helpers, types and constants
 ├── testing/         # Test setup and helpers
-└── middleware.ts    # Auth0 middleware
+└── proxy.ts         # Auth0 session handling and the login requirement
 scripts/             # Push gates and review scripts
 docs/                # Setup plan and verification; the tracker lives in gradfolio-api
 ```
