@@ -197,7 +197,7 @@ src/
                 stepper/, text/, theme/, i18n/, layout/, navigation/, sidebar/, effects/).
   data/         Mock data (*.mock.ts) until each feature is wired to the API; locales/.
   lib/          auth0.ts (the Auth0Client); auth/routePolicy.ts (which pages need a login);
-                api/client.ts (gradfolio-api, server only).
+                api/client.ts (gradfolio-api, server only); api/types.ts, schema.d.ts (generated).
   utils/        constants/, helpers/ (formatDate, validation), types/.
   testing/      Test-only setup and helpers; never imported by shipped code.
   proxy.ts      Auth0 session handling and the login requirement (Next 16's `proxy`).
@@ -271,8 +271,8 @@ Active route = the longest matching `href` prefix.
   one. Auth0 lists that host's `/auth/callback` and logout URL as exact entries, one
   per tested branch, never a `*.vercel.app` wildcard. Allowed Origins and Web Origins
   stay empty (server-side flow; nothing calls Auth0 from the browser).
-- The current user is still hardcoded as `u_001` in three places until the profile
-  pages use the API (F3; moved to M3 with 2.12).
+- The current user comes from the API (`getMe().id`); `/profile` redirects to
+  `/profile/<id>`. Nothing hardcodes a user id (2.12).
 
 ### The API
 
@@ -281,15 +281,23 @@ Active route = the longest matching `href` prefix.
 handlers and server actions only. Every failure is an `ApiError` carrying the API's
 stable `code` (its `{ code, message }` envelope), or one of ours: `API_NOT_CONFIGURED`
 (no `API_BASE_URL`), `API_UNREACHABLE`, `UNAUTHENTICATED` (no token: sign in again).
-Branch on `code`, never on `message`. `/account` is its first caller (`GET /v1/me`).
+Branch on `code`, never on `message`. Callers: `/account` (`getMe`), `/profile` and
+`/profile/[id]` (`getMe`, `getProfile`). `getProfile` sends the token when there is a
+session and reads anonymously otherwise, and refuses any id that is not a UUID before
+calling (no `..` path tricks). A failed load is an error screen (`ProfileError`), never
+an empty profile; a private or unknown profile is a 404 (Q3).
 
 ### Data
 
 All data is mock (`src/data/*.mock.ts`). Each feature moves to the API as its
 milestone lands (tracker M2–M8). Per Q11 (decided), the API is called **from the
-Next.js server only** through `src/lib/api/client.ts`. Types are hand-written there
-until Q5 (types generated from the API's `openapi.yaml`) is decided. Where frontend types and the schema disagree today:
-`gradfolio-api/docs/investigation.md` §4.3.
+Next.js server only** through `src/lib/api/client.ts`. Types are generated (Q5):
+`src/lib/api/openapi.yaml` is a copy of the API's contract at the commit named in
+`src/lib/api/openapi.source`, and `src/lib/api/schema.d.ts` is `npm run api:types` of
+it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
+`src/lib/api/types.ts` names the shapes components import. To take a new contract:
+`sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
+Still mock until their milestones: dashboard, projects, search, integrations.
 
 ## Environment variables
 
@@ -316,8 +324,8 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 | Route                       | What it does                                                                                         |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/` |
-| `/profile/[id]`             | Server page; 404 if unknown; `ProfileContent` toggles preview and inline edit on your own profile    |
-| `/profile`, `/profile/edit` | Redirect to `/profile/u_001` (F3) and `/profile`                                                     |
+| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; read-only until M3 edit   |
+| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                   |
 | `/projects`                 | Your projects: search, category filter, sort (in the browser)                                        |
 | `/projects/[id]`            | Detail with `generateMetadata()`: header, description HTML (F1), attachments, metadata, tags, team   |
 | `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                      |
