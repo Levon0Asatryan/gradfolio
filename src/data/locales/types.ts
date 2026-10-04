@@ -13,6 +13,7 @@ export interface Dictionary {
     dark: string;
     dashboard: string;
     login: string;
+    logout: string;
     loginConnections: string;
     myAccount: string;
     projects: string;
@@ -241,5 +242,19 @@ export interface Dictionary {
       dataScientists: string;
       researchers: string;
     };
+  };
+  account: {
+    title: string;
+    intro: string;
+    name: string;
+    email: string;
+    emailVerified: string;
+    emailNotVerified: string;
+    loginMethods: string;
+    noEmail: string;
+    errorNotConfigured: string;
+    errorUnreachable: string;
+    errorSignInAgain: string;
+    errorGeneric: string;
   };
 }

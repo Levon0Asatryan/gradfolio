@@ -47,7 +47,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-resizable-panels": "^3.0.6",
-    "rooks": "^9.9.0"
+    "rooks": "^9.9.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
