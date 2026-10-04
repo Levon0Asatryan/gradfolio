@@ -3,7 +3,8 @@
 import { FC, memo } from "react";
 import { Link as MuiLink, List, ListItem, ListItemText, Typography } from "@mui/material";
 import SectionCard from "./shared/SectionCard";
-import type { Certification } from "@/data/profile.mock";
+import type { Certification } from "@/lib/api/types";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface CertificationsListProps {
@@ -34,11 +35,15 @@ const CertificationsList: FC<CertificationsListProps> = ({ items }) => {
                     <Typography component="span" variant="body2" color="text.secondary">
                       {c.issuer} • {c.date}
                     </Typography>
-                    {c.credentialUrl && (
+                    {safeHttpUrl(c.credentialUrl) && (
                       <>
                         {" "}
                         —{" "}
-                        <MuiLink href={c.credentialUrl} target="_blank" rel="noopener noreferrer">
+                        <MuiLink
+                          href={safeHttpUrl(c.credentialUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           {t.profile.verify}
                         </MuiLink>
                       </>

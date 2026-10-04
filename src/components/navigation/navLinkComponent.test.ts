@@ -10,7 +10,7 @@ describe("navLinkComponent", () => {
     },
   );
 
-  it.each(["/", "/projects", "/authors", "/profile/u_001"])("renders %s as a Next Link", (href) => {
+  it.each(["/", "/projects", "/authors", "/profile"])("renders %s as a Next Link", (href) => {
     expect(navLinkComponent(href)).toBe(Link);
   });
 });
