@@ -140,7 +140,7 @@ export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user 
             variant="h6"
             color="primary"
             fontWeight="medium"
-            sx={{ fontFamily: "Roboto, sans-serif" }}
+            sx={{ fontFamily: "inherit" }}
           >
             Gradfolio
           </Typography>

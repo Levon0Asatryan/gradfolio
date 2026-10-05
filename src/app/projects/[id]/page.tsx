@@ -31,7 +31,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   if (!data) return notFound();
 
   return (
-    <Container component="main" sx={{ py: 3 }}>
+    <Container sx={{ py: 3 }}>
       <BackButton />
 
       <ProjectHeader

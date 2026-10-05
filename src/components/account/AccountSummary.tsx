@@ -41,7 +41,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
   const text = t.account;
 
   return (
-    <Stack component="main" spacing={2} sx={{ p: 3, maxWidth: 640 }}>
+    <Stack spacing={2} sx={{ p: 3, maxWidth: 640 }}>
       <Typography variant="h4" component="h1">
         {text.title}
       </Typography>

@@ -13,7 +13,7 @@ export default function EditProfilePage() {
   }, [router]);
 
   return (
-    <Container component="main" sx={{ py: 3 }}>
+    <Container sx={{ py: 3 }}>
       <Box
         sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}
       >

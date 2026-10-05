@@ -2,6 +2,7 @@ import { Dictionary } from "./types";
 
 export const en: Dictionary = {
   common: {
+    skipToContent: "Skip to main content",
     settings: "Settings",
     language: "Language",
     theme: "Theme",

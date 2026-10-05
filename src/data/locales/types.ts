@@ -6,6 +6,7 @@ export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
   common: {
+    skipToContent: string;
     settings: string;
     language: string;
     theme: string;

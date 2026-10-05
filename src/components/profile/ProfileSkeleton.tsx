@@ -8,7 +8,7 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 export const ProfileSkeleton: FC = () => {
   const { t } = useLanguage();
   return (
-    <Container component="main" sx={{ py: 3 }} aria-busy="true" aria-label={t.profile.loading}>
+    <Container sx={{ py: 3 }} aria-busy="true" aria-label={t.profile.loading}>
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <Skeleton variant="circular" width={96} height={96} />
         <Stack sx={{ flex: 1 }}>

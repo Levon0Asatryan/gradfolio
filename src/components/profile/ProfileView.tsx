@@ -31,7 +31,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
   const editSections = sectionEdit && profile.isOwner;
 
   return (
-    <Container component="main" sx={{ py: 3 }}>
+    <Container sx={{ py: 3 }}>
       {profile.isOwner && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           <ToggleButtonGroup
