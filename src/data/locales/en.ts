@@ -371,4 +371,12 @@ export const en: Dictionary = {
       },
     },
   },
+  deleteAccount: {
+    title: "Delete account",
+    body: "Removes your profile, every section, skills, projects, integrations and notifications. Your name stays on other people’s projects as plain text, without a photo or a link. This cannot be undone.",
+    open: "Delete my account",
+    understand: "I understand this cannot be undone",
+    confirm: "Delete account",
+    error: "Could not delete your account. Please try again.",
+  },
 };

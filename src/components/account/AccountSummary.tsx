@@ -9,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
+import { DeleteAccount } from "./DeleteAccount";
 import { AccountSettings, type AccountSettingsValues } from "./AccountSettings";
 import type { Me } from "@/lib/api/types";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
@@ -90,6 +91,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
             )}
           </Stack>
           <AccountSettings initial={result.settings} />
+          <DeleteAccount />
         </>
       )}
     </Stack>

@@ -361,4 +361,12 @@ export interface Dictionary {
       };
     };
   };
+  deleteAccount: {
+    title: string;
+    body: string;
+    open: string;
+    understand: string;
+    confirm: string;
+    error: string;
+  };
 }
