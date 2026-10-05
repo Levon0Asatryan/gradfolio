@@ -27,6 +27,7 @@ import {
 } from "@/lib/profile/sections";
 import { counterText, fieldErrorText } from "../fieldErrorText";
 import { measure } from "@/lib/profile/limits";
+import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
 import { ChipListField } from "./ChipListField";
 import { MonthField } from "./MonthField";
 import { yearInputProps } from "./yearInput";
@@ -73,6 +74,11 @@ export const EntryDialog: FC<{
       Object.keys(CURRENT).map((key) => [key, entry !== null && entry[key] === null]),
     ),
   );
+  const [initial] = useState(() => JSON.stringify([values, ongoing]));
+  // A skill typed in a chip field but not yet added is an edit too.
+  const [pendingDraft, setPendingDraft] = useState(false);
+  const dirty = JSON.stringify([values, ongoing]) !== initial || pendingDraft;
+  useUnsavedGuard(dirty, t.profileEdit.leavePrompt);
   const [errors, setErrors] = useState<Partial<Record<string, FieldError>>>({});
   const [failure, setFailure] = useState<Failure | null>(null);
   const [saving, setSaving] = useState(false);
@@ -112,7 +118,12 @@ export const EntryDialog: FC<{
   return (
     <Dialog
       open
-      onClose={saving ? undefined : onClose}
+      // Escape and a click outside must not drop a half-filled entry unasked.
+      onClose={
+        saving
+          ? undefined
+          : () => (!dirty || window.confirm(t.profileEdit.leavePrompt)) && onClose()
+      }
       fullWidth
       maxWidth="sm"
       aria-labelledby="entry-title"
@@ -183,6 +194,7 @@ export const EntryDialog: FC<{
                     error={Boolean(error)}
                     helperText={errorText}
                     maxItems={spec.maxItems}
+                    onDraftChange={(d) => setPendingDraft(d.trim() !== "")}
                   />
                 );
               }

@@ -19,7 +19,13 @@ import { isSection, parseEntry, parseIds, parseSkills } from "./sections";
  * argument. The caller is the Auth0 session (its token goes to the API, which
  * decides ownership), and the input is checked here before it is forwarded.
  */
-export type ActionResult = { ok: true } | { ok: false; code: string; fields?: FieldErrors };
+export type ActionResult =
+  | {
+      ok: true;
+      /** `replaceSkillsAction` only: the list as the API stored it. */
+      skills?: string[];
+    }
+  | { ok: false; code: string; fields?: FieldErrors };
 
 function failure(error: unknown): ActionResult {
   if (error instanceof ApiError) return { ok: false, code: error.code };
@@ -99,8 +105,12 @@ export async function replaceSkillsAction(skills: unknown): Promise<ActionResult
   const list = parseSkills(skills);
   if (!list) return invalid;
   try {
-    await replaceSkills(list);
-    return { ok: true };
+    const saved = await replaceSkills(list);
+    // The API normalizes and picks one spelling per name: hand back what it kept.
+    const skills = Array.isArray(saved?.skills)
+      ? saved.skills.filter((x) => typeof x === "string")
+      : undefined;
+    return { ok: true, skills };
   } catch (error) {
     return failure(error);
   }
