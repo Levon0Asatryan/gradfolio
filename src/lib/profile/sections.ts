@@ -1,5 +1,6 @@
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import type { FieldError, FieldErrors } from "./headerPatch";
+import { LIMITS, fits, type Limit } from "./limits";
 
 /**
  * The editable list sections (education, experience, certifications): which
@@ -14,7 +15,7 @@ export type Section = (typeof SECTIONS)[number];
 export const isSection = (v: unknown): v is Section =>
   typeof v === "string" && (SECTIONS as readonly string[]).includes(v);
 
-type Kind = "text" | "multiline" | "year" | "month" | "url" | "lines";
+type Kind = "text" | "multiline" | "year" | "month" | "url" | "lines" | "chips";
 export interface FieldSpec {
   key: string;
   kind: Kind;
@@ -24,38 +25,49 @@ export interface FieldSpec {
   nullable?: boolean;
   /** `lines`: the most items the API takes. */
   maxItems?: number;
+  /** Must be sent (create) but may be blank: sent as "" and never null (`experience.summary`). */
+  allowEmpty?: boolean;
+  /** How much text it holds; for `lines`, one item's limit. */
+  limit?: Limit;
 }
 
 export const FIELDS = {
   education: [
-    { key: "institution", kind: "text", required: true },
-    { key: "degree", kind: "text", required: true },
-    { key: "field", kind: "text", required: true },
+    { key: "institution", kind: "text", required: true, limit: LIMITS.institution },
+    { key: "degree", kind: "text", required: true, limit: LIMITS.degree },
+    { key: "field", kind: "text", required: true, limit: LIMITS.field },
     { key: "startYear", kind: "year", required: true },
     { key: "endYear", kind: "year", nullable: true },
-    { key: "description", kind: "multiline", nullable: true },
-    { key: "highlights", kind: "lines", maxItems: 20 },
+    { key: "description", kind: "multiline", nullable: true, limit: LIMITS.description },
+    { key: "highlights", kind: "lines", maxItems: 20, limit: LIMITS.listItem },
   ],
   experience: [
-    { key: "title", kind: "text", required: true },
-    { key: "organization", kind: "text", required: true },
+    { key: "title", kind: "text", required: true, limit: LIMITS.title },
+    { key: "organization", kind: "text", required: true, limit: LIMITS.organization },
     { key: "start", kind: "month", required: true },
     { key: "end", kind: "month", nullable: true },
-    { key: "summary", kind: "multiline", required: true },
-    { key: "achievements", kind: "lines", maxItems: 20 },
-    { key: "skills", kind: "lines", maxItems: 30 },
+    { key: "summary", kind: "multiline", allowEmpty: true, limit: LIMITS.summary },
+    { key: "achievements", kind: "lines", maxItems: 20, limit: LIMITS.listItem },
+    { key: "skills", kind: "chips", maxItems: 30, limit: LIMITS.term },
   ],
   certifications: [
-    { key: "name", kind: "text", required: true },
-    { key: "issuer", kind: "text", required: true },
+    { key: "name", kind: "text", required: true, limit: LIMITS.certName },
+    { key: "issuer", kind: "text", required: true, limit: LIMITS.issuer },
     { key: "date", kind: "month", required: true },
-    { key: "credentialUrl", kind: "url", nullable: true },
+    { key: "credentialUrl", kind: "url", nullable: true, limit: LIMITS.credentialUrl },
   ],
 } as const satisfies Record<Section, readonly FieldSpec[]>;
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
-const YEAR_MIN = 1900;
-const YEAR_MAX = 2100;
+/** The API's bounds for a year (openapi.yaml: minimum 1900, maximum 2100). */
+export const YEAR_MIN = 1900;
+export const YEAR_MAX = 2100;
+
+/** [start, end]: an end before its start is refused by the API (endYear >= startYear, end >= start). */
+const RANGES: readonly (readonly [string, string])[] = [
+  ["startYear", "endYear"],
+  ["start", "end"],
+];
 
 export type EntryResult =
   { ok: true; body: Record<string, unknown> } | { ok: false; errors: FieldErrors };
@@ -85,18 +97,20 @@ export function parseEntry(
     const raw = input[spec.key];
     const sent = raw !== undefined;
     if (!sent) {
-      if (mode === "create" && spec.required) errors[spec.key] = "required";
+      if (mode === "create" && (spec.required || spec.allowEmpty)) errors[spec.key] = "required";
       continue;
     }
 
-    if (spec.kind === "lines") {
+    if (spec.kind === "lines" || spec.kind === "chips") {
       if (!Array.isArray(raw) || raw.some((x) => typeof x !== "string")) {
         errors[spec.key] = "invalid";
         continue;
       }
       const items = (raw as string[]).map((x) => x.trim()).filter(Boolean);
       if (items.length > (spec.maxItems ?? Infinity)) errors[spec.key] = "invalid";
-      else body[spec.key] = items;
+      else if (spec.limit && items.some((x) => !fits(x, spec.limit as Limit))) {
+        errors[spec.key] = "too_long";
+      } else body[spec.key] = items;
       continue;
     }
 
@@ -120,12 +134,28 @@ export function parseEntry(
     const text = (raw ?? "").trim();
     if (text === "") {
       if (spec.required) errors[spec.key] = "required";
-      else body[spec.key] = null;
+      else body[spec.key] = spec.allowEmpty ? "" : null;
       continue;
     }
     if (spec.kind === "month" && !MONTH.test(text)) errors[spec.key] = "invalid_month";
     else if (spec.kind === "url" && !safeHttpUrl(text)) errors[spec.key] = "invalid_url";
+    else if (spec.limit && !fits(text, spec.limit)) errors[spec.key] = "too_long";
     else body[spec.key] = text;
+  }
+
+  // The API checks these on the whole entry; say so on the field, before sending.
+  for (const [from, to] of RANGES) {
+    const a = body[from];
+    const b = body[to];
+    if (
+      a !== undefined &&
+      b !== undefined &&
+      a !== null &&
+      b !== null &&
+      (b as never) < (a as never)
+    ) {
+      errors[to] = "invalid_range";
+    }
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
@@ -142,9 +172,12 @@ export function parseIds(input: unknown): string[] | null {
 
 const SKILLS_MAX = 1000;
 
+/** One skill must fit `terms.name` (255 characters). */
+const skillFits = (x: string) => fits(x, LIMITS.term);
+
 /** The skill list for `PUT /v1/me/skills`: trimmed, blanks dropped; the API normalizes and dedupes. */
 export function parseSkills(input: unknown): string[] | null {
   if (!Array.isArray(input) || input.some((x) => typeof x !== "string")) return null;
   const skills = (input as string[]).map((x) => x.trim()).filter(Boolean);
-  return skills.length <= SKILLS_MAX ? skills : null;
+  return skills.length <= SKILLS_MAX && skills.every(skillFits) ? skills : null;
 }

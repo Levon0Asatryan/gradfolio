@@ -72,4 +72,20 @@ describe("parseHeaderPatch", () => {
       links: "invalid",
     });
   });
+
+  it("refuses text past the API's column limits", () => {
+    expect(errors({ name: "x".repeat(256) })).toEqual({ name: "too_long" });
+    expect(errors({ headline: "x".repeat(501) })).toEqual({ headline: "too_long" });
+    expect(errors({ location: "x".repeat(256) })).toEqual({ location: "too_long" });
+    expect(errors({ links: { github: `https://a.example/${"x".repeat(500)}` } })).toEqual({
+      "links.github": "too_long",
+    });
+    expect(errors({ contactEmail: `${"x".repeat(250)}@a.example` })).toEqual({
+      contactEmail: "too_long",
+    });
+    expect(errors({ bio: "€".repeat(21_846) })).toEqual({ bio: "too_long" });
+    expect(ok({ name: "x".repeat(255), bio: "€".repeat(21_845) })).toMatchObject({
+      name: "x".repeat(255),
+    });
+  });
 });

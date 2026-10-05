@@ -71,10 +71,60 @@ describe("parseEntry (create)", () => {
       ok: true,
       body: { end: null },
     });
-    expect(parseEntry("experience", { ...exp, summary: "" }, "create")).toMatchObject({
+    expect(parseEntry("experience", { ...exp, title: "" }, "create")).toMatchObject({
+      ok: false,
+      errors: { title: "required" },
+    });
+  });
+
+  it("must send the summary, but it may be blank (sent as an empty string, never null)", () => {
+    const exp = { title: "Intern", organization: "Acme", start: "2024-06" };
+    expect(parseEntry("experience", exp, "create")).toMatchObject({
       ok: false,
       errors: { summary: "required" },
     });
+    expect(parseEntry("experience", { ...exp, summary: "  " }, "create")).toMatchObject({
+      ok: true,
+      body: { summary: "" },
+    });
+  });
+
+  it("refuses an end before its start, on the end field", () => {
+    expect(parseEntry("education", { ...EDU, endYear: "2020" }, "create")).toMatchObject({
+      ok: false,
+      errors: { endYear: "invalid_range" },
+    });
+    expect(parseEntry("education", { ...EDU, endYear: "2021" }, "create")).toMatchObject({
+      ok: true,
+    });
+    const exp = { title: "I", organization: "A", start: "2024-06", summary: "x" };
+    expect(parseEntry("experience", { ...exp, end: "2024-05" }, "create")).toMatchObject({
+      ok: false,
+      errors: { end: "invalid_range" },
+    });
+    expect(parseEntry("experience", { ...exp, end: "2024-06" }, "create")).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("refuses text past the API's column limits, counting like MySQL", () => {
+    expect(
+      parseEntry("education", { ...EDU, institution: "x".repeat(501) }, "create"),
+    ).toMatchObject({ ok: false, errors: { institution: "too_long" } });
+    expect(
+      parseEntry("education", { ...EDU, institution: "x".repeat(500) }, "create"),
+    ).toMatchObject({ ok: true });
+    // VARCHAR counts code points: 500 emoji fit although .length is 1000.
+    expect(
+      parseEntry("education", { ...EDU, institution: "😀".repeat(500) }, "create"),
+    ).toMatchObject({ ok: true });
+    // TEXT counts UTF-8 bytes: 21846 three-byte characters are 65538 bytes.
+    expect(
+      parseEntry("education", { ...EDU, description: "€".repeat(21_846) }, "create"),
+    ).toMatchObject({ ok: false, errors: { description: "too_long" } });
+    expect(
+      parseEntry("education", { ...EDU, highlights: ["x".repeat(1001)] }, "create"),
+    ).toMatchObject({ ok: false, errors: { highlights: "too_long" } });
   });
 
   it("only takes http(s) credential URLs", () => {
@@ -137,6 +187,7 @@ describe("parseIds / parseSkills", () => {
     expect(parseSkills([])).toEqual([]);
     expect(parseSkills("TS")).toBeNull();
     expect(parseSkills([1])).toBeNull();
+    expect(parseSkills(["x".repeat(256)])).toBeNull();
     expect(parseSkills(Array.from({ length: 1001 }, (_, i) => `s${i}`))).toBeNull();
   });
 });

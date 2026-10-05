@@ -285,7 +285,14 @@ before the tab closes with unsaved changes. Section edits (education, experience
 create bodies by a type-level test) and `parseEntry`, which refuses a half-filled entry
 before anything is sent; `SectionEditor`/`SkillsEditor` (Edit Mode on your own profile)
 call the actions, show the API's `ORDER_STALE`, `LIMIT_REACHED` and `NOT_FOUND` as
-messages, and reload the server's list after every success. Unsaved skill changes lock
+messages, and reload the server's list after every success.
+Inputs match what they hold: years are `type="number"` with the API's 1900-2100 and no
+wheel or `e+-.` changes; months are a localized month list plus a year number (not
+`type="month"`: no picker in desktop Firefox or Safari; not MUI X: a date adapter for one
+field), with a "still studying / currently work here" checkbox for an open end; text is
+checked against the API's column limits (`src/lib/profile/limits.ts`, copied from the API
+because openapi.yaml does not carry them; VARCHAR counts code points, TEXT counts UTF-8
+bytes, so no `maxLength` attribute); an end before its start is refused on the field. Unsaved skill changes lock
 the mode switch and warn before the tab closes. Account deletion (`DeleteAccount`) needs an
 "I understand" tick and signs the user out right after the API deletes: the Auth0 login
 outlives the account, and a valid token would create a new empty one.
