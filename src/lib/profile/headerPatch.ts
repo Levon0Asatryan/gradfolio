@@ -1,5 +1,6 @@
 import type { ProfileHeaderPatch } from "@/lib/api/types";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
+import { LIMITS, fits, type Limit } from "./limits";
 
 /**
  * Checks a profile-header edit. One module for the form and for the server
@@ -25,7 +26,14 @@ const KEYS = new Set<string>([
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type FieldError =
-  "required" | "invalid_url" | "invalid_email" | "invalid_year" | "invalid_month" | "invalid";
+  | "required"
+  | "invalid_url"
+  | "invalid_email"
+  | "invalid_year"
+  | "invalid_month"
+  | "invalid_range"
+  | "too_long"
+  | "invalid";
 export type FieldErrors = Partial<Record<string, FieldError>>;
 
 export type HeaderPatchResult =
@@ -54,20 +62,28 @@ export function parseHeaderPatch(input: unknown): HeaderPatchResult {
     return v.trim();
   };
 
+  const within = (key: string, v: string, limit: Limit): boolean => {
+    if (fits(v, limit)) return true;
+    errors[key] = "too_long";
+    return false;
+  };
+
   const name = text("name");
   if (name !== undefined) {
     if (name === "") errors.name = "required";
-    else patch.name = name;
+    else if (within("name", name, LIMITS.name)) patch.name = name;
   }
   const headline = text("headline");
-  if (headline !== undefined) patch.headline = headline;
+  if (headline !== undefined && within("headline", headline, LIMITS.headline)) {
+    patch.headline = headline;
+  }
 
   for (const key of NULLABLE_TEXT) {
     const v = input[key] === null ? "" : text(key);
-    if (v !== undefined) patch[key] = v === "" ? null : v;
+    if (v !== undefined && within(key, v, LIMITS[key])) patch[key] = v === "" ? null : v;
   }
 
-  const url = (key: string, v: unknown): string | null | undefined => {
+  const url = (key: string, v: unknown, limit: Limit): string | null | undefined => {
     if (v === undefined) return undefined;
     if (v === null) return null;
     if (typeof v !== "string") {
@@ -80,10 +96,10 @@ export function parseHeaderPatch(input: unknown): HeaderPatchResult {
       errors[key] = "invalid_url";
       return undefined;
     }
-    return trimmed;
+    return within(key, trimmed, limit) ? trimmed : undefined;
   };
 
-  const avatarUrl = url("avatarUrl", input.avatarUrl);
+  const avatarUrl = url("avatarUrl", input.avatarUrl, LIMITS.avatarUrl);
   if (avatarUrl !== undefined) patch.avatarUrl = avatarUrl;
 
   if (input.contactEmail !== undefined) {
@@ -91,7 +107,7 @@ export function parseHeaderPatch(input: unknown): HeaderPatchResult {
     if (v !== undefined) {
       if (v === "") patch.contactEmail = null;
       else if (!EMAIL.test(v)) errors.contactEmail = "invalid_email";
-      else patch.contactEmail = v;
+      else if (within("contactEmail", v, LIMITS.contactEmail)) patch.contactEmail = v;
     }
   }
 
@@ -109,7 +125,7 @@ export function parseHeaderPatch(input: unknown): HeaderPatchResult {
           errors[`links.${key}`] = "invalid";
           continue;
         }
-        const v = url(`links.${key}`, input.links[key]);
+        const v = url(`links.${key}`, input.links[key], LIMITS.link);
         if (v !== undefined) links[key] = v;
       }
       patch.links = links;

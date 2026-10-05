@@ -6,7 +6,9 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { replaceSkillsAction } from "@/lib/profile/actions";
+import { LIMITS, fits } from "@/lib/profile/limits";
 import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
+import { fieldErrorText } from "../fieldErrorText";
 import SectionCard from "../shared/SectionCard";
 import { failureText, type Failure } from "./failureText";
 
@@ -26,6 +28,7 @@ export const SkillsEditor: FC<{
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [saved, setSaved] = useState(false);
+  const [tooLong, setTooLong] = useState(false);
 
   const dirty = JSON.stringify(list) !== JSON.stringify(skills);
   useEffect(() => {
@@ -38,6 +41,9 @@ export const SkillsEditor: FC<{
     event.preventDefault();
     const name = draft.trim();
     if (!name) return;
+    // One skill is a 255-character column on the API's side.
+    if (!fits(name, LIMITS.term)) return setTooLong(true);
+    setTooLong(false);
     setSaved(false);
     // The API collapses case-insensitive duplicates; do not show one the server will not keep.
     if (!list.some((s) => s.toLowerCase() === name.toLowerCase())) setList([...list, name]);
@@ -107,7 +113,12 @@ export const SkillsEditor: FC<{
             size="small"
             label={t.profile.newSkill}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setTooLong(false);
+            }}
+            error={tooLong}
+            helperText={tooLong ? fieldErrorText(t, "too_long", LIMITS.term) : undefined}
             fullWidth
           />
           <Button type="submit" variant="outlined">

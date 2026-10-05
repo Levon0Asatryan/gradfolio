@@ -334,6 +334,20 @@ export interface Dictionary {
     removeSkill: string;
     skillsUnsaved: string;
     skillsSaved: string;
+    errorRange: string;
+    errorTooLong: string;
+    unitChars: string;
+    unitBytes: string;
+    counter: string;
+    month: string;
+    year: string;
+    monthPlaceholder: string;
+    stillStudying: string;
+    currentJob: string;
+    removeItem: string;
+    addItemHint: string;
+    /** January to December, in order. */
+    months: string[];
     fields: {
       education: {
         institution: string;
