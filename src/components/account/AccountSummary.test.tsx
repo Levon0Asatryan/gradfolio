@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { AccountSummary, type AccountResult } from "./AccountSummary";
 
@@ -22,23 +22,32 @@ const show = (result: AccountResult) =>
     </LanguageProvider>,
   );
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/lib/profile/actions", () => ({ updateProfileAction: vi.fn() }));
+
+const SETTINGS = { isPublic: true, contactEmail: null };
+
 describe("AccountSummary", () => {
   it("shows the account the API returned", () => {
-    show({ me: ME });
+    show({ me: ME, settings: SETTINGS });
     expect(screen.getByRole("heading", { name: "My Account" })).toBeInTheDocument();
     expect(screen.getByText("Ani Petrosyan")).toBeInTheDocument();
     expect(screen.getByText("ani@example.com")).toBeInTheDocument();
     expect(screen.getByText("Email verified")).toBeInTheDocument();
-    expect(screen.getByText(/google-oauth2/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Linked accounts" })).toBeInTheDocument();
+    expect(screen.getByText("google-oauth2")).toBeInTheDocument();
   });
 
   it("does not render an avatar from a non-http(s) URL", () => {
-    show({ me: { ...ME, avatarUrl: "data:image/svg+xml;base64,PHN2Zz4=" } });
+    show({ me: { ...ME, avatarUrl: "data:image/svg+xml;base64,PHN2Zz4=" }, settings: SETTINGS });
     expect(document.querySelector('img[src^="data:"]')).toBeNull();
   });
 
   it("renders an http(s) avatar", () => {
-    show({ me: { ...ME, avatarUrl: "https://lh3.googleusercontent.com/a/ani" } });
+    show({
+      me: { ...ME, avatarUrl: "https://lh3.googleusercontent.com/a/ani" },
+      settings: SETTINGS,
+    });
     expect(document.querySelector("img")).toHaveAttribute(
       "src",
       "https://lh3.googleusercontent.com/a/ani",
@@ -46,9 +55,10 @@ describe("AccountSummary", () => {
   });
 
   it("says when the email is missing or not verified", () => {
-    show({ me: { ...ME, email: null, verified: false, identities: [] } });
+    show({ me: { ...ME, email: null, verified: false, identities: [] }, settings: SETTINGS });
     expect(screen.getByText("No email on this account")).toBeInTheDocument();
     expect(screen.getByText("Email not verified")).toBeInTheDocument();
+    expect(screen.getByText("No linked accounts yet.")).toBeInTheDocument();
   });
 
   it.each([

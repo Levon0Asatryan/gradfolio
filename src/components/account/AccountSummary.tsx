@@ -9,11 +9,12 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
+import { AccountSettings, type AccountSettingsValues } from "./AccountSettings";
 import type { Me } from "@/lib/api/types";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
 /** What the server page hands over: the account, or the API's error code. */
-export type AccountResult = { me: Me } | { errorCode: string };
+export type AccountResult = { me: Me; settings: AccountSettingsValues } | { errorCode: string };
 
 type AccountText = Dictionary["account"];
 
@@ -66,18 +67,29 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
               <Typography color="text.secondary">{result.me.email ?? text.noEmail}</Typography>
             </Stack>
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Chip
-              size="small"
-              color={result.me.verified ? "success" : "default"}
-              label={result.me.verified ? text.emailVerified : text.emailNotVerified}
-            />
-            {result.me.identities.length > 0 && (
+          <Chip
+            size="small"
+            sx={{ alignSelf: "flex-start" }}
+            color={result.me.verified ? "success" : "default"}
+            label={result.me.verified ? text.emailVerified : text.emailNotVerified}
+          />
+          <Stack component="section" spacing={1} aria-label={text.linkedAccounts}>
+            <Typography variant="h6" component="h2">
+              {text.linkedAccounts}
+            </Typography>
+            {result.me.identities.length > 0 ? (
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {result.me.identities.map((identity) => (
+                  <Chip key={identity} size="small" variant="outlined" label={identity} />
+                ))}
+              </Stack>
+            ) : (
               <Typography variant="body2" color="text.secondary">
-                {text.loginMethods} {result.me.identities.join(", ")}
+                {text.noLinked}
               </Typography>
             )}
           </Stack>
+          <AccountSettings initial={result.settings} />
         </>
       )}
     </Stack>
