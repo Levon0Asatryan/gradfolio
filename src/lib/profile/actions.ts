@@ -1,7 +1,17 @@
 "use server";
 
-import { ApiError, completeOnboarding, updateMyProfile } from "@/lib/api/client";
+import {
+  ApiError,
+  completeOnboarding,
+  createEntry,
+  deleteEntry,
+  reorderEntries,
+  replaceSkills,
+  updateEntry,
+  updateMyProfile,
+} from "@/lib/api/client";
 import { parseHeaderPatch, type FieldErrors } from "./headerPatch";
+import { isSection, parseEntry, parseIds, parseSkills } from "./sections";
 
 /**
  * Server actions are public endpoints: they take no user id and trust no
@@ -31,6 +41,64 @@ export async function updateProfileAction(input: unknown): Promise<ActionResult>
 export async function completeOnboardingAction(): Promise<ActionResult> {
   try {
     await completeOnboarding();
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+const invalid: ActionResult = { ok: false, code: "VALIDATION_FAILED" };
+
+/**
+ * Add (`id` null) or change one entry of the caller's education, experience or
+ * certifications. Nothing half-filled is ever sent: `parseEntry` rejects a create
+ * with an empty required field before the API is called.
+ */
+export async function saveEntryAction(
+  section: unknown,
+  id: unknown,
+  input: unknown,
+): Promise<ActionResult> {
+  if (!isSection(section) || (id !== null && typeof id !== "string")) return invalid;
+  const parsed = parseEntry(section, input, id === null ? "create" : "update");
+  if (!parsed.ok) return { ok: false, code: "VALIDATION_FAILED", fields: parsed.errors };
+  try {
+    if (id === null) await createEntry(section, parsed.body);
+    else await updateEntry(section, id, parsed.body);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function deleteEntryAction(section: unknown, id: unknown): Promise<ActionResult> {
+  if (!isSection(section) || typeof id !== "string") return invalid;
+  try {
+    await deleteEntry(section, id);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** `ids` is the whole section in its new order; the API rejects a stale or foreign list. */
+export async function reorderEntriesAction(section: unknown, ids: unknown): Promise<ActionResult> {
+  const list = parseIds(ids);
+  if (!isSection(section) || !list) return invalid;
+  try {
+    await reorderEntries(section, list);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Replace the caller's whole skill list in one call. */
+export async function replaceSkillsAction(skills: unknown): Promise<ActionResult> {
+  const list = parseSkills(skills);
+  if (!list) return invalid;
+  try {
+    await replaceSkills(list);
     return { ok: true };
   } catch (error) {
     return failure(error);
