@@ -7,7 +7,8 @@ import type { Dictionary } from "@/data/locales/types";
 import type { ProfileLinks } from "@/lib/api/types";
 import { updateProfileAction } from "@/lib/profile/actions";
 import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
-import { fieldErrorText } from "./fieldErrorText";
+import { counterText, fieldErrorText } from "./fieldErrorText";
+import { LIMITS, measure, type Limit } from "@/lib/profile/limits";
 import { parseHeaderPatch, type FieldError } from "@/lib/profile/headerPatch";
 
 export interface HeaderValues {
@@ -72,9 +73,9 @@ export const ProfileHeaderForm: FC<{
   const setLink = (key: LinkKey) => (value: string) =>
     setValues((v) => ({ ...v, links: { ...v.links, [key]: value } }));
 
-  const fieldError = (key: string) => {
+  const fieldError = (key: string, limit?: Limit) => {
     const e = errors[key];
-    return e ? fieldErrorText(t, e) : undefined;
+    return e ? fieldErrorText(t, e, limit) : undefined;
   };
 
   async function submit(event: FormEvent) {
@@ -100,19 +101,26 @@ export const ProfileHeaderForm: FC<{
     }
   }
 
-  const field = (key: Exclude<keyof typeof values, "links">, label: string, extra = {}) => (
-    <TextField
-      label={label}
-      value={values[key]}
-      onChange={(e) => set(key)(e.target.value)}
-      error={Boolean(errors[key])}
-      helperText={fieldError(key)}
-      required={key === "name"}
-      size="small"
-      fullWidth
-      {...extra}
-    />
-  );
+  const field = (key: Exclude<keyof typeof values, "links">, label: string, extra = {}) => {
+    const limit = LIMITS[key];
+    return (
+      <TextField
+        label={label}
+        value={values[key]}
+        onChange={(e) => set(key)(e.target.value)}
+        error={Boolean(errors[key])}
+        // Long text shows how much of the column is used (the API's real limit).
+        helperText={
+          fieldError(key, limit) ??
+          (key === "bio" ? counterText(t, measure(values[key], limit), limit) : undefined)
+        }
+        required={key === "name"}
+        size="small"
+        fullWidth
+        {...extra}
+      />
+    );
+  };
 
   return (
     <Box component="form" onSubmit={submit} noValidate sx={{ mb: 3 }} aria-label={text.title}>
@@ -131,12 +139,16 @@ export const ProfileHeaderForm: FC<{
             )}
           </Alert>
         )}
-        {field("name", text.name)}
-        {field("headline", text.headline)}
+        {field("name", text.name, { autoComplete: "name" })}
+        {field("headline", text.headline, { autoComplete: "organization-title" })}
         {field("bio", text.bio, { multiline: true, minRows: 3 })}
-        {field("location", text.location)}
-        {field("avatarUrl", text.avatarUrl, { type: "url" })}
-        {field("contactEmail", text.contactEmail, { type: "email" })}
+        {field("location", text.location, { autoComplete: "address-level2" })}
+        {field("avatarUrl", text.avatarUrl, {
+          type: "url",
+          autoComplete: "photo",
+          placeholder: "https://",
+        })}
+        {field("contactEmail", text.contactEmail, { type: "email", autoComplete: "email" })}
         {LINK_KEYS.map((key) => (
           <TextField
             key={key}
@@ -144,8 +156,10 @@ export const ProfileHeaderForm: FC<{
             value={values.links[key] ?? ""}
             onChange={(e) => setLink(key)(e.target.value)}
             error={Boolean(errors[`links.${key}`])}
-            helperText={fieldError(`links.${key}`)}
+            helperText={fieldError(`links.${key}`, LIMITS.link)}
             type="url"
+            autoComplete="url"
+            placeholder="https://"
             size="small"
             fullWidth
           />

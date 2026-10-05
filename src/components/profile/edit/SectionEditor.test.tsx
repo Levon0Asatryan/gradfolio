@@ -77,10 +77,10 @@ describe("SectionEditor", () => {
       institution: "MIT",
       degree: "M.Sc.",
       field: "CS",
-      startYear: "2024",
-      endYear: "",
-      description: "",
-      highlights: ["GPA 4.0", "", "Award"],
+      startYear: 2024,
+      endYear: null,
+      description: null,
+      highlights: ["GPA 4.0", "Award"],
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -92,6 +92,57 @@ describe("SectionEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(action.saveEntryAction).not.toHaveBeenCalled();
     expect(screen.getAllByText("This field is required.").length).toBe(3);
+  });
+
+  it("makes every year a number input with the API's bounds", () => {
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    for (const label of [/^Start year/, /^End year/]) {
+      const input = screen.getByLabelText(label);
+      expect(input).toHaveAttribute("type", "number");
+      expect(input).toHaveAttribute("min", "1900");
+      expect(input).toHaveAttribute("max", "2100");
+      expect(input).toHaveAttribute("step", "1");
+    }
+    expect(screen.getByLabelText(/^Institution/)).toHaveAttribute("type", "text");
+  });
+
+  it("does not let the scroll wheel change a focused year", () => {
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const input = screen.getByLabelText(/^Start year/);
+    input.focus();
+    expect(input).toHaveFocus();
+    fireEvent.wheel(input);
+    expect(input).not.toHaveFocus();
+  });
+
+  it.each(["e", "E", "+", "-", "."])("does not accept %s in a year", (key) => {
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    screen.getByLabelText(/^Start year/).dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    const digit = new KeyboardEvent("keydown", { key: "7", bubbles: true, cancelable: true });
+    screen.getByLabelText(/^Start year/).dispatchEvent(digit);
+    expect(digit.defaultPrevented).toBe(false);
+  });
+
+  it("sends the years as numbers", async () => {
+    action.saveEntryAction.mockResolvedValue({ ok: true });
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fill(/^Institution/, "MIT");
+    fill(/^Degree/, "M");
+    fill(/^Field of study/, "CS");
+    fill(/^Start year/, "2020");
+    fill(/^End year/, "2024");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(action.saveEntryAction).toHaveBeenCalled());
+    expect(action.saveEntryAction.mock.calls[0]?.[2]).toMatchObject({
+      startYear: 2020,
+      endYear: 2024,
+    });
   });
 
   it("flags a year outside 1900-2100", () => {
@@ -176,5 +227,105 @@ describe("SectionEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move up: Diploma, Lyceum" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The list changed elsewhere");
     expect(nav.refresh).toHaveBeenCalled();
+  });
+
+  describe("the experience form", () => {
+    const EXP: EditableItem[] = [
+      {
+        id: "x",
+        title: "Intern",
+        organization: "Acme",
+        start: "2024-06",
+        end: null,
+        summary: "Built.",
+        achievements: [],
+        skills: ["Go"],
+      },
+    ];
+    const showExp = (items = EXP) =>
+      render(
+        <LanguageProvider>
+          <SectionEditor
+            section="experience"
+            items={items}
+            empty="none"
+            describe={(e) => ({ primary: `${e.title}`, label: `${e.title}, ${e.organization}` })}
+          />
+        </LanguageProvider>,
+      );
+
+    it("edits with the checkbox ticked when the entry has no end, and sends a null end", async () => {
+      action.saveEntryAction.mockResolvedValue({ ok: true });
+      showExp();
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      expect(screen.getByRole("checkbox", { name: "I currently work here" })).toBeChecked();
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(action.saveEntryAction).toHaveBeenCalled());
+      expect(action.saveEntryAction.mock.calls[0]?.[2]).toMatchObject({
+        start: "2024-06",
+        end: null,
+        skills: ["Go"],
+      });
+    });
+
+    it("unticking lets you pick an end; ticking again clears it", () => {
+      showExp([{ ...EXP[0]!, end: "2025-01" } as EditableItem]);
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      const current = screen.getByRole("checkbox", { name: "I currently work here" });
+      expect(current).not.toBeChecked();
+      expect(screen.getByLabelText("End (YYYY-MM, blank if current): Year")).toHaveValue(2025);
+      fireEvent.click(current);
+      expect(screen.getByLabelText("End (YYYY-MM, blank if current): Year")).toBeDisabled();
+      expect(screen.getByLabelText("End (YYYY-MM, blank if current): Year")).toHaveValue(null);
+    });
+
+    it("says when the end is before the start, and sends nothing", () => {
+      showExp([{ ...EXP[0]!, end: "2024-05" } as EditableItem]);
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(screen.getByText("The end must not be before the start.")).toBeInTheDocument();
+      expect(action.saveEntryAction).not.toHaveBeenCalled();
+    });
+
+    it("adds skills as chips: Enter adds without submitting the dialog, x removes", () => {
+      showExp();
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      const input = screen.getByLabelText("Skills");
+      fireEvent.change(input, { target: { value: "Rust" } });
+      const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+      fireEvent(input, enter);
+      // A default Enter in a form field submits the form; it must be stopped.
+      expect(enter.defaultPrevented).toBe(true);
+      expect(screen.getByText("Rust")).toBeInTheDocument();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(action.saveEntryAction).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByLabelText("Remove Go"));
+      expect(screen.queryByText("Go")).not.toBeInTheDocument();
+    });
+
+    it("lets the summary stay blank", async () => {
+      action.saveEntryAction.mockResolvedValue({ ok: true });
+      showExp();
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      fireEvent.change(screen.getByLabelText(/^Summary/), { target: { value: "" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(action.saveEntryAction).toHaveBeenCalled());
+      expect(action.saveEntryAction.mock.calls[0]?.[2]).toMatchObject({ summary: "" });
+    });
+
+    it("shows how much of the long text column is used, in the API's unit", () => {
+      showExp();
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      expect(screen.getByText("6 / 65535 bytes")).toBeInTheDocument();
+    });
+
+    it("refuses a title past 500 characters with the limit in the message", () => {
+      showExp();
+      fireEvent.click(screen.getByRole("button", { name: "Edit: Intern, Acme" }));
+      fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: "x".repeat(501) } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(screen.getByText("Too long: at most 500 characters.")).toBeInTheDocument();
+      expect(action.saveEntryAction).not.toHaveBeenCalled();
+    });
   });
 });

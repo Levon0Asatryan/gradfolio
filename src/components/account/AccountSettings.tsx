@@ -112,6 +112,7 @@ export const AccountSettings: FC<{ initial: AccountSettingsValues }> = ({ initia
         <TextField
           label={text.contactEmail}
           type="email"
+          autoComplete="email"
           size="small"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

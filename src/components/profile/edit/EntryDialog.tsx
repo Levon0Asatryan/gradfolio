@@ -4,6 +4,8 @@ import { FC, FormEvent, useState } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
+  FormControlLabel,
   Dialog,
   DialogActions,
   DialogContent,
@@ -15,15 +17,34 @@ import {
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { saveEntryAction } from "@/lib/profile/actions";
 import type { FieldError } from "@/lib/profile/headerPatch";
-import { FIELDS, parseEntry, type FieldSpec, type Section } from "@/lib/profile/sections";
-import { fieldErrorText } from "../fieldErrorText";
+import {
+  FIELDS,
+  YEAR_MAX,
+  YEAR_MIN,
+  parseEntry,
+  type FieldSpec,
+  type Section,
+} from "@/lib/profile/sections";
+import { counterText, fieldErrorText } from "../fieldErrorText";
+import { measure } from "@/lib/profile/limits";
+import { ChipListField } from "./ChipListField";
+import { MonthField } from "./MonthField";
+import { yearInputProps } from "./yearInput";
 import { failureText, type Failure } from "./failureText";
+
+/** The nullable end of a range, and the checkbox that says it is still going. */
+const CURRENT: Record<string, "stillStudying" | "currentJob"> = {
+  endYear: "stillStudying",
+  end: "currentJob",
+};
 
 export type EntryValues = Record<string, unknown>;
 
 const toText = (spec: FieldSpec, value: unknown): string => {
   if (value === null || value === undefined) return "";
-  if (spec.kind === "lines") return Array.isArray(value) ? value.join("\n") : "";
+  if (spec.kind === "lines" || spec.kind === "chips") {
+    return Array.isArray(value) ? value.join("\n") : "";
+  }
   return String(value);
 };
 
@@ -46,6 +67,12 @@ export const EntryDialog: FC<{
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(specs.map((s) => [s.key, toText(s, entry?.[s.key])])),
   );
+  // "Still studying" / "currently work here": checked when the stored end is null.
+  const [ongoing, setOngoing] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      Object.keys(CURRENT).map((key) => [key, entry !== null && entry[key] === null]),
+    ),
+  );
   const [errors, setErrors] = useState<Partial<Record<string, FieldError>>>({});
   const [failure, setFailure] = useState<Failure | null>(null);
   const [saving, setSaving] = useState(false);
@@ -57,7 +84,9 @@ export const EntryDialog: FC<{
     const input = Object.fromEntries(
       specs.map((s) => [
         s.key,
-        s.kind === "lines" ? (values[s.key] ?? "").split("\n") : (values[s.key] ?? ""),
+        s.kind === "lines" || s.kind === "chips"
+          ? (values[s.key] ?? "").split("\n")
+          : (values[s.key] ?? ""),
       ]),
     );
     const checked = parseEntry(section, input, "create");
@@ -65,7 +94,7 @@ export const EntryDialog: FC<{
     setErrors({});
     setSaving(true);
     try {
-      const result = await saveEntryAction(section, entry?.id ?? null, input);
+      const result = await saveEntryAction(section, entry?.id ?? null, checked.body);
       if (result.ok) return onSaved();
       if (result.fields) setErrors(result.fields);
       const f = failureText(t, result.code);
@@ -105,21 +134,95 @@ export const EntryDialog: FC<{
             )}
             {specs.map((spec) => {
               const error = errors[spec.key];
-              return (
+              const label = labels[spec.key] ?? spec.key;
+              const set = (v: string) => setValues((cur) => ({ ...cur, [spec.key]: v }));
+              const value = values[spec.key] ?? "";
+              const errorText = error ? fieldErrorText(t, error, spec.limit) : undefined;
+              const current = CURRENT[spec.key];
+              const isCurrent = current !== undefined && ongoing[spec.key] === true;
+
+              const toggle = current && (
+                <FormControlLabel
+                  key={`${spec.key}-current`}
+                  control={
+                    <Checkbox
+                      checked={isCurrent}
+                      onChange={(e) => {
+                        setOngoing((o) => ({ ...o, [spec.key]: e.target.checked }));
+                        if (e.target.checked) set("");
+                      }}
+                    />
+                  }
+                  label={t.sectionEdit[current]}
+                />
+              );
+
+              if (spec.kind === "month") {
+                return (
+                  <Stack key={spec.key} spacing={0.5}>
+                    <MonthField
+                      label={label}
+                      value={value}
+                      onChange={set}
+                      required={spec.required}
+                      disabled={isCurrent}
+                      error={Boolean(error)}
+                      helperText={errorText}
+                    />
+                    {toggle}
+                  </Stack>
+                );
+              }
+              if (spec.kind === "chips") {
+                return (
+                  <ChipListField
+                    key={spec.key}
+                    label={label}
+                    items={value.split("\n").filter(Boolean)}
+                    onChange={(items) => set(items.join("\n"))}
+                    error={Boolean(error)}
+                    helperText={errorText}
+                    maxItems={spec.maxItems}
+                  />
+                );
+              }
+
+              const multi = spec.kind === "multiline" || spec.kind === "lines";
+              const counter =
+                spec.kind === "multiline" && spec.limit
+                  ? counterText(t, measure(value, spec.limit), spec.limit)
+                  : undefined;
+              const field = (
                 <TextField
                   key={spec.key}
-                  label={labels[spec.key]}
-                  value={values[spec.key] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [spec.key]: e.target.value }))}
+                  label={label}
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
                   required={spec.required}
-                  multiline={spec.kind === "multiline" || spec.kind === "lines"}
-                  minRows={spec.kind === "lines" || spec.kind === "multiline" ? 2 : undefined}
-                  type={spec.kind === "url" ? "url" : "text"}
+                  disabled={isCurrent}
+                  multiline={multi}
+                  minRows={multi ? 2 : undefined}
+                  type={spec.kind === "url" ? "url" : spec.kind === "year" ? "number" : "text"}
+                  placeholder={spec.kind === "url" ? "https://" : undefined}
+                  autoComplete={spec.kind === "url" ? "url" : "off"}
                   error={Boolean(error)}
-                  helperText={error ? fieldErrorText(t, error) : undefined}
+                  helperText={errorText ?? counter}
                   size="small"
                   fullWidth
+                  slotProps={
+                    spec.kind === "year"
+                      ? { htmlInput: yearInputProps(YEAR_MIN, YEAR_MAX) }
+                      : undefined
+                  }
                 />
+              );
+              return toggle ? (
+                <Stack key={spec.key} spacing={0.5}>
+                  {field}
+                  {toggle}
+                </Stack>
+              ) : (
+                field
               );
             })}
           </Stack>

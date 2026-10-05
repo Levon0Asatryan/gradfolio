@@ -41,6 +41,13 @@ describe("SkillsEditor", () => {
     expect(screen.getByRole("button", { name: "Save skills" })).toBeDisabled();
   });
 
+  it("refuses a skill past 255 characters and says why", () => {
+    show();
+    add("x".repeat(256));
+    expect(screen.getByText("Too long: at most 255 characters.")).toBeInTheDocument();
+    expect(screen.queryByText("x".repeat(256))).not.toBeInTheDocument();
+  });
+
   it("removes a skill by its accessible remove control", async () => {
     action.replaceSkillsAction.mockResolvedValue({ ok: true });
     show(["TypeScript", "Go"]);

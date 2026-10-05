@@ -121,6 +121,32 @@ describe("ProfileView", () => {
       expect(screen.queryByRole("form", { name: "Edit profile" })).not.toBeInTheDocument();
     });
 
+    it("types the header fields for what they hold", () => {
+      edit();
+      const attr = (label: RegExp | string, name: string) =>
+        screen.getByLabelText(label).getAttribute(name);
+      expect(attr("Contact email", "type")).toBe("email");
+      expect(attr("Contact email", "autocomplete")).toBe("email");
+      expect(attr("Photo URL", "type")).toBe("url");
+      for (const label of ["GitHub URL", "LinkedIn URL", "Twitter URL", "Website URL"]) {
+        expect(attr(label, "type")).toBe("url");
+        expect(attr(label, "autocomplete")).toBe("url");
+      }
+      expect(attr(/^Name/, "autocomplete")).toBe("name");
+      expect(screen.getByLabelText(/^Name/)).toBeRequired();
+    });
+
+    it("counts the bio against the API's column, and refuses more", async () => {
+      edit();
+      expect(screen.getByText(/\/ 65535 bytes/)).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("About you"), {
+        target: { value: "€".repeat(21_846) },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(await screen.findByText("Too long: at most 65535 bytes.")).toBeInTheDocument();
+      expect(action.updateProfileAction).not.toHaveBeenCalled();
+    });
+
     it("saves through the action, closes, and refreshes the page data", async () => {
       action.updateProfileAction.mockResolvedValue({ ok: true });
       edit();
