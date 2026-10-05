@@ -24,7 +24,8 @@ const KEYS = new Set<string>([
 // One @, no spaces, a dot in the domain. Deliverability is the API's business.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type FieldError = "required" | "invalid_url" | "invalid_email" | "invalid";
+export type FieldError =
+  "required" | "invalid_url" | "invalid_email" | "invalid_year" | "invalid_month" | "invalid";
 export type FieldErrors = Partial<Record<string, FieldError>>;
 
 export type HeaderPatchResult =

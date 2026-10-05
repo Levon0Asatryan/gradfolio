@@ -6,8 +6,19 @@ vi.mock("server-only", () => ({}));
 const sdk = vi.hoisted(() => ({ getAccessToken: vi.fn() }));
 vi.mock("@/lib/auth0", () => ({ auth0: sdk }));
 
-const { ApiError, getMe, getProfile, getMyProfile, updateMyProfile, completeOnboarding } =
-  await import("./client");
+const {
+  ApiError,
+  getMe,
+  getProfile,
+  getMyProfile,
+  updateMyProfile,
+  completeOnboarding,
+  createEntry,
+  updateEntry,
+  deleteEntry,
+  reorderEntries,
+  replaceSkills,
+} = await import("./client");
 
 const ME = {
   id: "0b6f2c1e-1111-4222-8333-444455556666",
@@ -201,5 +212,50 @@ describe("writes and the caller's own profile", () => {
       "POST",
       undefined,
     ]);
+  });
+});
+
+describe("section entries", () => {
+  it.each([
+    ["POST", () => createEntry("education", { degree: "x" }), "/v1/me/education"],
+    ["PATCH", () => updateEntry("experience", UID, { title: "x" }), `/v1/me/experience/${UID}`],
+    ["PUT", () => reorderEntries("certifications", [UID]), "/v1/me/certifications/order"],
+    ["PUT", () => replaceSkills(["TS"]), "/v1/me/skills"],
+  ])("%s goes to the section's path with the token", async (method, run, path) => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, {}));
+    vi.stubGlobal("fetch", fetchMock);
+    await run();
+    const [url, init] = call(fetchMock);
+    expect([init.method, url.pathname]).toEqual([method, path]);
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("DELETE accepts the API's empty 204", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(deleteEntry("education", UID)).resolves.toBeUndefined();
+    expect(call(fetchMock)[1].method).toBe("DELETE");
+  });
+
+  it("sends the id list as the reorder body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, []));
+    vi.stubGlobal("fetch", fetchMock);
+    await reorderEntries("education", [UID]);
+    expect(call(fetchMock)[1].body).toBe(JSON.stringify({ ids: [UID] }));
+  });
+
+  it.each(["..", "u_1", `${UID}/x`])("never sends the entry id %j", async (id) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(updateEntry("education", id, { degree: "x" })).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(deleteEntry("education", id)).rejects.toMatchObject({ status: 404 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["ORDER_STALE", "LIMIT_REACHED"])("surfaces %s", async (code) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(409, { code, message: "x" })));
+    await expect(reorderEntries("education", [UID])).rejects.toMatchObject({ status: 409, code });
   });
 });

@@ -1,6 +1,7 @@
 import "server-only";
 import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
+import type { Section } from "@/lib/profile/sections";
 import type { Me, Profile, ProfileHeader, ProfileHeaderPatch } from "./types";
 
 /**
@@ -62,7 +63,7 @@ async function accessToken(allowAnonymous: boolean): Promise<string | null> {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Call {
-  method: "GET" | "PATCH" | "POST";
+  method: "GET" | "PATCH" | "POST" | "PUT" | "DELETE";
   path: string;
   body?: unknown;
   /** `optional`: send the token when there is a session, read anonymously otherwise. */
@@ -124,4 +125,35 @@ export function updateMyProfile(patch: ProfileHeaderPatch): Promise<ProfileHeade
 
 export function completeOnboarding(): Promise<{ onboarded: true }> {
   return request<{ onboarded: true }>({ method: "POST", path: "/v1/me/onboarding/complete" });
+}
+
+/** Section entries (education, experience, certifications): `/v1/me/<section>`. */
+const entryId = (id: string): string => {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such entry");
+  return id;
+};
+
+export function createEntry(section: Section, body: Record<string, unknown>): Promise<unknown> {
+  return request({ method: "POST", path: `/v1/me/${section}`, body });
+}
+
+export async function updateEntry(
+  section: Section,
+  id: string,
+  body: Record<string, unknown>,
+): Promise<unknown> {
+  return request({ method: "PATCH", path: `/v1/me/${section}/${entryId(id)}`, body });
+}
+
+export async function deleteEntry(section: Section, id: string): Promise<void> {
+  await request({ method: "DELETE", path: `/v1/me/${section}/${entryId(id)}` });
+}
+
+/** `ids`: exactly the caller's entries in the new order (409 ORDER_STALE if the list is incomplete). */
+export function reorderEntries(section: Section, ids: string[]): Promise<unknown> {
+  return request({ method: "PUT", path: `/v1/me/${section}/order`, body: { ids } });
+}
+
+export function replaceSkills(skills: string[]): Promise<{ skills: string[] }> {
+  return request({ method: "PUT", path: "/v1/me/skills", body: { skills } });
 }
