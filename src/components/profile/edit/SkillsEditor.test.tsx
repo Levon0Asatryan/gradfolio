@@ -70,6 +70,20 @@ describe("SkillsEditor", () => {
     expect(unsaved.defaultPrevented).toBe(true);
   });
 
+  it("asks before an in-app link drops unsaved skill changes", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const link = document.createElement("a");
+    link.href = "/projects";
+    document.body.append(link);
+    show();
+    add("Go");
+    const e = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    link.remove();
+    confirm.mockRestore();
+  });
+
   it("keeps the edits and says so when the save fails", async () => {
     action.replaceSkillsAction.mockResolvedValue({ ok: false, code: "DATABASE_UNAVAILABLE" });
     show();

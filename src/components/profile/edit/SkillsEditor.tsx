@@ -6,6 +6,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { replaceSkillsAction } from "@/lib/profile/actions";
+import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
 import SectionCard from "../shared/SectionCard";
 import { failureText, type Failure } from "./failureText";
 
@@ -31,12 +32,7 @@ export const SkillsEditor: FC<{
     onDirtyChange(dirty);
     return () => onDirtyChange(false);
   }, [dirty, onDirtyChange]);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useUnsavedGuard(dirty, t.profileEdit.leavePrompt);
 
   function add(event: FormEvent) {
     event.preventDefault();
