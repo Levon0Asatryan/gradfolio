@@ -263,6 +263,12 @@ export interface Dictionary {
   account: {
     title: string;
     intro: string;
+    loginMethodPassword: string;
+    linkedAccountsHelp: string;
+    privacy: string;
+    statusPublic: string;
+    statusPrivate: string;
+    contactSection: string;
     name: string;
     email: string;
     emailVerified: string;
