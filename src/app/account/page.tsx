@@ -13,7 +13,9 @@ export const metadata = {
 export default async function AccountPage() {
   let result: AccountResult;
   try {
-    const [me, profile] = await Promise.all([getMe(), getMyProfile()]);
+    // In order: the first GET /v1/me creates the account, and the profile 404s before it exists.
+    const me = await getMe();
+    const profile = await getMyProfile();
     result = { me, settings: { isPublic: profile.isPublic, contactEmail: profile.contactEmail } };
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;

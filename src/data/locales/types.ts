@@ -303,6 +303,7 @@ export interface Dictionary {
     errorSave: string;
     errorValidation: string;
     errorSignInAgain: string;
+    leavePrompt: string;
     unsaved: string;
   };
   onboarding: {

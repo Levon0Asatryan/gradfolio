@@ -1,11 +1,12 @@
 "use client";
 
-import { FC, FormEvent, useEffect, useState } from "react";
+import { FC, FormEvent, useState } from "react";
 import { Alert, Box, Button, Link, Stack, TextField, Typography } from "@mui/material";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
 import type { ProfileLinks } from "@/lib/api/types";
 import { updateProfileAction } from "@/lib/profile/actions";
+import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
 import { parseHeaderPatch, type FieldError } from "@/lib/profile/headerPatch";
 
 export interface HeaderValues {
@@ -70,13 +71,7 @@ export const ProfileHeaderForm: FC<{
   const [saving, setSaving] = useState(false);
 
   const dirty = JSON.stringify(values) !== JSON.stringify(start);
-  useEffect(() => {
-    if (!dirty) return;
-    // Closing the tab or reloading would drop the edit: ask first.
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useUnsavedGuard(dirty, text.leavePrompt);
 
   const set = (key: Exclude<keyof typeof values, "links">) => (value: string) =>
     setValues((v) => ({ ...v, [key]: value }));

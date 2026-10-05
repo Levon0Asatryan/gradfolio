@@ -169,6 +169,26 @@ describe("ProfileView", () => {
       expect(action.updateProfileAction).not.toHaveBeenCalled();
     });
 
+    it("asks before an in-app link drops a dirty edit", () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const link = document.createElement("a");
+      link.href = "/projects";
+      document.body.append(link);
+      edit();
+      const open = () => {
+        const e = new MouseEvent("click", { bubbles: true, cancelable: true });
+        link.dispatchEvent(e);
+        return e;
+      };
+      open();
+      expect(confirm).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Zed" } });
+      expect(open().defaultPrevented).toBe(true);
+      expect(confirm).toHaveBeenCalledTimes(1);
+      link.remove();
+      confirm.mockRestore();
+    });
+
     it("warns before the tab closes while there are unsaved changes, and not otherwise", () => {
       edit();
       const clean = new Event("beforeunload", { cancelable: true });

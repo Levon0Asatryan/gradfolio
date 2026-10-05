@@ -313,6 +313,7 @@ export const en: Dictionary = {
     errorSave: "Could not save your changes. Please try again.",
     errorValidation: "The server rejected some values. Check the form and try again.",
     errorSignInAgain: "Your session has expired. Please sign in again.",
+    leavePrompt: "You have unsaved changes. Leave this page and discard them?",
     unsaved: "You have unsaved changes.",
   },
   onboarding: {
