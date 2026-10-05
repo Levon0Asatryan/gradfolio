@@ -23,6 +23,8 @@ export const SkillsEditor: FC<{
 }> = ({ skills, onDirtyChange }) => {
   const { t } = useLanguage();
   const router = useRouter();
+  // `baseline` is what the server holds: the prop at first, then what the API kept after a save.
+  const [baseline, setBaseline] = useState(skills);
   const [list, setList] = useState(skills);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,8 @@ export const SkillsEditor: FC<{
   const [saved, setSaved] = useState(false);
   const [tooLong, setTooLong] = useState(false);
 
-  const dirty = JSON.stringify(list) !== JSON.stringify(skills);
+  // A typed-but-not-added skill is an edit too: leaving would drop it.
+  const dirty = JSON.stringify(list) !== JSON.stringify(baseline) || draft.trim() !== "";
   useEffect(() => {
     onDirtyChange(dirty);
     return () => onDirtyChange(false);
@@ -57,6 +60,10 @@ export const SkillsEditor: FC<{
     try {
       const result = await replaceSkillsAction(list);
       if (result.ok) {
+        // Show the API's canonical list (spelling, dedupe), not the local draft; a refresh keeps client state.
+        const kept = result.skills ?? list;
+        setBaseline(kept);
+        setList(kept);
         setSaved(true);
         router.refresh();
       } else setFailure(failureText(t, result.code));
@@ -134,7 +141,13 @@ export const SkillsEditor: FC<{
           <Button variant="contained" onClick={() => void save()} disabled={busy || !dirty}>
             {busy ? t.sectionEdit.saving : t.sectionEdit.saveSkills}
           </Button>
-          <Button onClick={() => setList(skills)} disabled={busy || !dirty}>
+          <Button
+            onClick={() => {
+              setList(baseline);
+              setDraft("");
+            }}
+            disabled={busy || !dirty}
+          >
             {t.sectionEdit.cancel}
           </Button>
         </Stack>

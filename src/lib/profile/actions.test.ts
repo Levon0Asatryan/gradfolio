@@ -160,9 +160,11 @@ describe("deleteEntryAction / reorderEntriesAction / replaceSkillsAction", () =>
   });
 
   it("replaces the skills, trimmed", async () => {
-    api.replaceSkills.mockResolvedValue({ skills: [] });
-    await replaceSkillsAction([" TS ", ""]);
-    expect(api.replaceSkills).toHaveBeenCalledWith(["TS"]);
+    api.replaceSkills.mockResolvedValue({ skills: ["TypeScript"] });
+    const result = await replaceSkillsAction([" typescript ", ""]);
+    expect(api.replaceSkills).toHaveBeenCalledWith(["typescript"]);
+    // The API picks one spelling per name; the action hands that back, not the draft.
+    expect(result).toEqual({ ok: true, skills: ["TypeScript"] });
     await expect(replaceSkillsAction("TS")).resolves.toMatchObject({ ok: false });
   });
 });

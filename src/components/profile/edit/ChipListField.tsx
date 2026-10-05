@@ -13,9 +13,15 @@ export const ChipListField: FC<{
   error?: boolean;
   helperText?: string;
   maxItems?: number;
-}> = ({ label, items, onChange, error, helperText, maxItems }) => {
+  /** The text typed but not yet added, so a parent can count it as unsaved. */
+  onDraftChange?: (draft: string) => void;
+}> = ({ label, items, onChange, error, helperText, maxItems, onDraftChange }) => {
   const { t } = useLanguage();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraftState] = useState("");
+  const setDraft = (d: string) => {
+    setDraftState(d);
+    onDraftChange?.(d);
+  };
 
   function add() {
     const name = draft.trim();

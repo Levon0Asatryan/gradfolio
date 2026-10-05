@@ -41,6 +41,30 @@ describe("SkillsEditor", () => {
     expect(screen.getByRole("button", { name: "Save skills" })).toBeDisabled();
   });
 
+  it("shows the API's canonical spelling after a save, and is clean", async () => {
+    action.replaceSkillsAction.mockResolvedValue({ ok: true, skills: ["TypeScript", "Go"] });
+    show(["Go"]);
+    add("typescript");
+    fireEvent.click(screen.getByRole("button", { name: "Save skills" }));
+    expect(await screen.findByText("TypeScript")).toBeInTheDocument();
+    expect(screen.queryByText("typescript")).not.toBeInTheDocument();
+    // refresh() keeps client state, so the editor must already be clean without the new props.
+    await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(false));
+    expect(screen.getByText("Skills saved.")).toBeInTheDocument();
+  });
+
+  it("counts a typed-but-not-added skill as an unsaved change", () => {
+    show();
+    fireEvent.change(screen.getByLabelText("New Skill"), { target: { value: "Go" } });
+    expect(dirty).toHaveBeenLastCalledWith(true);
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(dirty).toHaveBeenLastCalledWith(false);
+    expect(screen.getByLabelText("New Skill")).toHaveValue("");
+  });
+
   it("refuses a skill past 255 characters and says why", () => {
     show();
     add("x".repeat(256));

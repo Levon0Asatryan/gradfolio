@@ -145,6 +145,74 @@ describe("SectionEditor", () => {
     });
   });
 
+  describe("unsaved dialog values", () => {
+    const openAdd = () => {
+      show();
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    };
+    const link = () => {
+      const a = document.createElement("a");
+      a.href = "/projects";
+      document.body.append(a);
+      return a;
+    };
+    const click = (a: HTMLAnchorElement) => {
+      const e = new MouseEvent("click", { bubbles: true, cancelable: true });
+      a.dispatchEvent(e);
+      return e;
+    };
+
+    it("asks before an in-app link or a reload drops typed values, and not while untouched", () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const a = link();
+      openAdd();
+      expect(click(a).defaultPrevented).toBe(false);
+      const clean = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(clean);
+      expect(clean.defaultPrevented).toBe(false);
+      fill(/^Institution/, "MIT");
+      expect(click(a).defaultPrevented).toBe(true);
+      const dirty = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(dirty);
+      expect(dirty.defaultPrevented).toBe(true);
+      a.remove();
+      confirm.mockRestore();
+    });
+
+    it("counts a ticked checkbox and a typed-but-not-added skill as changes", () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const a = link();
+      render(
+        <LanguageProvider>
+          <SectionEditor
+            section="experience"
+            items={[]}
+            empty="none"
+            describe={() => ({ primary: "", label: "" })}
+          />
+        </LanguageProvider>,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      expect(click(a).defaultPrevented).toBe(false);
+      fireEvent.change(screen.getByLabelText("Skills"), { target: { value: "Rust" } });
+      expect(click(a).defaultPrevented).toBe(true);
+      a.remove();
+      confirm.mockRestore();
+    });
+
+    it("Escape on a dirty dialog asks first; Cancel is the explicit discard", () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      openAdd();
+      fill(/^Institution/, "MIT");
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+      expect(confirm).toHaveBeenCalled();
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      confirm.mockRestore();
+    });
+  });
+
   it("flags a year outside 1900-2100", () => {
     show();
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
