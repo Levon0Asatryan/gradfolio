@@ -34,7 +34,7 @@
     ]
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.30.0",
+    "@auth0/nextjs-auth0": "^4.31.0",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -44,7 +44,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^2.0.0",
     "motion": "^12.23.24",
-    "next": "^16.3.7",
+    "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-resizable-panels": "^3.0.6",
