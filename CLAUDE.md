@@ -280,9 +280,14 @@ Edits go through server actions (`src/lib/profile/actions.ts`), which are public
 endpoints: they take no user id (the Auth0 session's token tells the API who is
 writing) and run `parseHeaderPatch` (`src/lib/profile/headerPatch.ts`, shared with the
 forms) before forwarding. A failed save keeps the form and says so; the form warns
-before the tab closes with unsaved changes. Section item edits (education,
-experience, certifications, skills) and account deletion wait for the API's later
-contracts.
+before the tab closes with unsaved changes. Section edits (education, experience, certifications, skills) use the same pattern:
+`src/lib/profile/sections.ts` holds each section's fields (kept in step with the generated
+create bodies by a type-level test) and `parseEntry`, which refuses a half-filled entry
+before anything is sent; `SectionEditor`/`SkillsEditor` (Edit Mode on your own profile)
+call the actions, show the API's `ORDER_STALE`, `LIMIT_REACHED` and `NOT_FOUND` as
+messages, and reload the server's list after every success. Unsaved skill changes lock
+the mode switch and warn before the tab closes. Account deletion waits for the API's
+later contract.
 
 First-login onboarding (2.14): `/` renders `OnboardingGate`, which offers a dialog
 while `getMe().onboarded` is false; every way out calls `completeOnboarding`. It never
