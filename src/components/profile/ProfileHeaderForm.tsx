@@ -7,6 +7,7 @@ import type { Dictionary } from "@/data/locales/types";
 import type { ProfileLinks } from "@/lib/api/types";
 import { updateProfileAction } from "@/lib/profile/actions";
 import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
+import { fieldErrorText } from "./fieldErrorText";
 import { parseHeaderPatch, type FieldError } from "@/lib/profile/headerPatch";
 
 export interface HeaderValues {
@@ -22,13 +23,6 @@ export interface HeaderValues {
 type FormText = Dictionary["profileEdit"];
 type LinkKey = keyof ProfileLinks;
 const LINK_KEYS: LinkKey[] = ["github", "linkedin", "twitter", "website"];
-
-const ERROR_TEXT: Record<FieldError, keyof FormText> = {
-  required: "errorRequired",
-  invalid_url: "errorUrl",
-  invalid_email: "errorEmail",
-  invalid: "errorInvalid",
-};
 
 /** What the form shows for a failed save: the API's code is the contract. */
 function failureText(code: string): keyof FormText {
@@ -80,7 +74,7 @@ export const ProfileHeaderForm: FC<{
 
   const fieldError = (key: string) => {
     const e = errors[key];
-    return e ? text[ERROR_TEXT[e]] : undefined;
+    return e ? fieldErrorText(t, e) : undefined;
   };
 
   async function submit(event: FormEvent) {

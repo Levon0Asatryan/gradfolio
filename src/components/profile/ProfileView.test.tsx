@@ -7,7 +7,13 @@ import { ProfileView } from "./ProfileView";
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
 const action = vi.hoisted(() => ({ updateProfileAction: vi.fn() }));
-vi.mock("@/lib/profile/actions", () => action);
+vi.mock("@/lib/profile/actions", () => ({
+  ...action,
+  saveEntryAction: vi.fn(),
+  deleteEntryAction: vi.fn(),
+  reorderEntriesAction: vi.fn(),
+  replaceSkillsAction: vi.fn(),
+}));
 
 beforeEach(() => vi.resetAllMocks());
 
@@ -198,6 +204,47 @@ describe("ProfileView", () => {
       const dirty = new Event("beforeunload", { cancelable: true });
       window.dispatchEvent(dirty);
       expect(dirty.defaultPrevented).toBe(true);
+    });
+  });
+
+  describe("editing the sections", () => {
+    it("offers the Edit Mode switch to the owner only", () => {
+      show({ isOwner: false });
+      expect(screen.queryByRole("button", { name: /Edit Mode/ })).not.toBeInTheDocument();
+    });
+
+    it("swaps the lists for editors in Edit Mode and back in Preview Mode", () => {
+      show({ isOwner: true });
+      expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
+      expect(screen.getByRole("button", { name: "Save skills" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit: B.Sc., NPUA" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Preview Mode/ }));
+      expect(screen.queryByRole("button", { name: "Save skills" })).not.toBeInTheDocument();
+    });
+
+    it("drops the editors if the page stops being the owner's", () => {
+      const view = (isOwner: boolean) => (
+        <LanguageProvider>
+          <ProfileView profile={{ ...PROFILE, isOwner }} />
+        </LanguageProvider>
+      );
+      const { rerender } = render(view(true));
+      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
+      rerender(view(false));
+      expect(screen.queryByRole("button", { name: "Save skills" })).not.toBeInTheDocument();
+    });
+
+    it("locks the mode switch while skill changes are unsaved", () => {
+      show({ isOwner: true });
+      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
+      fireEvent.change(screen.getByLabelText("New Skill"), { target: { value: "Go" } });
+      fireEvent.click(
+        screen
+          .getAllByRole("button", { name: "Add" })
+          .find((b) => b.getAttribute("type") === "submit")!,
+      );
+      expect(screen.getByRole("button", { name: /Preview Mode/ })).toBeDisabled();
     });
   });
 });

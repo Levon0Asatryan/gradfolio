@@ -280,9 +280,15 @@ Edits go through server actions (`src/lib/profile/actions.ts`), which are public
 endpoints: they take no user id (the Auth0 session's token tells the API who is
 writing) and run `parseHeaderPatch` (`src/lib/profile/headerPatch.ts`, shared with the
 forms) before forwarding. A failed save keeps the form and says so; the form warns
-before the tab closes with unsaved changes. Section item edits (education,
-experience, certifications, skills) and account deletion wait for the API's later
-contracts.
+before the tab closes with unsaved changes. Section edits (education, experience, certifications, skills) use the same pattern:
+`src/lib/profile/sections.ts` holds each section's fields (kept in step with the generated
+create bodies by a type-level test) and `parseEntry`, which refuses a half-filled entry
+before anything is sent; `SectionEditor`/`SkillsEditor` (Edit Mode on your own profile)
+call the actions, show the API's `ORDER_STALE`, `LIMIT_REACHED` and `NOT_FOUND` as
+messages, and reload the server's list after every success. Unsaved skill changes lock
+the mode switch and warn before the tab closes. Account deletion (`DeleteAccount`) needs an
+"I understand" tick and signs the user out right after the API deletes: the Auth0 login
+outlives the account, and a valid token would create a new empty one.
 
 First-login onboarding (2.14): `/` renders `OnboardingGate`, which offers a dialog
 while `getMe().onboarded` is false; every way out calls `completeOnboarding`. It never
@@ -335,20 +341,20 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 
 ## Pages
 
-| Route                       | What it does                                                                                         |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/` |
-| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header    |
-| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                   |
-| `/projects`                 | Your projects: search, category filter, sort (in the browser)                                        |
-| `/projects/[id]`            | Detail with `generateMetadata()`: header, description HTML (F1), attachments, metadata, tags, team   |
-| `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                      |
-| `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                             |
-| `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                         |
-| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                      |
-| `/settings`                 | Language and theme                                                                                   |
-| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email; login required             |
-| 404                         | Hides the sidebar, Noise effect                                                                      |
+| Route                       | What it does                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`     |
+| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header        |
+| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                       |
+| `/projects`                 | Your projects: search, category filter, sort (in the browser)                                            |
+| `/projects/[id]`            | Detail with `generateMetadata()`: header, description HTML (F1), attachments, metadata, tags, team       |
+| `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                          |
+| `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                                 |
+| `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                             |
+| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                          |
+| `/settings`                 | Language and theme                                                                                       |
+| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required |
+| 404                         | Hides the sidebar, Noise effect                                                                          |
 
 ## What is not built yet
 

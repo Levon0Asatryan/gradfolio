@@ -314,4 +314,59 @@ export interface Dictionary {
     skip: string;
     error: string;
   };
+  sectionEdit: {
+    add: string;
+    edit: string;
+    delete: string;
+    cancel: string;
+    save: string;
+    saving: string;
+    confirmDeleteTitle: string;
+    confirmDeleteBody: string;
+    moveUp: string;
+    moveDown: string;
+    errorYear: string;
+    errorMonth: string;
+    errorLimit: string;
+    errorStale: string;
+    errorNotFound: string;
+    saveSkills: string;
+    removeSkill: string;
+    skillsUnsaved: string;
+    skillsSaved: string;
+    fields: {
+      education: {
+        institution: string;
+        degree: string;
+        field: string;
+        startYear: string;
+        endYear: string;
+        description: string;
+        highlights: string;
+      };
+      experience: {
+        title: string;
+        organization: string;
+        start: string;
+        end: string;
+        summary: string;
+        achievements: string;
+        skills: string;
+      };
+      certifications: {
+        name: string;
+        issuer: string;
+        date: string;
+        credentialUrl: string;
+      };
+    };
+  };
+  deleteAccount: {
+    title: string;
+    body: string;
+    open: string;
+    understand: string;
+    confirm: string;
+    error: string;
+  };
 }
