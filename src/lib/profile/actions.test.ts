@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   deleteEntry: vi.fn(),
   reorderEntries: vi.fn(),
   replaceSkills: vi.fn(),
+  deleteMe: vi.fn(),
 }));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
@@ -31,6 +32,7 @@ const {
   deleteEntryAction,
   reorderEntriesAction,
   replaceSkillsAction,
+  deleteAccountAction,
 } = await import("./actions");
 const { ApiError } = await import("@/lib/api/client");
 
@@ -162,5 +164,20 @@ describe("deleteEntryAction / reorderEntriesAction / replaceSkillsAction", () =>
     await replaceSkillsAction([" TS ", ""]);
     expect(api.replaceSkills).toHaveBeenCalledWith(["TS"]);
     await expect(replaceSkillsAction("TS")).resolves.toMatchObject({ ok: false });
+  });
+});
+
+describe("deleteAccountAction", () => {
+  it("deletes the caller's account", async () => {
+    api.deleteMe.mockResolvedValue(undefined);
+    await expect(deleteAccountAction()).resolves.toEqual({ ok: true });
+  });
+
+  it("reports a failure instead of pretending it worked", async () => {
+    api.deleteMe.mockRejectedValue(new ApiError(503, "DATABASE_UNAVAILABLE", "x"));
+    await expect(deleteAccountAction()).resolves.toEqual({
+      ok: false,
+      code: "DATABASE_UNAVAILABLE",
+    });
   });
 });

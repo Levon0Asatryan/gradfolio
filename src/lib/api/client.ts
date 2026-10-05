@@ -157,3 +157,8 @@ export function reorderEntries(section: Section, ids: string[]): Promise<unknown
 export function replaceSkills(skills: string[]): Promise<{ skills: string[] }> {
   return request({ method: "PUT", path: "/v1/me/skills", body: { skills } });
 }
+
+/** Deletes the caller's account and all its data (`deleteMe`). The login itself stays: sign out afterwards. */
+export async function deleteMe(): Promise<void> {
+  await request({ method: "DELETE", path: "/v1/me" });
+}

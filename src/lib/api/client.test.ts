@@ -18,6 +18,7 @@ const {
   deleteEntry,
   reorderEntries,
   replaceSkills,
+  deleteMe,
 } = await import("./client");
 
 const ME = {
@@ -257,5 +258,24 @@ describe("section entries", () => {
   it.each(["ORDER_STALE", "LIMIT_REACHED"])("surfaces %s", async (code) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(409, { code, message: "x" })));
     await expect(reorderEntries("education", [UID])).rejects.toMatchObject({ status: 409, code });
+  });
+});
+
+describe("deleteMe", () => {
+  it("DELETEs /v1/me with the token and accepts the empty 204", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(deleteMe()).resolves.toBeUndefined();
+    const [url, init] = call(fetchMock);
+    expect([init.method, url.pathname]).toEqual(["DELETE", "/v1/me"]);
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("surfaces the API's failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(json(404, { code: "NOT_FOUND", message: "gone" })),
+    );
+    await expect(deleteMe()).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
   });
 });

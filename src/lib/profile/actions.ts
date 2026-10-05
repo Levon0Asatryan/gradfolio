@@ -5,6 +5,7 @@ import {
   completeOnboarding,
   createEntry,
   deleteEntry,
+  deleteMe,
   reorderEntries,
   replaceSkills,
   updateEntry,
@@ -99,6 +100,20 @@ export async function replaceSkillsAction(skills: unknown): Promise<ActionResult
   if (!list) return invalid;
   try {
     await replaceSkills(list);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/**
+ * Delete the caller's account. The Auth0 session and token survive it, and a
+ * valid token would create a new, empty account on its next request, so the
+ * caller must sign out straight after a success.
+ */
+export async function deleteAccountAction(): Promise<ActionResult> {
+  try {
+    await deleteMe();
     return { ok: true };
   } catch (error) {
     return failure(error);

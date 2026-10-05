@@ -141,6 +141,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMe
+      tags:
+        - me
+      summary: Delete the caller’s account and all its data
+      description: "Removes the profile, every section, skills, projects (with attachments, tags and team rows), integrations and notifications. The caller’s name stays on other people’s projects as a plain team-member name, without a photo or a link to an account. Irreversible. The Auth0 login is not deleted: sign the user out afterwards, because a token that is still valid creates a new, empty account on its next request."
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: the account no longer exists"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/onboarding/complete:
     post:
       operationId: completeOnboarding
