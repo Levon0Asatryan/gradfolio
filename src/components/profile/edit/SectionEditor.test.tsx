@@ -285,9 +285,12 @@ describe("SectionEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete: B.Sc., NPUA" }));
     expect(action.deleteEntryAction).not.toHaveBeenCalled();
     expect(screen.getByText("Delete this entry?")).toBeInTheDocument();
+    // The confirmation names what is being deleted.
+    expect(screen.getByText(/Delete “B\.Sc\., NPUA”\?/)).toBeInTheDocument();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(action.deleteEntryAction).toHaveBeenCalledWith("education", "a"));
     await waitFor(() => expect(nav.refresh).toHaveBeenCalled());
+    expect(await screen.findByRole("status")).toHaveTextContent("Entry deleted");
   });
 
   it("cancelling the confirmation deletes nothing", () => {
