@@ -1,10 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { AppNavigation, type NavUser } from "./AppNavigation";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 // TypographyWithTooltip watches its own size; jsdom has no ResizeObserver.
 vi.stubGlobal(
   "ResizeObserver",
@@ -24,17 +23,19 @@ const show = (user: NavUser | null) =>
     </ThemeWrapper>,
   );
 
+const PATH = vi.hoisted(() => ({ current: "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => PATH.current }));
+const current = () => screen.getByRole("link", { current: "page" });
+
 const hrefs = () => screen.getAllByRole("link").map((a) => a.getAttribute("href"));
 
+beforeEach(() => {
+  PATH.current = "/";
+});
+
 describe("AppNavigation (tracker 2.13)", () => {
-  it("keeps the logout link named when the sidebar is collapsed (mobile)", () => {
-    render(
-      <ThemeWrapper initialMode="light">
-        <LanguageProvider>
-          <AppNavigation user={{ name: "Ani" }} collapsed />
-        </LanguageProvider>
-      </ThemeWrapper>,
-    );
+  it("names the logout link", () => {
+    show({ name: "Ani" });
     expect(screen.getByRole("link", { name: "Log out" })).toHaveAttribute("href", "/auth/logout");
   });
 
@@ -67,5 +68,43 @@ describe("AppNavigation (tracker 2.13)", () => {
       );
       unmount();
     }
+  });
+
+  it("labels every item and never truncates (labels wrap)", () => {
+    show({ name: "Ani" });
+    for (const name of [
+      "Dashboard",
+      "My profile",
+      "Projects",
+      "Explore",
+      "Integrations",
+      "Account",
+      "Settings",
+    ]) {
+      expect(screen.getByRole("link", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("lights up Profile on a profile and Account on /account, never both", () => {
+    PATH.current = "/profile/0b6f2c1e-1111-4222-8333-444455556666";
+    const first = show({ name: "Ani" });
+    expect(current()).toHaveAccessibleName("My profile");
+    first.unmount();
+    PATH.current = "/account";
+    show({ name: "Ani" });
+    expect(current()).toHaveAccessibleName("Account");
+    expect(screen.getAllByRole("link", { current: "page" })).toHaveLength(1);
+  });
+
+  it("does not light up Projects for someone else's project opened from Explore", () => {
+    PATH.current = "/projects/ecoroute";
+    show({ name: "Ani" });
+    expect(screen.queryByRole("link", { current: "page" })).toBeNull();
+  });
+
+  it("is the sidebar: a labelled nav landmark", () => {
+    PATH.current = "/";
+    show(null);
+    expect(screen.getByRole("navigation", { name: "Main menu" })).toBeInTheDocument();
   });
 });

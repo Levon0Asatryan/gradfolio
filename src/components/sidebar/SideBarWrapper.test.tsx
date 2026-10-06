@@ -35,6 +35,24 @@ describe("SideBarWrapper", () => {
   });
 });
 
+describe("frame", () => {
+  it("renders the sidebar and the phone bar (CSS picks one), both labelled", () => {
+    render(
+      <ThemeWrapper>
+        <LanguageProvider>
+          <SidebarVisibilityProvider>
+            <SideBarWrapper user={{ name: "Ani" }}>
+              <p>Page</p>
+            </SideBarWrapper>
+          </SidebarVisibilityProvider>
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(screen.getAllByRole("navigation", { name: "Main menu" })).toHaveLength(2);
+    expect(screen.getByText("Page")).toBeInTheDocument();
+  });
+});
+
 describe("skip target focus", () => {
   it("never suppresses the focus ring on the focusable main (the skip link lands there)", () => {
     render(

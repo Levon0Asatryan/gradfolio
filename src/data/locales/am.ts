@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const am: Dictionary = {
   common: {
+    myProfile: "Իմ պրոֆիլը",
+    explore: "Բացահայտել",
+    account: "Հաշիվ",
+    more: "Ավելին",
+    mainMenu: "Հիմնական ընտրացանկ",
     skipToContent: "Անցնել հիմնական բովանդակությանը",
     settings: "Կարգավորումներ",
     language: "Լեզու",
