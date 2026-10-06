@@ -1,41 +1,18 @@
 "use client";
 
-import {
-  Avatar,
-  Stack,
-  Typography,
-  Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  Tooltip,
-} from "@mui/material";
-import { type FC, type ReactNode, useMemo } from "react";
+import { type FC, useContext, useMemo } from "react";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
 import Image from "next/image";
-import Link from "next/link";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { usePathname } from "next/navigation";
-import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
-import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
-import FolderOutlined from "@mui/icons-material/FolderOutlined";
-import IntegrationInstructionsOutlined from "@mui/icons-material/IntegrationInstructionsOutlined";
-import LinkOutlined from "@mui/icons-material/LinkOutlined";
-import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
-import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
-import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
-import { TypographyWithTooltip } from "@/components/text/TypographyWithTooltip";
-import { DarkModeContext } from "@/components/theme/ThemeWrapper";
-import { useContext } from "react";
 import { useLanguage } from "@/components/i18n/LanguageContext";
-import { navLinkComponent } from "./navLinkComponent";
+import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: ReactNode;
-}
+import { NavLink } from "./NavLink";
+import { activeHref, isActive, navItems } from "./navItems";
 
 /** The signed-in user, from the session the layout read on the server. */
 export interface NavUser {
@@ -43,262 +20,159 @@ export interface NavUser {
   picture?: string;
 }
 
-/** Shown only to a signed-out visitor: login, and the login-connections stepper. */
-const SIGNED_OUT_ONLY = new Set(["/auth/login", "/integrations/connections"]);
-
-type AppNavigationProps = {
-  collapsed?: boolean;
-  user?: NavUser | null;
-};
-
-const normalize = (path: string) => {
-  if (!path) return "/";
-  if (path === "/") return "/";
-  return path.endsWith("/") ? path.slice(0, -1) : path;
-};
-
-export const AppNavigation: FC<AppNavigationProps> = ({ collapsed = false, user = null }) => {
+/**
+ * The sidebar from `sm` up: icon, label and user card from `lg`; below that an
+ * icon-over-label rail. Labels wrap instead of truncating (ru and am run long).
+ * On a phone `PhoneNavigation` takes over (this one is `display: none` there).
+ */
+export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) => {
   const { mode } = useContext(DarkModeContext);
   const { t } = useLanguage();
   const pathname = usePathname();
-
-  const items: NavItem[] = useMemo(
-    () => [
-      { label: t.common.dashboard, href: "/", icon: <SpaceDashboardOutlined fontSize="small" /> },
-      { label: t.common.login, href: "/auth/login", icon: <LoginOutlined fontSize="small" /> },
-      {
-        label: t.common.loginConnections,
-        href: "/integrations/connections",
-        icon: <LinkOutlined fontSize="small" />,
-      },
-      {
-        label: t.common.myAccount,
-        href: "/profile",
-        icon: <AccountCircleOutlined fontSize="small" />,
-      },
-      { label: t.common.projects, href: "/projects", icon: <FolderOutlined fontSize="small" /> },
-      {
-        label: t.common.integrations,
-        href: "/integrations",
-        icon: <IntegrationInstructionsOutlined fontSize="small" />,
-      },
-      {
-        label: t.common.explorePortfolios,
-        href: "/search",
-        icon: <TravelExploreOutlined fontSize="small" />,
-      },
-    ],
-    [t],
-  );
-  const visibleItems = user ? items.filter((item) => !SIGNED_OUT_ONLY.has(item.href)) : items;
-
-  const current = normalize(pathname ?? "/");
-
-  // Determine active navigation item by longest matching href prefix (exact match wins).
-  const activeHref = useMemo(() => {
-    const cur = current;
-    let best = "";
-    let bestLen = -1;
-    for (const item of items) {
-      const t = normalize(item.href);
-      if (cur === t || cur.startsWith(t + "/")) {
-        // Special case: Only highlight Projects for "my" projects (starting with prj_)
-        if (t === "/projects" && cur !== "/projects" && !cur.includes("/prj_")) {
-          continue;
-        }
-
-        if (t.length > bestLen) {
-          best = t;
-          bestLen = t.length;
-        }
-      }
-    }
-    return best;
-  }, [current, items]);
+  const items = useMemo(() => navItems(t, user !== null), [t, user]);
+  const active = activeHref(pathname, items);
 
   return (
-    <Stack
-      width="100%"
-      height="100%"
-      zIndex={(theme) => theme.zIndex.drawer}
-      bgcolor={(theme) => theme.palette.navigation.main}
+    <Box
+      component="nav"
+      aria-label={t.common.mainMenu}
+      sx={(theme) => ({
+        display: { xs: "none", sm: "flex" },
+        flexDirection: "column",
+        gap: 0.75,
+        flex: "none",
+        width: { sm: 108, lg: 248 },
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        overflowY: "auto",
+        px: { sm: 1, lg: 1.5 },
+        py: 2.25,
+        bgcolor: theme.palette.navigation.main,
+        borderRight: `1px solid ${theme.palette.surface.line}`,
+      })}
     >
       <Stack
         direction="row"
         alignItems="center"
-        spacing={1}
-        sx={{ px: 1.25, py: 0.75, justifyContent: collapsed ? "center" : "flex-start", height: 48 }}
+        spacing={1.25}
+        sx={{
+          px: { sm: 0, lg: 1.25 },
+          pb: 1.75,
+          justifyContent: { sm: "center", lg: "flex-start" },
+        }}
       >
         <Image
           src={mode === "light" ? "/light_logo.png" : "/dark_logo.png"}
-          alt="Gradfolio Logo"
-          width={28}
-          height={28}
+          alt=""
+          width={36}
+          height={36}
         />
-        {!collapsed && (
-          <Typography
-            variant="h6"
-            color="primary"
-            fontWeight="medium"
-            sx={{ fontFamily: "inherit" }}
-          >
-            Gradfolio
-          </Typography>
-        )}
+        <Typography
+          component="span"
+          variant="h6"
+          sx={{ display: { xs: "none", lg: "inline" }, fontSize: "1.25rem" }}
+        >
+          Gradfolio
+        </Typography>
       </Stack>
 
-      <Divider />
-
-      <List sx={{ py: 0 }}>
-        {visibleItems.map((item) => {
-          const button = (
-            <ListItemButton
-              component={navLinkComponent(item.href)}
-              href={item.href}
-              selected={normalize(item.href) === activeHref}
-              sx={(theme) => ({
-                px: 1.75,
-                minHeight: 48,
-                justifyContent: collapsed ? "center" : "flex-start",
-                color: theme.palette.text.secondary,
-                "& .MuiListItemIcon-root": {
-                  minWidth: collapsed ? 0 : "auto",
-                  mr: collapsed ? 0 : 1,
-                  color: "inherit",
-                },
-                "& .MuiListItemIcon-root svg": {
-                  fontSize: 20,
-                },
-                "&.Mui-selected": {
-                  backgroundColor: theme.palette.action.selected,
-                  "&:hover": {
-                    backgroundColor: theme.palette.action.selected,
-                  },
-                },
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              })}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              {!collapsed && (
-                <TypographyWithTooltip variant="inherit" placement="right" title={item.label} />
-              )}
-            </ListItemButton>
-          );
-
-          return (
-            <ListItem key={item.href} disablePadding>
-              {collapsed ? (
-                <Tooltip title={item.label} placement="right">
-                  {button}
-                </Tooltip>
-              ) : (
-                button
-              )}
-            </ListItem>
-          );
-        })}
-      </List>
-      <Stack sx={{ p: 2, mt: "auto" }} spacing={1}>
-        {user && (
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            justifyContent={collapsed ? "center" : "flex-start"}
-            sx={{ px: 1 }}
-            data-testid="nav-user"
-          >
-            <Avatar
-              src={safeHttpUrl(user.picture)}
-              alt={user.name}
-              sx={{ width: 28, height: 28 }}
-            />
-            {!collapsed && (
-              <TypographyWithTooltip variant="body2" placement="right" title={user.name} />
-            )}
-          </Stack>
-        )}
-        {user && (
-          <ListItemButton
-            // A full page load: /auth/logout clears the session and redirects
-            // through Auth0, like login (navLinkComponent).
-            component="a"
-            href="/auth/logout"
-            // The text below is hidden when the sidebar is collapsed (always on
-            // mobile); the label keeps the control named for screen readers.
-            aria-label={t.common.logout}
+      {items.map((item) => {
+        const current = isActive(item.href, active);
+        return (
+          <NavLink
+            key={item.href}
+            href={item.href}
+            current={current}
             sx={(theme) => ({
-              px: 1,
-              py: 0.5,
-              minHeight: 40,
-              justifyContent: collapsed ? "center" : "flex-start",
-              borderRadius: 1,
-              color: theme.palette.text.secondary,
-              "& .MuiListItemIcon-root": {
-                minWidth: collapsed ? 0 : "auto",
-                mr: collapsed ? 0 : 1.5,
-                color: "inherit",
-              },
-              "& .MuiListItemIcon-root svg": { fontSize: 20 },
-              "&:hover": { bgcolor: theme.palette.action.hover },
+              display: "flex",
+              flexDirection: { sm: "column", lg: "row" },
+              alignItems: "center",
+              justifyContent: { sm: "center", lg: "flex-start" },
+              gap: { sm: 0.5, lg: 1.5 },
+              width: "100%",
+              minHeight: 44,
+              px: { sm: 0.25, lg: 1.75 },
+              py: { sm: 1, lg: 1.25 },
+              borderRadius: "14px",
+              textAlign: { sm: "center", lg: "left" },
+              fontWeight: 700,
+              fontSize: { sm: "0.75rem", lg: "0.9375rem" },
+              lineHeight: 1.25,
+              color: current ? theme.palette.primary.contrastText : theme.palette.text.primary,
+              backgroundImage: current ? theme.palette.surface.gradient : "none",
+              "&:hover": { bgcolor: current ? undefined : theme.palette.surface.soft },
+              "& svg": { fontSize: 22, flex: "none" },
+              "& .nav-label": { minWidth: 0, overflowWrap: "break-word" },
+              // Armenian words are long: a size down keeps them whole in the rail.
+              "html[lang='hy'] & .nav-label": { fontSize: { sm: "0.6875rem", lg: "0.9375rem" } },
             })}
           >
-            <ListItemIcon sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <LogoutOutlined fontSize="small" />
-            </ListItemIcon>
-            {!collapsed && (
-              <TypographyWithTooltip variant="body2" placement="right" title={t.common.logout} />
-            )}
-          </ListItemButton>
-        )}
-        <ListItemButton
-          component={Link}
-          href="/settings"
-          selected={normalize("/settings") === activeHref}
+            {item.icon}
+            <span className="nav-label">{item.label}</span>
+          </NavLink>
+        );
+      })}
+
+      <Box sx={{ flex: 1, minHeight: 12 }} />
+
+      {user && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.25}
+          data-testid="nav-user"
           sx={(theme) => ({
-            px: 1,
-            py: 0.5,
-            minHeight: 40,
-            justifyContent: collapsed ? "center" : "flex-start",
-            borderRadius: 1,
-            color: theme.palette.text.secondary,
-            transition: "all 0.3s ease",
-            "& .MuiListItemIcon-root": {
-              minWidth: collapsed ? 0 : "auto",
-              mr: collapsed ? 0 : 1.5,
-              color: "inherit",
-            },
-            "& .MuiListItemIcon-root svg": {
-              fontSize: 20,
-            },
-            "&:hover": {
-              bgcolor: theme.palette.action.hover,
-              transform: "translateY(-1px)",
-            },
-            "&.Mui-selected": {
-              backgroundColor: theme.palette.action.selected,
-              "&:hover": {
-                backgroundColor: theme.palette.action.selected,
-              },
-            },
+            p: 1.5,
+            borderRadius: "14px",
+            bgcolor: theme.palette.surface.soft,
+            justifyContent: { sm: "center", lg: "flex-start" },
           })}
         >
-          <ListItemIcon
+          <Avatar
+            src={safeHttpUrl(user.picture)}
+            alt=""
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              width: 36,
+              height: 36,
+              fontSize: 14,
+              backgroundImage: (th) => th.palette.surface.gradient,
             }}
           >
-            <SettingsOutlined fontSize="small" />
-          </ListItemIcon>
-          {!collapsed && (
-            <TypographyWithTooltip variant="body2" placement="right" title={t.common.settings} />
-          )}
-        </ListItemButton>
-      </Stack>
-    </Stack>
+            {user.name.trim().charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography
+            variant="subtitle2"
+            sx={{ display: { xs: "none", lg: "block" }, minWidth: 0, overflowWrap: "anywhere" }}
+          >
+            {user.name}
+          </Typography>
+        </Stack>
+      )}
+      {user && (
+        <NavLink
+          // A full page load: /auth/logout clears the session and redirects through Auth0.
+          href="/auth/logout"
+          sx={(theme) => ({
+            display: "flex",
+            flexDirection: { sm: "column", lg: "row" },
+            alignItems: "center",
+            justifyContent: { sm: "center", lg: "flex-start" },
+            gap: { sm: 0.5, lg: 1.5 },
+            minHeight: 44,
+            px: { sm: 0.5, lg: 1.75 },
+            borderRadius: "14px",
+            fontWeight: 700,
+            fontSize: { sm: "0.75rem", lg: "0.9375rem" },
+            color: theme.palette.text.secondary,
+            "&:hover": { bgcolor: theme.palette.surface.soft },
+            "& svg": { fontSize: 22 },
+          })}
+        >
+          <LogoutOutlined />
+          <span className="nav-label">{t.common.logout}</span>
+        </NavLink>
+      )}
+    </Box>
   );
 };

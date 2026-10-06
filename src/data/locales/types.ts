@@ -6,6 +6,11 @@ export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
   common: {
+    myProfile: string;
+    explore: string;
+    account: string;
+    more: string;
+    mainMenu: string;
     skipToContent: string;
     settings: string;
     language: string;

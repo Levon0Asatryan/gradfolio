@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const en: Dictionary = {
   common: {
+    myProfile: "My profile",
+    explore: "Explore",
+    account: "Account",
+    more: "More",
+    mainMenu: "Main menu",
     skipToContent: "Skip to main content",
     settings: "Settings",
     language: "Language",

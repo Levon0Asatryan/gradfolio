@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const ru: Dictionary = {
   common: {
+    myProfile: "Мой профиль",
+    explore: "Обзор",
+    account: "Аккаунт",
+    more: "Ещё",
+    mainMenu: "Главное меню",
     skipToContent: "Перейти к основному содержимому",
     settings: "Настройки",
     language: "Язык",
