@@ -1,6 +1,6 @@
 # UI plan: design system and migration
 
-Palette C (blue + magenta + amber), chosen by Levon from three options. Type: Nunito
+Palette C (blue + magenta + amber), chosen by Levon from three options, then calmed (muted, low saturation). Type: Nunito
 (Latin, Cyrillic) with Noto Sans Armenian. Rounded, friendly, colour carried by a
 primary-to-secondary gradient. The prototype this follows was approved before PR1.
 
@@ -16,42 +16,49 @@ primary-to-secondary gradient. The prototype this follows was approved before PR
 
 ## Tokens (`src/components/theme/tokens.ts`)
 
+Palette C, calm: a muted blue carries the interface; magenta and amber are small
+accents (chips, icons, highlights), never large fills or button backgrounds. Buttons
+are solid (no gradient); the brand gradient is kept for tiny brand moments (active
+navigation pill, avatar, progress meter). Surfaces are low-chroma blue-grey.
+
 Every number below is asserted by `tokens.test.ts` (WCAG 2.x, 4.5:1 for text, 3:1 for
 control borders). `on` is the label colour on a filled colour: `#FFFFFF` (light),
-`#0B0B14` (dark).
+`#0B0F18` (dark).
 
 |                  | light                 | dark                  |
 | ---------------- | --------------------- | --------------------- |
-| page / card      | `#F6F8FC` / `#FFFFFF` | `#0B1220` / `#131C2E` |
-| text / secondary | `#0F172A` / `#475569` | `#E6EDF8` / `#9FB0C9` |
+| page / card      | `#F4F6F9` / `#FFFFFF` | `#0F151F` / `#171F2C` |
+| text / secondary | `#1E293B` / `#516072` | `#E4EAF3` / `#9BA8BB` |
 
-Contrast, light (text-colour on card, then label on the filled colour; the two are the
-same ratio because `on` is white): text/page 16.79, text/card 17.85, secondary/page
-7.13, secondary/card 7.58.
+Contrast, light: text/page 13.51, text/card 14.63,
+secondary/page 5.94, secondary/card 6.43; the label
+`on` white sits on each filled colour at the same ratio as the colour on a card.
+Dark: text/page 15.13, text/card 13.68, secondary/page
+7.59, secondary/card 6.87.
 
 | colour    | light     | on card, light | dark      | on card, dark | label on fill, dark |
 | --------- | --------- | -------------- | --------- | ------------- | ------------------- |
-| primary   | `#1D4ED8` | 6.70           | `#93C5FD` | 9.44          | 10.86               |
-| secondary | `#BE185D` | 6.04           | `#F9A8D4` | 9.39          | 10.80               |
-| accent    | `#B45309` | 5.02           | `#FCD34D` | 11.81         | 13.58               |
-| success   | `#15803D` | 5.02           | `#86EFAC` | 12.13         | 13.95               |
-| warning   | `#92400E` | 7.09           | `#FCD34D` | 11.81         | 13.58               |
-| error     | `#B91C1C` | 6.47           | `#FCA5A5` | 8.97          | 10.32               |
-| info      | `#0369A1` | 5.93           | `#7DD3FC` | 10.21         | 11.75               |
+| primary   | `#2D4E8A` | 8.18           | `#8FB0E8` | 7.52          | 8.71                |
+| secondary | `#8E3B65` | 7.09           | `#D79CBA` | 7.37          | 8.54                |
+| accent    | `#8F5A14` | 5.77           | `#DDB36A` | 8.46          | 9.79                |
+| success   | `#2E7650` | 5.49           | `#82C99C` | 8.5           | 9.84                |
+| warning   | `#855410` | 6.42           | `#DDB36A` | 8.46          | 9.79                |
+| error     | `#A33440` | 6.73           | `#EA9CA2` | 7.7           | 8.92                |
+| info      | `#2B6A91` | 5.88           | `#8DBAD8` | 8.0           | 9.26                |
 
-Dark text on page / card: 15.90 / 14.46; secondary 8.49 / 7.73. Primary text on the
-selected-row tint: 5.67 light, 7.48 dark.
+Primary text on the selected-row tint: 6.9 light, 6.13 dark. Input border
+(text 50% into card): 3.06 light, 4.41 dark (3:1 needed).
 
-Category chips (text on its tint), never colour alone: the label stays.
+Category chips (desaturated tints, dark text), never colour alone: the label stays.
 
 | category  | light fg / bg         | ratio | dark fg / bg          | ratio |
 | --------- | --------------------- | ----- | --------------------- | ----- |
-| course    | `#1D4ED8` / `#DBEAFE` | 5.49  | `#BFDBFE` / `#1E3A8A` | 7.29  |
-| personal  | `#BE185D` / `#FCE7F3` | 5.14  | `#FBCFE8` / `#831843` | 6.98  |
-| research  | `#0F766E` / `#CCFBF1` | 4.86  | `#99F6E4` / `#134E4A` | 7.52  |
-| hackathon | `#C2410C` / `#FFEDD5` | 4.52  | `#FED7AA` / `#7C2D12` | 6.92  |
-| academic  | `#6D28D9` / `#EDE9FE` | 5.98  | `#DDD6FE` / `#4C1D95` | 7.89  |
-| other     | `#475569` / `#E2E8F0` | 6.15  | `#CBD5E1` / `#334155` | 6.97  |
+| course    | `#2D4E8A` / `#E4EAF4` | 6.76  | `#C5D6F1` / `#26385A` | 7.94  |
+| personal  | `#85365D` / `#F4E7EE` | 6.53  | `#EBC4D6` / `#4D2A3F` | 7.8   |
+| research  | `#1F6159` / `#E1F0EC` | 6.14  | `#B5E0D8` / `#1F4540` | 7.37  |
+| hackathon | `#8A4A1C` / `#F7EADD` | 5.77  | `#F0CDB0` / `#51341C` | 7.57  |
+| academic  | `#58429A` / `#EBE7F5` | 6.49  | `#D3C9F0` / `#3B3060` | 7.53  |
+| other     | `#4A5565` / `#E9ECF0` | 6.38  | `#CBD3DE` / `#313B4A` | 7.5   |
 
 Derived surfaces: hairline = text 14% into card; input border = text 50% into card
 (3.41 light, 4.58 dark; the prototype's 42% was 2.69 in light and failed 3:1);

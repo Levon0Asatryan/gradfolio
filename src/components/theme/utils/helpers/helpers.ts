@@ -90,11 +90,6 @@ export const getTheme = (mode: PaletteMode): ThemeOptions => {
             lineHeight: 1.2,
           },
           sizeSmall: { minHeight: 36, paddingInline: 14, [coarse]: { minHeight: 44 } },
-          containedPrimary: {
-            backgroundImage: s.brandGradient,
-            "&:hover": { backgroundImage: s.brandGradient, filter: "brightness(1.08)" },
-            "&.Mui-disabled": { backgroundImage: "none" },
-          },
           outlined: { borderWidth: 2, "&:hover": { borderWidth: 2 } },
         },
       },
@@ -158,7 +153,7 @@ export const getTheme = (mode: PaletteMode): ThemeOptions => {
       MuiDialogTitle: { styleOverrides: { root: { fontWeight: 800, fontSize: "1.3125rem" } } },
       MuiTabs: {
         styleOverrides: {
-          indicator: { height: 3, borderRadius: 3, backgroundImage: s.brandGradient },
+          indicator: { height: 3, borderRadius: 3 },
         },
       },
       MuiTab: { styleOverrides: { root: { minHeight: 44, fontWeight: 800 } } },
