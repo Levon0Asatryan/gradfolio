@@ -112,7 +112,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
                 alt={result.me.name}
                 sx={{ width: 64, height: 64, fontSize: 24, bgcolor: "primary.main" }}
               />
-              <Stack sx={{ minWidth: 0, flex: 1 }}>
+              <Stack sx={{ minWidth: 160, flex: 1 }}>
                 <Typography variant="h6" component="p" noWrap>
                   {result.me.name}
                 </Typography>
