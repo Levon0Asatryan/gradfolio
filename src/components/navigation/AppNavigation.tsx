@@ -1,17 +1,24 @@
 "use client";
 
-import { type FC, useMemo } from "react";
+import { type FC, useMemo, useState } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { usePathname } from "next/navigation";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
+import KeyboardDoubleArrowLeft from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import KeyboardDoubleArrowRight from "@mui/icons-material/KeyboardDoubleArrowRight";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
+import { type NavMode, pickByMode, writeNavMode } from "./navMode";
 
 /** The signed-in user, from the session the layout read on the server. */
 export interface NavUser {
@@ -24,8 +31,23 @@ export interface NavUser {
  * icon-over-label rail. Labels wrap instead of truncating (ru and am run long).
  * On a phone `PhoneNavigation` takes over (this one is `display: none` there).
  */
-export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) => {
+export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }> = ({
+  user = null,
+  initialMode,
+}) => {
   const { t } = useLanguage();
+  const theme = useTheme();
+  // A stored choice (the cookie, read on the server) wins at every width from `sm`;
+  // without one the width decides, so the first paint needs no script.
+  const [mode, setMode] = useState<NavMode | undefined>(initialMode);
+  const wide = useMediaQuery(theme.breakpoints.up("lg"), { defaultMatches: true });
+  const expanded = mode ? mode === "full" : wide;
+  const toggle = () => {
+    const next: NavMode = expanded ? "rail" : "full";
+    setMode(next);
+    writeNavMode(next);
+  };
+  const pick = <T,>(rail: T, full: T) => pickByMode(mode, rail, full);
   const pathname = usePathname();
   const items = useMemo(() => navItems(t, user !== null), [t, user]);
   const active = activeHref(pathname, items);
@@ -39,33 +61,51 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
         flexDirection: "column",
         gap: 0.75,
         flex: "none",
-        width: { sm: 108, lg: 248 },
+        width: pick(108, 248),
+        transition: theme.transitions.create("width", { duration: 200 }),
+        "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         position: "sticky",
         top: 0,
         height: "100vh",
         overflowY: "auto",
-        px: { sm: 1, lg: 1.5 },
+        px: pick(1, 1.5),
         py: 2.25,
         bgcolor: theme.palette.navigation.main,
         borderRight: `1px solid ${theme.palette.surface.line}`,
       })}
     >
       <Stack
-        direction="row"
         alignItems="center"
-        spacing={1.25}
+        spacing={1}
         sx={{
-          px: { sm: 0, lg: 1.25 },
+          flexDirection: pick("column", "row"),
+          px: pick(0, 1.25),
           pb: 1.75,
-          justifyContent: { sm: "center", lg: "flex-start" },
+          justifyContent: pick("center", "space-between"),
         }}
       >
-        <Box sx={{ display: { xs: "none", sm: "block", lg: "none" }, lineHeight: 0 }}>
+        <Box sx={{ display: pick("block", "none"), lineHeight: 0 }}>
           <BrandLogo variant="mark" height={36} />
         </Box>
-        <Box sx={{ display: { xs: "none", lg: "block" }, lineHeight: 0 }}>
+        <Box sx={{ display: pick("none", "block"), lineHeight: 0 }}>
           <BrandLogo height={32} />
         </Box>
+        <Tooltip title={expanded ? t.common.collapseSidebar : t.common.expandSidebar}>
+          <IconButton
+            onClick={toggle}
+            aria-label={t.common.sidebar}
+            aria-expanded={expanded}
+            size="small"
+            sx={{ color: theme.palette.text.secondary }}
+          >
+            <Box component="span" sx={{ display: pick("none", "inline-flex"), lineHeight: 0 }}>
+              <KeyboardDoubleArrowLeft fontSize="small" />
+            </Box>
+            <Box component="span" sx={{ display: pick("inline-flex", "none"), lineHeight: 0 }}>
+              <KeyboardDoubleArrowRight fontSize="small" />
+            </Box>
+          </IconButton>
+        </Tooltip>
       </Stack>
 
       {items.map((item) => {
@@ -77,18 +117,18 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
             current={current}
             sx={(theme) => ({
               display: "flex",
-              flexDirection: { sm: "column", lg: "row" },
+              flexDirection: pick("column", "row"),
               alignItems: "center",
-              justifyContent: { sm: "center", lg: "flex-start" },
-              gap: { sm: 0.5, lg: 1.5 },
+              justifyContent: pick("center", "flex-start"),
+              gap: pick(0.5, 1.5),
               width: "100%",
               minHeight: 44,
-              px: { sm: 0.25, lg: 1.75 },
-              py: { sm: 1, lg: 1.25 },
+              px: pick(0.25, 1.75),
+              py: pick(1, 1.25),
               borderRadius: "14px",
-              textAlign: { sm: "center", lg: "left" },
+              textAlign: pick("center", "left"),
               fontWeight: 700,
-              fontSize: { sm: "0.75rem", lg: "0.9375rem" },
+              fontSize: pick("0.75rem", "0.9375rem"),
               lineHeight: 1.25,
               color: current ? theme.palette.primary.contrastText : theme.palette.text.primary,
               backgroundImage: current ? theme.palette.surface.gradient : "none",
@@ -96,7 +136,7 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
               "& svg": { fontSize: 22, flex: "none" },
               "& .nav-label": { minWidth: 0, overflowWrap: "break-word" },
               // Armenian words are long: a size down keeps them whole in the rail.
-              "html[lang='hy'] & .nav-label": { fontSize: { sm: "0.6875rem", lg: "0.9375rem" } },
+              "html[lang='hy'] & .nav-label": { fontSize: pick("0.6875rem", "0.9375rem") },
             })}
           >
             {item.icon}
@@ -117,7 +157,7 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
             p: 1.5,
             borderRadius: "14px",
             bgcolor: theme.palette.surface.soft,
-            justifyContent: { sm: "center", lg: "flex-start" },
+            justifyContent: pick("center", "flex-start"),
           })}
         >
           <Avatar
@@ -134,7 +174,7 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
           </Avatar>
           <Typography
             variant="subtitle2"
-            sx={{ display: { xs: "none", lg: "block" }, minWidth: 0, overflowWrap: "anywhere" }}
+            sx={{ display: pick("none", "block"), minWidth: 0, overflowWrap: "anywhere" }}
           >
             {user.name}
           </Typography>
@@ -146,15 +186,15 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
           href="/auth/logout"
           sx={(theme) => ({
             display: "flex",
-            flexDirection: { sm: "column", lg: "row" },
+            flexDirection: pick("column", "row"),
             alignItems: "center",
-            justifyContent: { sm: "center", lg: "flex-start" },
-            gap: { sm: 0.5, lg: 1.5 },
+            justifyContent: pick("center", "flex-start"),
+            gap: pick(0.5, 1.5),
             minHeight: 44,
-            px: { sm: 0.5, lg: 1.75 },
+            px: pick(0.5, 1.75),
             borderRadius: "14px",
             fontWeight: 700,
-            fontSize: { sm: "0.75rem", lg: "0.9375rem" },
+            fontSize: pick("0.75rem", "0.9375rem"),
             color: theme.palette.text.secondary,
             "&:hover": { bgcolor: theme.palette.surface.soft },
             "& svg": { fontSize: 22 },

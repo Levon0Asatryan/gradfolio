@@ -103,3 +103,23 @@ describe("landmarks", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("stored sidebar choice", () => {
+  it("passes the cookie's choice to the sidebar so the first render is already collapsed", () => {
+    render(
+      <ThemeWrapper>
+        <LanguageProvider>
+          <SidebarVisibilityProvider>
+            <SideBarWrapper initialNav="rail">
+              <p>Page</p>
+            </SideBarWrapper>
+          </SidebarVisibilityProvider>
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(screen.getByRole("button", { name: "Sidebar" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+});

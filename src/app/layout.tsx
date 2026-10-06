@@ -9,7 +9,8 @@ import { SkipLink } from "@/components/layout/SkipLink";
 import { cookies } from "next/headers";
 import { type ReactNode } from "react";
 import type { ThemeMode } from "@/components/theme/utils/types/types";
-import { cookiesLanguageKey, cookiesThemeKey } from "@/utils/constants/constants";
+import { parseNavMode } from "@/components/navigation/navMode";
+import { cookiesLanguageKey, cookiesNavKey, cookiesThemeKey } from "@/utils/constants/constants";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ThemeRegistry from "@/components/theme/ThemeRegistry";
@@ -83,6 +84,7 @@ export default async function RootLayout({ children }: Readonly<RootLayoutProps>
   const initialMode = cookieStore.get(cookiesThemeKey)?.value as ThemeMode | undefined;
   const savedLanguage = cookieStore.get(cookiesLanguageKey)?.value;
   const language = isLanguage(savedLanguage) ? savedLanguage : "en";
+  const initialNav = parseNavMode(cookieStore.get(cookiesNavKey)?.value);
   const user = await navUser();
 
   return (
@@ -96,7 +98,9 @@ export default async function RootLayout({ children }: Readonly<RootLayoutProps>
             <LanguageProvider initialLanguage={language}>
               <SkipLink />
               <SidebarVisibilityProvider>
-                <SideBarWrapper user={user}>{children}</SideBarWrapper>
+                <SideBarWrapper user={user} initialNav={initialNav}>
+                  {children}
+                </SideBarWrapper>
               </SidebarVisibilityProvider>
             </LanguageProvider>
           </ThemeWrapper>
