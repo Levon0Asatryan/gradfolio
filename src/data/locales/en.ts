@@ -275,6 +275,7 @@ export const en: Dictionary = {
     title: "My Account",
     intro: "Your sign-in details, privacy and contact email.",
     loginMethodPassword: "Email and password",
+    loginMethodOther: "Single sign-on",
     linkedAccountsHelp: "How you sign in to Gradfolio.",
     privacy: "Privacy",
     statusPublic: "Public",

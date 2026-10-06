@@ -273,6 +273,7 @@ export const ru: Dictionary = {
     title: "Мой аккаунт",
     intro: "Данные для входа, приватность и контактный email.",
     loginMethodPassword: "Email и пароль",
+    loginMethodOther: "Единый вход (SSO)",
     linkedAccountsHelp: "Как вы входите в Gradfolio.",
     privacy: "Приватность",
     statusPublic: "Публичный",

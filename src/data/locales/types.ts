@@ -267,6 +267,7 @@ export interface Dictionary {
     title: string;
     intro: string;
     loginMethodPassword: string;
+    loginMethodOther: string;
     linkedAccountsHelp: string;
     privacy: string;
     statusPublic: string;

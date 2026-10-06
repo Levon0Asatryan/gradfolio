@@ -41,7 +41,7 @@ function errorMessage(code: string): keyof AccountText {
   }
 }
 
-/** A friendly name for an Auth0 connection id; unknown ones show as the API sent them. */
+/** A friendly name for an Auth0 connection id; unknown ones get a generic label. */
 function identityLabel(identity: string, text: AccountText): string {
   switch (identity) {
     case "auth0":
@@ -53,7 +53,8 @@ function identityLabel(identity: string, text: AccountText): string {
     case "linkedin":
       return "LinkedIn";
     default:
-      return identity;
+      // An internal connection id (a company SSO, say) is never shown as is.
+      return text.loginMethodOther;
   }
 }
 
@@ -113,7 +114,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
                 alt={result.me.name}
                 sx={{ width: 64, height: 64, fontSize: 24, bgcolor: "primary.main" }}
               />
-              <Stack sx={{ minWidth: 160, flex: 1 }}>
+              <Stack data-testid="account-name" sx={{ minWidth: 160, flex: 1 }}>
                 <Typography variant="h6" component="p" noWrap>
                   {result.me.name}
                 </Typography>
@@ -138,7 +139,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
                 label={result.me.verified ? text.emailVerified : text.emailNotVerified}
               />
             </Stack>
-            {!result.me.verified && (
+            {!result.me.verified && result.me.email && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
                 {text.emailNotVerifiedHint}
               </Typography>
