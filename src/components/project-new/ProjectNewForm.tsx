@@ -1,7 +1,7 @@
 "use client";
 
 import { FC, memo, useCallback, useState } from "react";
-import { Container, Paper, Typography } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 import ProjectBasicInfo from "./ProjectBasicInfo";
 import ProjectMediaUpload from "./ProjectMediaUpload";
 import ProjectNewActions from "./ProjectNewActions";
@@ -9,6 +9,7 @@ import { ProjectAttachmentForm, ProjectFormState } from "./types";
 import { useRouter } from "next/navigation";
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const ProjectNewForm: FC = () => {
   const { t } = useLanguage();
@@ -47,8 +48,8 @@ const ProjectNewForm: FC = () => {
   }, [router]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper sx={{ p: 4 }}>
+    <PageContainer maxWidth={960}>
+      <Paper sx={{ p: { xs: 2, sm: 4 } }}>
         <Typography variant="h4" component="h1" sx={{ mb: 4 }}>
           {t.projects.form.title}
         </Typography>
@@ -63,7 +64,7 @@ const ProjectNewForm: FC = () => {
 
         <ProjectNewActions onSave={handleSave} isSaving={isSaving} />
       </Paper>
-    </Container>
+    </PageContainer>
   );
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { FC, useState } from "react";
-import { Box, Container, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Grid from "@mui/material/Grid";
@@ -17,6 +17,7 @@ import CertificationsList from "./CertificationsList";
 import SkillsChips from "./SkillsChips";
 import { SectionEditor, type EditableItem } from "./edit/SectionEditor";
 import { SkillsEditor } from "./edit/SkillsEditor";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 /**
  * A profile as the API returned it (`GET /v1/users/{id}`). `isOwner` comes from
@@ -31,7 +32,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
   const editSections = sectionEdit && profile.isOwner;
 
   return (
-    <Container sx={{ py: 3 }}>
+    <PageContainer gap={0}>
       {profile.isOwner && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           <ToggleButtonGroup
@@ -140,6 +141,6 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           )}
         </Grid>
       </Grid>
-    </Container>
+    </PageContainer>
   );
 };

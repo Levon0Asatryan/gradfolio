@@ -1,10 +1,11 @@
 "use client";
 
 import { FC } from "react";
-import { Alert, AlertTitle, Button, Container, Link } from "@mui/material";
+import { Alert, AlertTitle, Button, Link } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 type ProfileText = Dictionary["profile"];
 
@@ -35,7 +36,7 @@ export const ProfileError: FC<{ code: string; returnTo?: string }> = ({
   const signIn = code === "UNAUTHENTICATED";
 
   return (
-    <Container sx={{ py: 3 }}>
+    <PageContainer>
       <Alert
         severity={signIn ? "warning" : "error"}
         action={
@@ -57,6 +58,6 @@ export const ProfileError: FC<{ code: string; returnTo?: string }> = ({
           </>
         )}
       </Alert>
-    </Container>
+    </PageContainer>
   );
 };
