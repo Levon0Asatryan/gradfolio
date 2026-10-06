@@ -94,6 +94,15 @@ describe("SkillsEditor", () => {
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
   });
 
+  it("Cancel leaves a clean editor too (nothing changed, still a way out)", () => {
+    show();
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toBeEnabled();
+    fireEvent.click(cancel);
+    expect(screen.queryByLabelText("New Skill")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit skills" })).toBeInTheDocument();
+  });
+
   it("offers a first-skill prompt when there are none", () => {
     show([], false);
     expect(screen.getByText("Add your first skill")).toBeInTheDocument();

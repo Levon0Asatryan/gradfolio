@@ -21,6 +21,7 @@ import SkillsChips from "./SkillsChips";
 import { SectionEditor, type EditableItem } from "./edit/SectionEditor";
 import { SkillsEditor } from "./edit/SkillsEditor";
 import { CompletenessCard } from "./CompletenessCard";
+import { Toast } from "@/components/layout/Toast";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 /**
@@ -31,6 +32,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
   const router = useRouter();
   const { t } = useLanguage();
   const [editing, setEditing] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   // No global edit mode: the owner edits each part where it is (pencil, Add), one part at a time.
   const owner = profile.isOwner;
 
@@ -56,6 +58,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           onCancel={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
+            setToast(t.sectionEdit.savedToast);
             router.refresh();
           }}
         />
@@ -133,6 +136,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           )}
         </Grid>
       </Grid>
+      <Toast message={toast} onClose={() => setToast(null)} />
     </PageContainer>
   );
 };

@@ -180,7 +180,7 @@ export const SkillsEditor: FC<{ skills: string[]; icon?: ReactNode }> = ({ skill
               setDraft("");
               setEditing(false);
             }}
-            disabled={busy || !dirty}
+            disabled={busy}
           >
             {t.sectionEdit.cancel}
           </Button>
