@@ -1,49 +1,68 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Box, Button, Container, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import Link from "next/link";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import ProjectCard from "./ProjectCard";
 import type { ProjectDetailData } from "@/data/project.mock";
-
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectsListProps {
   projects: ProjectDetailData[];
-  onAddProject?: () => void; // non-functional placeholder
   searchQuery?: string;
+  /** A search or category filter is on: an empty list then means "no match", not "no projects". */
+  filtered?: boolean;
+  onClearFilters?: () => void;
 }
 
-const ProjectsList: FC<ProjectsListProps> = ({ projects, onAddProject, searchQuery }) => {
+const ProjectsList: FC<ProjectsListProps> = ({
+  projects,
+  searchQuery,
+  filtered = false,
+  onClearFilters,
+}) => {
   const { t } = useLanguage();
-  if (!projects || projects.length === 0) {
+
+  if (projects.length === 0) {
     return (
-      <Container sx={{ py: 4 }}>
-        <Box textAlign="center" sx={{ py: 6 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            {t.common.noProjectsYet}
+      <Box sx={{ textAlign: "center", py: 6, display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box>
+          <Typography variant="h6" component="h2">
+            {filtered ? t.projects.noMatches : t.common.noProjectsYet}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t.common.getStartedProject}
+          <Typography color="text.secondary">
+            {filtered ? t.projects.noMatchesHelp : t.common.getStartedProject}
           </Typography>
-          <Button variant="contained" onClick={onAddProject} aria-label={t.common.addProject}>
-            {t.common.addProject}
-          </Button>
         </Box>
-      </Container>
+        <Box>
+          {filtered ? (
+            <Button variant="outlined" onClick={onClearFilters}>
+              {t.projects.clearFilters}
+            </Button>
+          ) : (
+            <Button component={Link} href="/projects/new" variant="contained">
+              {t.common.addProject}
+            </Button>
+          )}
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <Container sx={{ py: 3 }}>
-      <Grid container spacing={2} columns={{ xs: 12, sm: 12, md: 12 }}>
-        {projects.map((p) => (
-          <Grid key={p.id} size={{ xs: 12, sm: 6, md: 4 }}>
-            <ProjectCard project={p} highlightQuery={searchQuery} />
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
+        gap: 3,
+      }}
+    >
+      {projects.map((p) => (
+        <ProjectCard key={p.id} project={p} highlightQuery={searchQuery} />
+      ))}
+    </Box>
   );
 };
 

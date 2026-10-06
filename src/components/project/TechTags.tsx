@@ -3,7 +3,7 @@
 import { FC, memo } from "react";
 import { Stack } from "@mui/material";
 import Tag from "./shared/Tag";
-import SectionCard from "./SectionCard";
+import { Panel } from "@/components/layout/Panel";
 
 export interface TechTagsProps {
   items: string[];
@@ -17,13 +17,13 @@ const TechTags: FC<TechTagsProps> = ({ items, onTagClick }) => {
 
   if (!items || items.length === 0) return null;
   return (
-    <SectionCard title={t.common.technologies}>
-      <Stack direction="row" gap={1} flexWrap="wrap">
+    <Panel title={t.common.technologies}>
+      <Stack direction="row" gap={1} flexWrap="wrap" useFlexGap>
         {items.map((t) => (
           <Tag key={t} label={t} onClick={onTagClick} />
         ))}
       </Stack>
-    </SectionCard>
+    </Panel>
   );
 };
 

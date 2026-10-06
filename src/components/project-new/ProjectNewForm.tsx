@@ -1,7 +1,9 @@
 "use client";
 
 import { FC, memo, useCallback, useState } from "react";
-import { Paper, Typography } from "@mui/material";
+import { Paper, Stack } from "@mui/material";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import ProjectBasicInfo from "./ProjectBasicInfo";
 import ProjectMediaUpload from "./ProjectMediaUpload";
 import ProjectNewActions from "./ProjectNewActions";
@@ -9,7 +11,6 @@ import { ProjectAttachmentForm, ProjectFormState } from "./types";
 import { useRouter } from "next/navigation";
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
-import { PageContainer } from "@/components/layout/PageContainer";
 
 const ProjectNewForm: FC = () => {
   const { t } = useLanguage();
@@ -48,21 +49,20 @@ const ProjectNewForm: FC = () => {
   }, [router]);
 
   return (
-    <PageContainer maxWidth={960}>
-      <Paper sx={{ p: { xs: 2, sm: 4 } }}>
-        <Typography variant="h4" component="h1" sx={{ mb: 4 }}>
-          {t.projects.form.title}
-        </Typography>
+    <PageContainer maxWidth={800}>
+      <PageHeader title={t.projects.form.title} />
+      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+        <Stack spacing={4}>
+          <ProjectBasicInfo values={values} onChange={handleChange} />
 
-        <ProjectBasicInfo values={values} onChange={handleChange} />
+          <ProjectMediaUpload
+            attachments={values.attachments}
+            onAdd={handleAddAttachment}
+            onRemove={handleRemoveAttachment}
+          />
 
-        <ProjectMediaUpload
-          attachments={values.attachments}
-          onAdd={handleAddAttachment}
-          onRemove={handleRemoveAttachment}
-        />
-
-        <ProjectNewActions onSave={handleSave} isSaving={isSaving} />
+          <ProjectNewActions onSave={handleSave} isSaving={isSaving} />
+        </Stack>
       </Paper>
     </PageContainer>
   );

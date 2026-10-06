@@ -1,17 +1,15 @@
 "use client";
 
-import { memo, type FC, useCallback } from "react";
+import { memo, type FC } from "react";
 import {
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Stack,
   Typography,
-  type SxProps,
-  type Theme,
 } from "@mui/material";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ConnectIntegrationDialogProps {
   open: boolean;
@@ -21,16 +19,7 @@ export interface ConnectIntegrationDialogProps {
   onConfirm: () => void;
 }
 
-const contentSx: SxProps<Theme> = (theme) => ({
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(1.25),
-});
-
-/**
- * ConnectIntegrationDialog
- * A confirmation dialog shown before connecting an integration.
- */
+/** A confirmation dialog shown before connecting an integration. */
 const ConnectIntegrationDialog: FC<ConnectIntegrationDialogProps> = ({
   open,
   name,
@@ -38,39 +27,27 @@ const ConnectIntegrationDialog: FC<ConnectIntegrationDialogProps> = ({
   onCancel,
   onConfirm,
 }) => {
-  const handleClose = useCallback((): void => {
-    onCancel();
-  }, [onCancel]);
-
-  const handleCancel = useCallback((): void => {
-    onCancel();
-  }, [onCancel]);
-
-  const handleConfirm = useCallback((): void => {
-    onConfirm();
-  }, [onConfirm]);
+  const { t } = useLanguage();
+  const d = t.integrations.dialog;
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Connect {name}</DialogTitle>
-      <DialogContent sx={contentSx}>
+    <Dialog open={open} onClose={onCancel} fullWidth maxWidth="sm">
+      <DialogTitle>{d.connectTitle.replace("{name}", name)}</DialogTitle>
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Typography variant="body2" color="text.secondary">
           {description}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          By connecting {name}, you enable data import and a verification badge on your profile. You
-          can disconnect at any time.
+          {d.connectBody.replace("{name}", name)}
         </Typography>
       </DialogContent>
-      <DialogActions>
-        <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
-          <Button onClick={handleCancel} color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} variant="contained">
-            Connect
-          </Button>
-        </Stack>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onCancel} color="inherit">
+          {d.cancel}
+        </Button>
+        <Button onClick={onConfirm} variant="contained">
+          {t.integrations.connect}
+        </Button>
       </DialogActions>
     </Dialog>
   );

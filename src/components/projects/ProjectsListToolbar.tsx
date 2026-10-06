@@ -1,39 +1,36 @@
 "use client";
 
-import { FC, memo, useMemo } from "react";
-import {
-  Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
+import { FC, memo } from "react";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
 import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
+import { PROJECT_CATEGORIES } from "@/components/theme/tokens";
+import { FilterChip } from "@/components/shared/FilterChip";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectsListToolbarProps {
-  categories?: Array<"course" | "personal" | "research" | "hackathon" | "other">;
-  onAddProject?: () => void;
   search: string;
   onSearchChange: (value: string) => void;
+  /** "" means every category. */
   category: string;
   onCategoryChange: (value: string) => void;
   sort: string;
   onSortChange: (value: string) => void;
 }
 
-const defaultCategories = ["course", "personal", "research", "hackathon", "other"] as const;
-
-import { useLanguage } from "@/components/i18n/LanguageContext";
+const SORTS = ["newest", "oldest", "nameAZ", "nameZA"] as const;
+const SORT_VALUE = {
+  newest: "newest",
+  oldest: "oldest",
+  nameAZ: "name_asc",
+  nameZA: "name_desc",
+} as const;
 
 const ProjectsListToolbar: FC<ProjectsListToolbarProps> = ({
-  categories,
-  onAddProject,
   search,
   onSearchChange,
   category,
@@ -42,150 +39,74 @@ const ProjectsListToolbar: FC<ProjectsListToolbarProps> = ({
   onSortChange,
 }) => {
   const { t } = useLanguage();
-  const categoryOptions = useMemo(
-    () => (categories && categories.length ? categories : defaultCategories),
-    [categories],
-  );
-
-  const sortOptions = [
-    { label: t.projects.sort.newest, value: "newest" },
-    { label: t.projects.sort.oldest, value: "oldest" },
-    { label: t.projects.sort.nameAZ, value: "name_asc" },
-    { label: t.projects.sort.nameZA, value: "name_desc" },
-  ];
-
-  const getCategoryLabel = (cat: string) => {
-    switch (cat) {
-      case "course":
-        return t.projects.categories.course;
-      case "personal":
-        return t.projects.categories.personal;
-      case "research":
-        return t.projects.categories.research;
-      case "hackathon":
-        return t.projects.categories.hackathon;
-      case "other":
-        return t.projects.categories.other;
-      default:
-        return cat.charAt(0).toUpperCase() + cat.slice(1);
-    }
-  };
 
   return (
     <Box
       component="section"
-      aria-label="Projects Toolbar"
-      sx={{
-        borderBottom: (t) => `1px solid ${t.palette.divider}`,
-        mb: 2,
-        position: "sticky",
-        top: 0,
-        zIndex: (t) => t.zIndex.appBar,
-        bgcolor: (t) => t.palette.background.default,
-      }}
+      aria-label={t.common.searchProjects}
+      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
     >
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        alignItems={{ xs: "stretch", sm: "center" }}
-        justifyContent="space-between"
-        sx={{ py: 2, px: 2 }}
-      >
-        <Typography variant="h5" component="h1" fontWeight="bold">
-          {t.common.projects}
-        </Typography>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1.5}
-          alignItems={{ xs: "stretch", sm: "center" }}
-        >
-          <TextField
-            size="small"
-            placeholder={t.common.searchProjects}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            inputProps={{ "aria-label": t.common.searchProjects }}
-            InputProps={{
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
+        <TextField
+          fullWidth
+          placeholder={t.common.searchProjects}
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          slotProps={{
+            htmlInput: { "aria-label": t.common.searchProjects },
+            input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" color="action" />
+                  <SearchIcon color="action" />
                 </InputAdornment>
               ),
               endAdornment: search ? (
                 <InputAdornment position="end">
                   <IconButton
-                    aria-label="clear search"
+                    aria-label={t.projects.clearSearch}
                     onClick={() => onSearchChange("")}
                     edge="end"
-                    size="small"
                   >
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
               ) : null,
-              sx: {
-                height: 40,
-                width: { xs: "100%", sm: 260 },
-                borderRadius: 2,
-                "& fieldset": {
-                  borderColor: "action.disabled",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "primary.main",
-                },
-              },
-            }}
-          />
-          <Select
-            size="small"
-            displayEmpty
-            value={category}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            renderValue={(value) =>
-              value ? getCategoryLabel(String(value)) : t.common.allCategories
-            }
-            inputProps={{ "aria-label": "Filter by category" }}
-            sx={{ minWidth: 160, height: 40, borderRadius: 2 }}
-          >
-            <MenuItem value="">
-              <em>{t.common.allCategories}</em>
+            },
+          }}
+        />
+        <TextField
+          select
+          value={sort}
+          onChange={(e) => onSortChange(e.target.value)}
+          label={t.common.sortBy}
+          sx={{ minWidth: { sm: 220 } }}
+        >
+          {SORTS.map((s) => (
+            <MenuItem key={s} value={SORT_VALUE[s]}>
+              {t.projects.sort[s]}
             </MenuItem>
-            {categoryOptions.map((c) => (
-              <MenuItem key={c} value={c}>
-                {getCategoryLabel(c)}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            size="small"
-            displayEmpty
-            value={sort}
-            onChange={(e) => onSortChange(e.target.value)}
-            renderValue={(val) => {
-              const opt = sortOptions.find((o) => o.value === val);
-              return opt ? opt.label : t.common.sortBy;
-            }}
-            inputProps={{ "aria-label": t.common.sortBy }}
-            sx={{ minWidth: 140, height: 40, borderRadius: 2 }}
-          >
-            {sortOptions.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Select>
-          <Button
-            variant="contained"
-            size="medium"
-            startIcon={<AddIcon />}
-            onClick={onAddProject}
-            aria-label={t.common.addProject}
-            sx={{ height: 40, borderRadius: 2, px: 3, textTransform: "none", fontWeight: 600 }}
-          >
-            {t.common.addNewProject}
-          </Button>
-        </Stack>
-      </Stack>
+          ))}
+        </TextField>
+      </Box>
+      <Box
+        role="group"
+        aria-label={t.projects.filterByCategory}
+        sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}
+      >
+        <FilterChip
+          label={t.search.categories.all}
+          selected={category === ""}
+          onClick={() => onCategoryChange("")}
+        />
+        {PROJECT_CATEGORIES.map((c) => (
+          <FilterChip
+            key={c}
+            label={t.projects.categories[c]}
+            selected={category === c}
+            onClick={() => onCategoryChange(c)}
+          />
+        ))}
+      </Box>
     </Box>
   );
 };

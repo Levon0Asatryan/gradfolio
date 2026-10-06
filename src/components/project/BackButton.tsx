@@ -15,8 +15,7 @@ const BackButton: FC = () => {
       href="/projects"
       variant="text"
       startIcon={<ArrowBackIcon />}
-      aria-label={t.common.backToProjects}
-      sx={{ mb: 1 }}
+      sx={{ alignSelf: "flex-start", ml: -1.5 }}
     >
       {t.common.backToProjects}
     </Button>

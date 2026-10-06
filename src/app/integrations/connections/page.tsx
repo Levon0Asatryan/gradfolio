@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Stack, Typography } from "@mui/material";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { Theme } from "@mui/material/styles";
 import { Stepper, Step } from "@/components/stepper";
 import { initialProfileForm, type ProfileForm } from "@/utils/constants/constants";
@@ -11,9 +12,6 @@ import { StepBasicInfo } from "./components/StepBasicInfo";
 import { StepExperienceEducation } from "./components/StepExperienceEducation";
 import { StepRepos } from "./components/StepRepos";
 import { useLanguage } from "@/components/i18n/LanguageContext";
-
-const GITHUB_COLOR = "#181717"; // GitHub brand
-const LINKEDIN_COLOR = "#0A66C2"; // LinkedIn brand
 
 export default function LoginConnectionsPage() {
   const [form, setForm] = useState<ProfileForm>(initialProfileForm);
@@ -114,13 +112,8 @@ export default function LoginConnectionsPage() {
   const { t } = useLanguage();
 
   return (
-    <Stack sx={{ p: 3, gap: 2 }}>
-      <Typography variant="h4" color="text.primary">
-        {t.integrations.setup.title}
-      </Typography>
-      <Typography variant="body1" color="text.secondary">
-        {t.integrations.setup.subtitle}
-      </Typography>
+    <PageContainer maxWidth={720}>
+      <PageHeader title={t.integrations.setup.title} subtitle={t.integrations.setup.subtitle} />
 
       <Stepper
         initialStep={1}
@@ -147,8 +140,6 @@ export default function LoginConnectionsPage() {
             liImporting={liImporting}
             onImportGithub={handleImportGithub}
             onImportLinkedin={handleImportLinkedin}
-            githubColor={GITHUB_COLOR}
-            linkedinColor={LINKEDIN_COLOR}
           />
         </Step>
 
@@ -189,6 +180,6 @@ export default function LoginConnectionsPage() {
           <StepRepos reposText={form.repos} onReposChange={handleReposChange} />
         </Step>
       </Stepper>
-    </Stack>
+    </PageContainer>
   );
 }

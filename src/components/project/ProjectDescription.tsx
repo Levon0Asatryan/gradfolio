@@ -2,7 +2,7 @@
 
 import { FC, memo, useMemo } from "react";
 import { Box } from "@mui/material";
-import SectionCard from "./SectionCard";
+import { Panel } from "@/components/layout/Panel";
 
 export interface ProjectDescriptionProps {
   html: string;
@@ -31,7 +31,7 @@ const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
   const { t } = useLanguage();
 
   return (
-    <SectionCard title={t.common.description}>
+    <Panel title={t.common.description}>
       <Box
         component="div"
         sx={{
@@ -45,7 +45,7 @@ const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
         dangerouslySetInnerHTML={{ __html: safeHtml }}
         aria-label={t.common.description}
       />
-    </SectionCard>
+    </Panel>
   );
 };
 

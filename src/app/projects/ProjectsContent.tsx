@@ -5,10 +5,15 @@ import ProjectsList from "@/components/projects/ProjectsList";
 import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
 import { projectsMock } from "@/data/project.mock";
 import { profileMock } from "@/data/profile.mock";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Button from "@mui/material/Button";
+import AddIcon from "@mui/icons-material/Add";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export default function ProjectsContent() {
-  const router = useRouter();
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("newest");
@@ -52,12 +57,22 @@ export default function ProjectsContent() {
     return result;
   }, [search, category, sort]);
 
-  const handleAddProject = useCallback(() => {
-    router.push("/projects/new");
-  }, [router]);
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setCategory("");
+  }, []);
 
   return (
-    <div>
+    <PageContainer>
+      <PageHeader
+        title={t.common.projects}
+        subtitle={t.projects.subtitle}
+        action={
+          <Button component={Link} href="/projects/new" variant="contained" startIcon={<AddIcon />}>
+            {t.common.addNewProject}
+          </Button>
+        }
+      />
       <ProjectsListToolbar
         search={search}
         onSearchChange={setSearch}
@@ -65,9 +80,13 @@ export default function ProjectsContent() {
         onCategoryChange={setCategory}
         sort={sort}
         onSortChange={setSort}
-        onAddProject={handleAddProject}
       />
-      <ProjectsList projects={filteredProjects} searchQuery={search} />
-    </div>
+      <ProjectsList
+        projects={filteredProjects}
+        searchQuery={search}
+        filtered={search !== "" || category !== ""}
+        onClearFilters={clearFilters}
+      />
+    </PageContainer>
   );
 }

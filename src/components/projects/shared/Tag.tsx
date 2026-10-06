@@ -10,6 +10,7 @@ export interface TagProps {
   chipProps?: Omit<ChipProps, "label" | "onClick" | "size">;
 }
 
+// No margins of its own: the parent lays tags out with `gap`.
 const Tag: FC<TagProps> = ({ label, onClick, chipProps }) => {
   return (
     <Chip
@@ -17,7 +18,6 @@ const Tag: FC<TagProps> = ({ label, onClick, chipProps }) => {
       size="small"
       onClick={onClick}
       role={onClick ? "button" : undefined}
-      sx={{ mr: 1, mb: 1 }}
       {...chipProps}
     />
   );

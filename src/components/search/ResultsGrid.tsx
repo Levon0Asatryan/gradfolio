@@ -1,9 +1,9 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Box, Button, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
-import { LayoutGroup } from "motion/react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import PortfolioCard from "./PortfolioCard";
 import type { ProfileData } from "@/data/profile.mock";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -11,49 +11,47 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 export interface ResultsGridProps {
   portfolios: ProfileData[];
   searchQuery?: string;
+  /** Resets the search text and the role filter. */
+  onClearFilters: () => void;
 }
 
-const ResultsGrid: FC<ResultsGridProps> = ({ portfolios, searchQuery }) => {
+const ResultsGrid: FC<ResultsGridProps> = ({ portfolios, searchQuery, onClearFilters }) => {
   const { t } = useLanguage();
 
   if (portfolios.length === 0) {
     return (
-      <Box
-        sx={{
-          textAlign: "center",
-          py: 8,
-          px: 2,
-        }}
-      >
-        <Typography variant="h6" color="text.primary" gutterBottom>
-          {t.search.noResults}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          {t.search.tryAdjusting}
-        </Typography>
-        <Button variant="outlined" color="secondary" onClick={() => window.location.reload()}>
-          {t.search.clearFilters}
-        </Button>
+      <Box sx={{ textAlign: "center", py: 6, display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box>
+          <Typography variant="h6" component="h2">
+            {t.search.noResults}
+          </Typography>
+          <Typography color="text.secondary">{t.search.tryAdjusting}</Typography>
+        </Box>
+        <Box>
+          <Button variant="outlined" onClick={onClearFilters}>
+            {t.search.clearFilters}
+          </Button>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: 2, pb: 8 }}>
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 3 }}>
-        {t.search.showingResults
-          .replace("{count}", portfolios.length.toString())
-          .replace("{s}", portfolios.length !== 1 ? "s" : "")}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Typography variant="subtitle2" color="text.secondary" role="status">
+        {t.search.showingResults.replace("{count}", String(portfolios.length))}
       </Typography>
-      <Grid container spacing={3}>
-        <LayoutGroup>
-          {portfolios.map((profile) => (
-            <Grid key={profile.id} size={{ xs: 12, sm: 6, md: 4 }} component={Box}>
-              <PortfolioCard profile={profile} highlightQuery={searchQuery} />
-            </Grid>
-          ))}
-        </LayoutGroup>
-      </Grid>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+          gap: 3,
+        }}
+      >
+        {portfolios.map((profile) => (
+          <PortfolioCard key={profile.id} profile={profile} highlightQuery={searchQuery} />
+        ))}
+      </Box>
     </Box>
   );
 };
