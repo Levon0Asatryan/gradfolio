@@ -34,3 +34,21 @@ describe("SideBarWrapper", () => {
     expect(screen.getAllByRole("main")).toHaveLength(1);
   });
 });
+
+describe("landmarks", () => {
+  it("no page declares its own main: the layout's is the only one (a nested main is invalid)", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((f) => {
+        const p = join(dir, f);
+        return statSync(p).isDirectory() ? walk(p) : [p];
+      });
+    const offenders = walk(join(process.cwd(), "src"))
+      .filter(
+        (f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f) && !f.endsWith("SideBarWrapper.tsx"),
+      )
+      .filter((f) => /<main[\s>]|component="main"/.test(readFileSync(f, "utf8")));
+    expect(offenders).toEqual([]);
+  });
+});

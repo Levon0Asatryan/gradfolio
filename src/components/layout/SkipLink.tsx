@@ -6,7 +6,7 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export const MAIN_ID = "main-content";
 
-/** First tab stop on every page: jumps over the navigation to the page's `<main>`. */
+/** First tab stop on every page: jumps over the navigation to the page's main landmark. */
 export const SkipLink: FC = () => {
   const { t } = useLanguage();
   const { palette } = useTheme();

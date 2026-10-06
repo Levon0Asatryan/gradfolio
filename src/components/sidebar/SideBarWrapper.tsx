@@ -65,7 +65,7 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
     if (hidden) {
       return (
         <Fragment>
-          <main id={MAIN_ID} tabIndex={-1} style={{ minHeight: "100vh", outline: "none" }}>
+          <main id={MAIN_ID} tabIndex={-1} style={{ minHeight: "100vh" }}>
             {children}
           </main>
         </Fragment>
@@ -82,7 +82,6 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
           tabIndex={-1}
           style={{
             minHeight: "100vh",
-            outline: "none",
             backgroundColor: theme.palette.background.default,
             color: theme.palette.text.primary,
           }}
@@ -150,7 +149,7 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
             minHeight: 0,
           }}
         >
-          <main id={MAIN_ID} tabIndex={-1} style={{ outline: "none" }}>
+          <main id={MAIN_ID} tabIndex={-1}>
             {children}
           </main>
         </Panel>
