@@ -1,15 +1,14 @@
 "use client";
 
-import { type FC, useContext, useMemo } from "react";
+import { type FC, useMemo } from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { usePathname } from "next/navigation";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
-import { DarkModeContext } from "@/components/theme/ThemeWrapper";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
@@ -26,7 +25,6 @@ export interface NavUser {
  * On a phone `PhoneNavigation` takes over (this one is `display: none` there).
  */
 export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) => {
-  const { mode } = useContext(DarkModeContext);
   const { t } = useLanguage();
   const pathname = usePathname();
   const items = useMemo(() => navItems(t, user !== null), [t, user]);
@@ -62,19 +60,12 @@ export const AppNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) =>
           justifyContent: { sm: "center", lg: "flex-start" },
         }}
       >
-        <Image
-          src={mode === "light" ? "/light_logo.png" : "/dark_logo.png"}
-          alt=""
-          width={36}
-          height={36}
-        />
-        <Typography
-          component="span"
-          variant="h6"
-          sx={{ display: { xs: "none", lg: "inline" }, fontSize: "1.25rem" }}
-        >
-          Gradfolio
-        </Typography>
+        <Box sx={{ display: { xs: "none", sm: "block", lg: "none" }, lineHeight: 0 }}>
+          <BrandLogo variant="mark" height={36} />
+        </Box>
+        <Box sx={{ display: { xs: "none", lg: "block" }, lineHeight: 0 }}>
+          <BrandLogo height={32} />
+        </Box>
       </Stack>
 
       {items.map((item) => {

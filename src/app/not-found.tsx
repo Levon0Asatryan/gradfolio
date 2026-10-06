@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Noise } from "@/components/effects/Noise";
 
 export default function NotFound() {
@@ -18,6 +19,9 @@ export default function NotFound() {
     <Stack sx={{ p: 3, minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
       <Noise patternRefreshInterval={2} />
       <Box sx={{ textAlign: "center", maxWidth: 720 }}>
+        <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
+          <BrandLogo height={40} />
+        </Box>
         <Typography
           variant="h3"
           sx={{
