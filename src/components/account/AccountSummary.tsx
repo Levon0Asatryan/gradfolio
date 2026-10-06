@@ -53,7 +53,7 @@ function identityLabel(identity: string, text: AccountText): string {
     case "linkedin":
       return "LinkedIn";
     default:
-      // An internal connection id (a company SSO, say) is never shown as is.
+      // An internal connection id (any provider we have no name for) is never shown as is.
       return text.loginMethodOther;
   }
 }

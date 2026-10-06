@@ -43,7 +43,7 @@ describe("AccountSummary", () => {
     show({ me: { ...ME, identities: ["auth0", "okta-saml"] }, settings: SETTINGS });
     expect(screen.getByText("Email and password")).toBeInTheDocument();
     expect(screen.queryByText("auth0")).not.toBeInTheDocument();
-    expect(screen.getByText("Single sign-on")).toBeInTheDocument();
+    expect(screen.getByText("Other sign-in method")).toBeInTheDocument();
     expect(screen.queryByText("okta-saml")).not.toBeInTheDocument();
   });
 
