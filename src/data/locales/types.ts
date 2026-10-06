@@ -11,6 +11,9 @@ export interface Dictionary {
     account: string;
     more: string;
     mainMenu: string;
+    sidebar: string;
+    collapseSidebar: string;
+    expandSidebar: string;
     skipToContent: string;
     settings: string;
     language: string;
