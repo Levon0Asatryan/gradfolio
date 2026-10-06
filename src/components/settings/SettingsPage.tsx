@@ -6,7 +6,8 @@ import { Typography, ToggleButtonGroup, ToggleButton, Stack, Box } from "@mui/ma
 import { Language } from "@/data/locales/types";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { DarkModeContext } from "@/components/theme/ThemeWrapper";
-import { AccountCard, pageSx } from "@/components/account/AccountCard";
+import { AccountCard } from "@/components/account/AccountCard";
+import { PageContainer } from "@/components/layout/PageContainer";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
@@ -24,7 +25,7 @@ const SettingsPage: FC = () => {
   };
 
   return (
-    <Stack spacing={3} sx={pageSx}>
+    <PageContainer>
       <Stack spacing={0.5}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
           {t.common.settings}
@@ -82,7 +83,7 @@ const SettingsPage: FC = () => {
           </ToggleButtonGroup>
         </AccountCard>
       </Box>
-    </Stack>
+    </PageContainer>
   );
 };
 

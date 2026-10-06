@@ -12,7 +12,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
-import { AccountCard, pageSx } from "./AccountCard";
+import { AccountCard } from "./AccountCard";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { DeleteAccount } from "./DeleteAccount";
 import { AccountSettings, type AccountSettingsValues } from "./AccountSettings";
 import type { Me } from "@/lib/api/types";
@@ -61,7 +62,7 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
   const text = t.account;
 
   return (
-    <Stack spacing={3} sx={pageSx}>
+    <PageContainer>
       <Stack spacing={0.5}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
           {text.title}
@@ -160,6 +161,6 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
           <DeleteAccount />
         </Box>
       )}
-    </Stack>
+    </PageContainer>
   );
 };
