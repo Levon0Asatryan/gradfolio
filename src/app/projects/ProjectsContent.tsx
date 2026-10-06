@@ -57,7 +57,7 @@ export default function ProjectsContent() {
   }, [router]);
 
   return (
-    <main>
+    <div>
       <ProjectsListToolbar
         search={search}
         onSearchChange={setSearch}
@@ -68,6 +68,6 @@ export default function ProjectsContent() {
         onAddProject={handleAddProject}
       />
       <ProjectsList projects={filteredProjects} searchQuery={search} />
-    </main>
+    </div>
   );
 }

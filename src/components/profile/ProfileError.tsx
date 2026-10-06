@@ -35,7 +35,7 @@ export const ProfileError: FC<{ code: string; returnTo?: string }> = ({
   const signIn = code === "UNAUTHENTICATED";
 
   return (
-    <Container component="main" sx={{ py: 3 }}>
+    <Container sx={{ py: 3 }}>
       <Alert
         severity={signIn ? "warning" : "error"}
         action={

@@ -1,5 +1,8 @@
 export const cookiesThemeKey = "theme";
 
+/** Mirror of the UI language (localStorage `language`), so the server renders the right `<html lang>`. */
+export const cookiesLanguageKey = "language";
+
 export type ProfileForm = {
   fullName: string;
   email: string;

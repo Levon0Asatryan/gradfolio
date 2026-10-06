@@ -17,6 +17,7 @@ import {
 } from "@/components/sidebar/utils/hooks/useLayoutConfigHook";
 import { AppNavigation, type NavUser } from "@/components/navigation/AppNavigation";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
+import { MAIN_ID } from "@/components/layout/SkipLink";
 
 interface SideBarWrapperProps {
   children: ReactNode;
@@ -64,7 +65,9 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
     if (hidden) {
       return (
         <Fragment>
-          <div style={{ minHeight: "100vh" }}>{children}</div>
+          <main id={MAIN_ID} tabIndex={-1} style={{ minHeight: "100vh" }}>
+            {children}
+          </main>
         </Fragment>
       );
     }
@@ -74,7 +77,9 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
   if (hidden) {
     return (
       <Fragment>
-        <div
+        <main
+          id={MAIN_ID}
+          tabIndex={-1}
           style={{
             minHeight: "100vh",
             backgroundColor: theme.palette.background.default,
@@ -82,7 +87,7 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
           }}
         >
           {children}
-        </div>
+        </main>
       </Fragment>
     );
   }
@@ -144,7 +149,9 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null 
             minHeight: 0,
           }}
         >
-          {children}
+          <main id={MAIN_ID} tabIndex={-1}>
+            {children}
+          </main>
         </Panel>
       </PanelGroup>
     </Fragment>

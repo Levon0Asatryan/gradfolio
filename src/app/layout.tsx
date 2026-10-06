@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito, Noto_Sans_Armenian } from "next/font/google";
 import { SideBarWrapper } from "@/components/sidebar/SideBarWrapper";
 import { SidebarVisibilityProvider } from "@/components/layout/SidebarVisibilityContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
+import { htmlLang, isLanguage } from "@/components/i18n/language";
+import { SkipLink } from "@/components/layout/SkipLink";
 import { cookies } from "next/headers";
 import { type ReactNode } from "react";
 import type { ThemeMode } from "@/components/theme/utils/types/types";
-import { cookiesThemeKey } from "@/utils/constants/constants";
+import { cookiesLanguageKey, cookiesThemeKey } from "@/utils/constants/constants";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ThemeRegistry from "@/components/theme/ThemeRegistry";
@@ -15,14 +17,17 @@ import type { NavUser } from "@/components/navigation/AppNavigation";
 import { auth0 } from "@/lib/auth0";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Nunito has no Armenian glyphs: Noto Sans Armenian fills them in (see FONT_STACK).
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const notoArmenian = Noto_Sans_Armenian({
+  variable: "--font-noto-armenian",
+  subsets: ["armenian"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -60,17 +65,20 @@ export default async function RootLayout({ children }: Readonly<RootLayoutProps>
   const cookieStore = await cookies();
 
   const initialMode = cookieStore.get(cookiesThemeKey)?.value as ThemeMode | undefined;
+  const savedLanguage = cookieStore.get(cookiesLanguageKey)?.value;
+  const language = isLanguage(savedLanguage) ? savedLanguage : "en";
   const user = await navUser();
 
   return (
-    <html lang="en">
+    <html lang={htmlLang(language)}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable}`}
+        className={`${nunito.variable} ${notoArmenian.variable}`}
         style={{ padding: 0, margin: 0 }}
       >
         <ThemeRegistry>
           <ThemeWrapper initialMode={initialMode}>
-            <LanguageProvider>
+            <LanguageProvider initialLanguage={language}>
+              <SkipLink />
               <SidebarVisibilityProvider>
                 <SideBarWrapper user={user}>{children}</SideBarWrapper>
               </SidebarVisibilityProvider>
