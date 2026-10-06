@@ -164,6 +164,8 @@ export interface Dictionary {
       confirm: string;
       disconnectTitle: string;
       disconnectDesc: string;
+      connectBody: string;
+      disconnectBody: string;
     };
     setup: {
       title: string;
@@ -173,6 +175,13 @@ export interface Dictionary {
     };
   };
   projects: {
+    subtitle: string;
+    noMatches: string;
+    noMatchesHelp: string;
+    clearFilters: string;
+    filterByCategory: string;
+    clearSearch: string;
+    moreTech: string;
     categories: {
       course: string;
       personal: string;
@@ -218,6 +227,21 @@ export interface Dictionary {
     };
   };
   dashboard: {
+    welcomeBack: string;
+    welcomeBackAnon: string;
+    welcomeSub: string;
+    overview: string;
+    completeness: string;
+    completenessHelp: string;
+    completenessDone: string;
+    stepsDone: string;
+    stepBasics: string;
+    stepContact: string;
+    stepPhoto: string;
+    nextStep: string;
+    nextBasics: string;
+    nextContact: string;
+    nextPhoto: string;
     welcome: string;
     connections: string;
     engagement: string;

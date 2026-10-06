@@ -169,6 +169,10 @@ export const am: Dictionary = {
       confirm: "Հաստատել",
       disconnectTitle: "Անջատել {name}",
       disconnectDesc: "Վստա՞հ եք, որ ցանկանում եք անջատել {name}:",
+      connectBody:
+        "{name}-ի միացումով ակտիվանում են տվյալների ներմուծումը և հաստատման նշանը ձեր պրոֆիլում։ Կարող եք անջատել ցանկացած պահի։",
+      disconnectBody:
+        "Կարող եք նորից միացնել ցանկացած պահի։ Ներմուծված տվյալները կմնան, բայց հաստատման նշանը կարող է հեռացվել պրոֆիլից։",
     },
     setup: {
       title: "Ինտեգրացիաների կարգավորում",
@@ -179,6 +183,13 @@ export const am: Dictionary = {
     },
   },
   projects: {
+    subtitle: "Այն ամենը, ինչ ստեղծել եք՝ ապացույցներով։",
+    noMatches: "Ձեր հարցմանը համապատասխան նախագծեր չկան։",
+    noMatchesHelp: "Փորձեք մեկ այլ բառ կամ ցուցադրեք բոլոր կարգերը։",
+    clearFilters: "Մաքրել ֆիլտրերը",
+    filterByCategory: "Կարգ",
+    clearSearch: "Մաքրել որոնումը",
+    moreTech: "Եվս {count} տեխնոլոգիա",
     categories: {
       course: "Դասընթացային",
       personal: "Անձնական",
@@ -224,6 +235,21 @@ export const am: Dictionary = {
     },
   },
   dashboard: {
+    welcomeBack: "Բարի վերադարձ, {name}",
+    welcomeSub: "Ահա, թե ինչ է կատարվում ձեր պորտֆոլիոյում։",
+    welcomeBackAnon: "Բարի վերադարձ",
+    overview: "Ընդհանուր ակնարկ",
+    completeness: "Պրոֆիլի լրացվածությունը",
+    completenessHelp: "Ձեր պրոֆիլը լրացված է {percent}%-ով։ Մի քիչ ևս, և գործատուները կհիշեն ձեզ։",
+    completenessDone: "Ձեր պրոֆիլն ամբողջությամբ լրացված է։",
+    stepsDone: "{done}-ը {total}-ից",
+    stepBasics: "Անուն, վերնագիր, նկարագրություն և քաղաք",
+    stepContact: "Կոնտակտային էլ. փոստ",
+    stepPhoto: "Պրոֆիլի լուսանկար",
+    nextStep: "Հաջորդ քայլը",
+    nextBasics: "Լրացնել տվյալները",
+    nextContact: "Ավելացնել էլ. փոստ",
+    nextPhoto: "Ավելացնել լուսանկար",
     welcome: "Բարի գալուստ",
     connections: "կապեր",
     engagement: "ներգրավվածություն",
@@ -258,7 +284,7 @@ export const am: Dictionary = {
     noResults: "Պորտֆոլիո չի գտնվել",
     tryAdjusting: "Փորձեք փոխել որոնումը կամ ֆիլտրերը:",
     clearFilters: "Մաքրել ֆիլտրերը",
-    showingResults: "Ցուցադրված է {count} արդյունք",
+    showingResults: "Արդյունքներ՝ {count}",
     featuredProjects: "ԸՆՏՐՎԱԾ ՆԱԽԱԳԾԵՐ",
     categories: {
       all: "Բոլորը",
