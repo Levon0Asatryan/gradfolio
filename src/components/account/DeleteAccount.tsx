@@ -11,10 +11,9 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
-  Stack,
-  Typography,
 } from "@mui/material";
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import { AccountCard } from "./AccountCard";
 import { deleteAccountAction } from "@/lib/profile/actions";
 
 /**
@@ -56,13 +55,7 @@ export const DeleteAccount: FC = () => {
   }
 
   return (
-    <Stack component="section" spacing={1} aria-label={text.title}>
-      <Typography variant="h6" component="h2" color="error">
-        {text.title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {text.body}
-      </Typography>
+    <AccountCard className="span-all" title={text.title} help={text.body} color="error">
       <div>
         <Button color="error" variant="outlined" onClick={() => setOpen(true)}>
           {text.open}
@@ -100,6 +93,6 @@ export const DeleteAccount: FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+    </AccountCard>
   );
 };

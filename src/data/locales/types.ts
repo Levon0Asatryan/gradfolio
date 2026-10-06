@@ -16,6 +16,9 @@ export interface Dictionary {
     language: string;
     theme: string;
     light: string;
+    settingsIntro: string;
+    languageHelp: string;
+    themeHelp: string;
     dark: string;
     dashboard: string;
     login: string;
@@ -263,10 +266,17 @@ export interface Dictionary {
   account: {
     title: string;
     intro: string;
+    loginMethodPassword: string;
+    linkedAccountsHelp: string;
+    privacy: string;
+    statusPublic: string;
+    statusPrivate: string;
+    contactSection: string;
     name: string;
     email: string;
     emailVerified: string;
     emailNotVerified: string;
+    emailNotVerifiedHint: string;
     noEmail: string;
     errorNotConfigured: string;
     errorUnreachable: string;

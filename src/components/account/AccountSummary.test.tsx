@@ -35,7 +35,25 @@ describe("AccountSummary", () => {
     expect(screen.getByText("ani@example.com")).toBeInTheDocument();
     expect(screen.getByText("Email verified")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Linked accounts" })).toBeInTheDocument();
-    expect(screen.getByText("google-oauth2")).toBeInTheDocument();
+    expect(screen.getByText("Google")).toBeInTheDocument();
+    expect(screen.queryByText("google-oauth2")).not.toBeInTheDocument();
+  });
+
+  it("names the email-and-password login in words and keeps unknown connections as sent", () => {
+    show({ me: { ...ME, identities: ["auth0", "okta-saml"] }, settings: SETTINGS });
+    expect(screen.getByText("Email and password")).toBeInTheDocument();
+    expect(screen.queryByText("auth0")).not.toBeInTheDocument();
+    expect(screen.getByText("okta-saml")).toBeInTheDocument();
+  });
+
+  it("does not repeat the email when it is also the display name", () => {
+    show({ me: { ...ME, name: "ani@example.com" }, settings: SETTINGS });
+    expect(screen.getAllByText("ani@example.com")).toHaveLength(1);
+  });
+
+  it("shows whether the profile is public or private next to the switch", () => {
+    show({ me: ME, settings: { isPublic: false, contactEmail: null } });
+    expect(screen.getByText("Private")).toBeInTheDocument();
   });
 
   it("does not render an avatar from a non-http(s) URL", () => {
@@ -59,6 +77,19 @@ describe("AccountSummary", () => {
     expect(screen.getByText("No email on this account")).toBeInTheDocument();
     expect(screen.getByText("Email not verified")).toBeInTheDocument();
     expect(screen.getByText("No linked accounts yet.")).toBeInTheDocument();
+  });
+
+  it("tells an unverified user how to verify, and says nothing to a verified one", () => {
+    const { unmount } = show({ me: { ...ME, verified: false }, settings: SETTINGS });
+    expect(screen.getByText(/verification email/)).toBeInTheDocument();
+    unmount();
+    show({ me: ME, settings: SETTINGS });
+    expect(screen.queryByText(/verification email/)).not.toBeInTheDocument();
+  });
+
+  it("renders no <main> of its own: the layout has the only one", () => {
+    show({ me: ME, settings: SETTINGS });
+    expect(screen.queryByRole("main")).not.toBeInTheDocument();
   });
 
   it.each([
