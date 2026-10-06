@@ -300,6 +300,7 @@ export const am: Dictionary = {
     title: "Իմ հաշիվը",
     intro: "Ձեր մուտքի տվյալները, գաղտնիությունը և կոնտակտային էլ. հասցեն։",
     loginMethodPassword: "Էլ. փոստ և գաղտնաբառ",
+    loginMethodOther: "Մեկ մուտք (SSO)",
     linkedAccountsHelp: "Ինչպես եք մտնում Gradfolio։",
     privacy: "Գաղտնիություն",
     statusPublic: "Հրապարակային",

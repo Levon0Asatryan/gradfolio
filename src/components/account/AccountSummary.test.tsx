@@ -39,11 +39,12 @@ describe("AccountSummary", () => {
     expect(screen.queryByText("google-oauth2")).not.toBeInTheDocument();
   });
 
-  it("names the email-and-password login in words and keeps unknown connections as sent", () => {
+  it("names the email-and-password login in words and shows a generic label for unknown connections", () => {
     show({ me: { ...ME, identities: ["auth0", "okta-saml"] }, settings: SETTINGS });
     expect(screen.getByText("Email and password")).toBeInTheDocument();
     expect(screen.queryByText("auth0")).not.toBeInTheDocument();
-    expect(screen.getByText("okta-saml")).toBeInTheDocument();
+    expect(screen.getByText("Single sign-on")).toBeInTheDocument();
+    expect(screen.queryByText("okta-saml")).not.toBeInTheDocument();
   });
 
   it("does not repeat the email when it is also the display name", () => {
@@ -85,6 +86,18 @@ describe("AccountSummary", () => {
     unmount();
     show({ me: ME, settings: SETTINGS });
     expect(screen.queryByText(/verification email/)).not.toBeInTheDocument();
+  });
+
+  it("gives no verification hint when there is no email to verify", () => {
+    show({ me: { ...ME, email: null, verified: false }, settings: SETTINGS });
+    expect(screen.getByText("Email not verified")).toBeInTheDocument();
+    expect(screen.queryByText(/verification email/)).not.toBeInTheDocument();
+  });
+
+  it("keeps room for the name beside the status chip (phone width)", () => {
+    show({ me: ME, settings: SETTINGS });
+    // jsdom has no layout: assert the rule that prevents the squeeze (name column min-width).
+    expect(getComputedStyle(screen.getByTestId("account-name")).minWidth).toBe("160px");
   });
 
   it("renders no <main> of its own: the layout has the only one", () => {
