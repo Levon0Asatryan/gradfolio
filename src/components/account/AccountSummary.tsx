@@ -1,14 +1,18 @@
 "use client";
 
 import { type FC } from "react";
+import { alpha } from "@mui/material/styles";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
+import { AccountCard, pageSx } from "./AccountCard";
 import { DeleteAccount } from "./DeleteAccount";
 import { AccountSettings, type AccountSettingsValues } from "./AccountSettings";
 import type { Me } from "@/lib/api/types";
@@ -36,15 +40,34 @@ function errorMessage(code: string): keyof AccountText {
   }
 }
 
+/** A friendly name for an Auth0 connection id; unknown ones show as the API sent them. */
+function identityLabel(identity: string, text: AccountText): string {
+  switch (identity) {
+    case "auth0":
+      return text.loginMethodPassword;
+    case "google-oauth2":
+      return "Google";
+    case "github":
+      return "GitHub";
+    case "linkedin":
+      return "LinkedIn";
+    default:
+      return identity;
+  }
+}
+
 export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
   const { t } = useLanguage();
   const text = t.account;
 
   return (
-    <Stack spacing={2} sx={{ p: 3, maxWidth: 640 }}>
-      <Typography variant="h4" component="h1">
-        {text.title}
-      </Typography>
+    <Stack spacing={3} sx={pageSx}>
+      <Stack spacing={0.5}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          {text.title}
+        </Typography>
+        {!("errorCode" in result) && <Typography color="text.secondary">{text.intro}</Typography>}
+      </Stack>
 
       {"errorCode" in result ? (
         <Alert severity={result.errorCode === "UNAUTHENTICATED" ? "warning" : "error"}>
@@ -57,31 +80,74 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
           )}
         </Alert>
       ) : (
-        <>
-          <Typography color="text.secondary">{text.intro}</Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar src={safeHttpUrl(result.me.avatarUrl)} alt={result.me.name} />
-            <Stack>
-              <Typography variant="h6" component="p">
-                {result.me.name}
-              </Typography>
-              <Typography color="text.secondary">{result.me.email ?? text.noEmail}</Typography>
+        <Box
+          sx={{
+            display: "grid",
+            gap: 3,
+            alignItems: "stretch",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              md: "repeat(2, minmax(0, 1fr))",
+              xl: "repeat(3, minmax(0, 1fr))",
+            },
+            // The summary card, the save/error messages and the danger zone span every column.
+            "& > .span-all": { gridColumn: "1 / -1" },
+          }}
+        >
+          <Paper
+            className="span-all"
+            variant="outlined"
+            sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}
+          >
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ columnGap: 2, rowGap: 1.5 }}
+            >
+              <Avatar
+                src={safeHttpUrl(result.me.avatarUrl)}
+                alt={result.me.name}
+                sx={{ width: 64, height: 64, fontSize: 24, bgcolor: "primary.main" }}
+              />
+              <Stack sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="h6" component="p" noWrap>
+                  {result.me.name}
+                </Typography>
+                {result.me.email !== result.me.name && (
+                  <Typography color="text.secondary" noWrap>
+                    {result.me.email ?? text.noEmail}
+                  </Typography>
+                )}
+              </Stack>
+              <Chip
+                size="small"
+                color={result.me.verified ? "success" : "default"}
+                sx={
+                  result.me.verified
+                    ? undefined
+                    : (theme) => ({
+                        // Theme tokens: warning.main is an AA text colour on its own tint (tokens.test.ts).
+                        bgcolor: alpha(theme.palette.warning.main, 0.14),
+                        color: "warning.main",
+                      })
+                }
+                label={result.me.verified ? text.emailVerified : text.emailNotVerified}
+              />
             </Stack>
-          </Stack>
-          <Chip
-            size="small"
-            sx={{ alignSelf: "flex-start" }}
-            color={result.me.verified ? "success" : "default"}
-            label={result.me.verified ? text.emailVerified : text.emailNotVerified}
-          />
-          <Stack component="section" spacing={1} aria-label={text.linkedAccounts}>
-            <Typography variant="h6" component="h2">
-              {text.linkedAccounts}
-            </Typography>
+            {!result.me.verified && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                {text.emailNotVerifiedHint}
+              </Typography>
+            )}
+          </Paper>
+          <AccountCard title={text.linkedAccounts} help={text.linkedAccountsHelp}>
             {result.me.identities.length > 0 ? (
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {result.me.identities.map((identity) => (
-                  <Chip key={identity} size="small" variant="outlined" label={identity} />
+                  <Chip key={identity} variant="outlined" label={identityLabel(identity, text)} />
                 ))}
               </Stack>
             ) : (
@@ -89,10 +155,10 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
                 {text.noLinked}
               </Typography>
             )}
-          </Stack>
+          </AccountCard>
           <AccountSettings initial={result.settings} />
           <DeleteAccount />
-        </>
+        </Box>
       )}
     </Stack>
   );

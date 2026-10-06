@@ -12,6 +12,9 @@ export const en: Dictionary = {
     language: "Language",
     theme: "Theme",
     light: "Light",
+    settingsIntro: "Language, theme and how Gradfolio looks to you.",
+    languageHelp: "Pick the language of the whole app.",
+    themeHelp: "Light or dark. Your choice is remembered on this device.",
     dark: "Dark",
     dashboard: "Dashboard",
     login: "Auth0 Login",
@@ -281,6 +284,8 @@ export const en: Dictionary = {
     email: "Email",
     emailVerified: "Email verified",
     emailNotVerified: "Email not verified",
+    emailNotVerifiedHint:
+      "Open the link in the verification email we sent you, then sign in again.",
     noEmail: "No email on this account",
     errorNotConfigured: "The Gradfolio API is not connected to this site yet.",
     errorUnreachable: "The Gradfolio API is not responding. Please try again in a moment.",

@@ -12,6 +12,9 @@ export const ru: Dictionary = {
     language: "Язык",
     theme: "Тема",
     light: "Светлая",
+    settingsIntro: "Язык, тема и внешний вид Gradfolio.",
+    languageHelp: "Выберите язык всего приложения.",
+    themeHelp: "Светлая или тёмная. Выбор запоминается на этом устройстве.",
     dark: "Темная",
     dashboard: "Дашборд",
     login: "Вход Auth0",
@@ -279,6 +282,8 @@ export const ru: Dictionary = {
     email: "Эл. почта",
     emailVerified: "Почта подтверждена",
     emailNotVerified: "Почта не подтверждена",
+    emailNotVerifiedHint:
+      "Откройте ссылку в письме для подтверждения, которое мы отправили, и войдите снова.",
     noEmail: "У аккаунта нет почты",
     errorNotConfigured: "API Gradfolio ещё не подключён к этому сайту.",
     errorUnreachable: "API Gradfolio не отвечает. Попробуйте чуть позже.",

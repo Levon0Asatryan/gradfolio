@@ -4,13 +4,16 @@ import { FC, FormEvent, useState } from "react";
 import {
   Alert,
   Button,
+  Chip,
   FormControlLabel,
+  Snackbar,
   Stack,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { AccountCard } from "./AccountCard";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Dictionary } from "@/data/locales/types";
 import { updateProfileAction } from "@/lib/profile/actions";
@@ -80,55 +83,82 @@ export const AccountSettings: FC<{ initial: AccountSettingsValues }> = ({ initia
   }
 
   return (
-    <Stack spacing={2} component="section" aria-label={text.settings}>
-      <Typography variant="h6" component="h2">
-        {text.settings}
-      </Typography>
-
-      {message?.kind === "error" && <Alert severity="error">{text[message.key]}</Alert>}
-      {message?.kind === "saved" && (
-        <Alert severity="success" role="status">
-          {text.saved}
-        </Alert>
-      )}
-
-      <Stack>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isPublic}
-              disabled={busy !== null}
-              onChange={(e) => void toggle(e.target.checked)}
-            />
-          }
-          label={text.publicProfile}
-        />
-        <Typography variant="body2" color="text.secondary">
-          {isPublic ? text.publicProfileOn : text.publicProfileOff}
-        </Typography>
-      </Stack>
-
-      <Stack component="form" onSubmit={saveEmail} noValidate spacing={1}>
-        <TextField
-          label={text.contactEmail}
-          type="email"
-          autoComplete="email"
-          size="small"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={emailError}
-          helperText={emailError ? text.errorInvalidEmail : text.contactEmailHelp}
-        />
-        <div>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={busy !== null || email.trim() === savedEmail}
+    <>
+      {/* A toast, not a block in the grid: a message that appears in the flow pushes the cards around. */}
+      <Snackbar
+        open={message !== null}
+        autoHideDuration={message?.kind === "saved" ? 4000 : null}
+        onClose={(_, reason) => reason !== "clickaway" && setMessage(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        {message ? (
+          <Alert
+            severity={message.kind === "saved" ? "success" : "error"}
+            variant="filled"
+            role={message.kind === "saved" ? "status" : "alert"}
+            closeText={t.common.close}
+            onClose={() => setMessage(null)}
           >
-            {busy === "email" ? text.saving : text.save}
-          </Button>
-        </div>
-      </Stack>
-    </Stack>
+            {message.kind === "saved" ? text.saved : text[message.key]}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
+
+      <AccountCard title={text.privacy}>
+        <Stack spacing={1}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ columnGap: 2, rowGap: 1 }}
+          >
+            <FormControlLabel
+              sx={{ m: 0 }}
+              control={
+                <Switch
+                  color="success"
+                  checked={isPublic}
+                  disabled={busy !== null}
+                  onChange={(e) => void toggle(e.target.checked)}
+                />
+              }
+              label={text.publicProfile}
+            />
+            <Chip
+              size="small"
+              color={isPublic ? "success" : "default"}
+              label={isPublic ? text.statusPublic : text.statusPrivate}
+            />
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            {isPublic ? text.publicProfileOn : text.publicProfileOff}
+          </Typography>
+        </Stack>
+      </AccountCard>
+
+      <AccountCard title={text.contactSection}>
+        <Stack component="form" onSubmit={saveEmail} noValidate spacing={2}>
+          <TextField
+            label={text.contactEmail}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError}
+            helperText={emailError ? text.errorInvalidEmail : text.contactEmailHelp}
+          />
+          <div>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={busy !== null || email.trim() === savedEmail}
+            >
+              {busy === "email" ? text.saving : text.save}
+            </Button>
+          </div>
+        </Stack>
+      </AccountCard>
+    </>
   );
 };
