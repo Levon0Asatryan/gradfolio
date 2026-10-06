@@ -2,6 +2,7 @@
 
 import { FC, memo } from "react";
 import { Alert, Avatar, Box, Button, Link, Stack, Tooltip, Typography } from "@mui/material";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VerifiedBadge from "./shared/Badge";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { ProfileLinks } from "@/lib/api/types";
@@ -70,15 +71,29 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
             </Typography>
             <VerifiedBadge visible={verified} />
           </Stack>
-          {headline && (
+          {headline ? (
             <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1 }}>
               {headline}
             </Typography>
+          ) : (
+            onEdit && (
+              <Button size="small" onClick={onEdit} sx={{ mb: 1, ml: -1 }}>
+                {t.profile.addHeadline}
+              </Button>
+            )
           )}
-          {bio && (
+          {bio ? (
             <Typography variant="body1" sx={{ mb: 1, whiteSpace: "pre-line" }}>
               {bio}
             </Typography>
+          ) : (
+            onEdit && (
+              <Box sx={{ mb: 1 }}>
+                <Button size="small" onClick={onEdit} sx={{ ml: -1 }}>
+                  {t.profile.addBio}
+                </Button>
+              </Box>
+            )
           )}
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
             {location && <Typography variant="body2">{location}</Typography>}
@@ -100,6 +115,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
                 variant="outlined"
                 onClick={onEdit}
                 aria-label={t.common.editProfile}
+                startIcon={<EditOutlinedIcon fontSize="small" />}
               >
                 {t.common.edit}
               </Button>
