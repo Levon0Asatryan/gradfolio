@@ -66,7 +66,7 @@ const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
 };
 
 const RecentProjects: FC<RecentProjectsProps> = ({ items = [] }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const headingId = useId();
 
   const top = useMemo(

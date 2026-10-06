@@ -1,4 +1,4 @@
-import { DashboardContent } from "./DashboardContent";
+import { DashboardContent, type DashboardContentProps } from "./DashboardContent";
 import { ApiError, getMyProfile } from "@/lib/api/client";
 import { profileCompleteness } from "@/lib/profile/completeness";
 
@@ -9,16 +9,15 @@ import { profileCompleteness } from "@/lib/profile/completeness";
  * made-up 0%). A bug that is not an ApiError still surfaces.
  */
 export async function DashboardLoader() {
+  let props: DashboardContentProps = { firstName: null, completeness: null };
   try {
     const profile = await getMyProfile();
-    return (
-      <DashboardContent
-        firstName={profile.name.trim().split(/\s+/)[0] || null}
-        completeness={profileCompleteness(profile)}
-      />
-    );
+    props = {
+      firstName: profile.name.trim().split(/\s+/)[0] || null,
+      completeness: profileCompleteness(profile),
+    };
   } catch (error) {
-    if (error instanceof ApiError) return <DashboardContent firstName={null} completeness={null} />;
-    throw error;
+    if (!(error instanceof ApiError)) throw error;
   }
+  return <DashboardContent {...props} />;
 }
