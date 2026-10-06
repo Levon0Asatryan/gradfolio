@@ -116,7 +116,12 @@ export const getTheme = (mode: PaletteMode): ThemeOptions => {
       MuiCardHeader: { styleOverrides: { root: { padding: 20 } } },
       MuiCardContent: {
         styleOverrides: {
-          root: { padding: 20, paddingTop: 0, "&:last-child": { paddingBottom: 20 } },
+          root: {
+            padding: 20,
+            "&:last-child": { paddingBottom: 20 },
+            // Under a CardHeader the header's own padding already sits above.
+            ".MuiCardHeader-root + &": { paddingTop: 0 },
+          },
         },
       },
       MuiChip: {

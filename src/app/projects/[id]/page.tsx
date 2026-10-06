@@ -1,4 +1,3 @@
-import { Container } from "@mui/material";
 import Grid from "@mui/material/Grid";
 // import Link from "next/link"; // Removed
 // import ArrowBackIcon from "@mui/icons-material/ArrowBack"; // Removed
@@ -11,6 +10,7 @@ import TeamList from "@/components/project/TeamList";
 import TechTagsClient from "@/components/project/TechTagsClient";
 import { getProjectById } from "@/data/project.mock";
 import { notFound } from "next/navigation";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
@@ -31,7 +31,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   if (!data) return notFound();
 
   return (
-    <Container sx={{ py: 3 }}>
+    <PageContainer gap={0}>
       <BackButton />
 
       <ProjectHeader
@@ -53,6 +53,6 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           <TeamList members={data.team} />
         </Grid>
       </Grid>
-    </Container>
+    </PageContainer>
   );
 }
