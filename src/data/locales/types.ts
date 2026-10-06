@@ -76,6 +76,32 @@ export interface Dictionary {
     pdf: string;
   };
   profile: {
+    addEducation: string;
+    addExperience: string;
+    addCertification: string;
+    editSkills: string;
+    emptyEducationTitle: string;
+    emptyEducationHint: string;
+    emptyExperienceTitle: string;
+    emptyExperienceHint: string;
+    emptyCertificationsTitle: string;
+    emptyCertificationsHint: string;
+    emptySkillsTitle: string;
+    emptySkillsHint: string;
+    addHeadline: string;
+    addBio: string;
+    ownerHint: string;
+    completenessTitle: string;
+    completenessDone: string;
+    completenessNext: string;
+    completenessHeadline: string;
+    completenessBio: string;
+    completenessLocation: string;
+    completenessPhoto: string;
+    completenessEducation: string;
+    completenessExperience: string;
+    completenessSkills: string;
+    completenessProject: string;
     experience: string;
     education: string;
     noExperience: string;
@@ -331,6 +357,10 @@ export interface Dictionary {
     error: string;
   };
   sectionEdit: {
+    savedToast: string;
+    deletedToast: string;
+    confirmDeleteNamed: string;
+    closeToast: string;
     add: string;
     edit: string;
     delete: string;

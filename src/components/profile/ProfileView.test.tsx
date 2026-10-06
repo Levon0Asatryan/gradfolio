@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { PROFILE } from "@/testing/fixtures";
 import { ProfileView } from "./ProfileView";
@@ -19,9 +20,11 @@ beforeEach(() => vi.resetAllMocks());
 
 const show = (over: Partial<typeof PROFILE> = {}) =>
   render(
-    <LanguageProvider>
-      <ProfileView profile={{ ...PROFILE, ...over }} />
-    </LanguageProvider>,
+    <ThemeWrapper>
+      <LanguageProvider>
+        <ProfileView profile={{ ...PROFILE, ...over }} />
+      </LanguageProvider>
+    </ThemeWrapper>,
   );
 
 describe("ProfileView", () => {
@@ -110,9 +113,11 @@ describe("ProfileView", () => {
 
     it("closes the editor if the page stops being the owner's (e.g. after sign-out)", () => {
       const view = (isOwner: boolean) => (
-        <LanguageProvider>
-          <ProfileView profile={{ ...PROFILE, isOwner }} />
-        </LanguageProvider>
+        <ThemeWrapper>
+          <LanguageProvider>
+            <ProfileView profile={{ ...PROFILE, isOwner }} />
+          </LanguageProvider>
+        </ThemeWrapper>
       );
       const { rerender } = render(view(true));
       fireEvent.click(screen.getByRole("button", { name: "Edit Profile" }));
@@ -233,44 +238,81 @@ describe("ProfileView", () => {
     });
   });
 
-  describe("editing the sections", () => {
-    it("offers the Edit Mode switch to the owner only", () => {
+  describe("editing the sections (no global mode: each part has its own pencil and Add)", () => {
+    it("shows no edit mode switch to anyone, and no edit controls to a visitor", () => {
       show({ isOwner: false });
-      expect(screen.queryByRole("button", { name: /Edit Mode/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Edit Mode|Preview Mode/ }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Edit/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Add /i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Press the pencil/)).not.toBeInTheDocument();
     });
 
-    it("swaps the lists for editors in Edit Mode and back in Preview Mode", () => {
+    it("gives the owner a pencil on every part from the start", () => {
       show({ isOwner: true });
-      expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
-      expect(screen.getByRole("button", { name: "Save skills" })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Edit Mode|Preview Mode/ }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Edit: B.Sc., NPUA" })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: /Preview Mode/ }));
-      expect(screen.queryByRole("button", { name: "Save skills" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Add education" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit skills" })).toBeInTheDocument();
+      expect(screen.getByText(/Press the pencil next to anything/)).toBeInTheDocument();
     });
 
-    it("drops the editors if the page stops being the owner's", () => {
+    it("drops every editor if the page stops being the owner's", () => {
       const view = (isOwner: boolean) => (
-        <LanguageProvider>
-          <ProfileView profile={{ ...PROFILE, isOwner }} />
-        </LanguageProvider>
+        <ThemeWrapper>
+          <LanguageProvider>
+            <ProfileView profile={{ ...PROFILE, isOwner }} />
+          </LanguageProvider>
+        </ThemeWrapper>
       );
       const { rerender } = render(view(true));
-      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
+      expect(screen.getByRole("button", { name: "Edit skills" })).toBeInTheDocument();
       rerender(view(false));
-      expect(screen.queryByRole("button", { name: "Save skills" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Edit skills" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Add education" })).not.toBeInTheDocument();
     });
 
-    it("locks the mode switch while skill changes are unsaved", () => {
+    it("hints at the next step and counts the completeness, and a full profile hides it", () => {
+      show({ isOwner: true, headline: "", bio: null });
+      expect(screen.getByText("Profile completeness")).toBeInTheDocument();
+      expect(screen.getByText(/Next step: add a headline/)).toBeInTheDocument();
+      expect(screen.getByRole("progressbar", { name: "Profile completeness" })).toBeInTheDocument();
+      cleanup();
+      show({
+        isOwner: true,
+        location: "Yerevan",
+        avatarUrl: "https://example.com/a.png",
+        skills: ["a", "b", "c"],
+      });
+      expect(screen.queryByText("Profile completeness")).not.toBeInTheDocument();
+    });
+
+    it("offers the empty header prompts to the owner only", () => {
+      show({ isOwner: true, headline: "", bio: null });
+      expect(screen.getByRole("button", { name: "Add a headline" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Add a short bio" })).toBeInTheDocument();
+      cleanup();
+      show({ isOwner: false, headline: "", bio: null });
+      expect(screen.queryByRole("button", { name: "Add a headline" })).not.toBeInTheDocument();
+    });
+
+    it("asks before a link drops an unsaved skill edit", () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const link = document.createElement("a");
+      link.href = "/projects";
+      document.body.append(link);
       show({ isOwner: true });
-      fireEvent.click(screen.getByRole("button", { name: /Edit Mode/ }));
+      fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
       fireEvent.change(screen.getByLabelText("New Skill"), { target: { value: "Go" } });
-      fireEvent.click(
-        screen
-          .getAllByRole("button", { name: "Add" })
-          .find((b) => b.getAttribute("type") === "submit")!,
-      );
-      expect(screen.getByRole("button", { name: /Preview Mode/ })).toBeDisabled();
+      const e = new MouseEvent("click", { bubbles: true, cancelable: true });
+      link.dispatchEvent(e);
+      expect(e.defaultPrevented).toBe(true);
+      link.remove();
+      confirm.mockRestore();
     });
   });
 });

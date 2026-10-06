@@ -1,9 +1,12 @@
 "use client";
 
 import { FC, useState } from "react";
-import { Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import { Alert } from "@mui/material";
+import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import Grid from "@mui/material/Grid";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -17,6 +20,7 @@ import CertificationsList from "./CertificationsList";
 import SkillsChips from "./SkillsChips";
 import { SectionEditor, type EditableItem } from "./edit/SectionEditor";
 import { SkillsEditor } from "./edit/SkillsEditor";
+import { CompletenessCard } from "./CompletenessCard";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 /**
@@ -27,38 +31,26 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
   const router = useRouter();
   const { t } = useLanguage();
   const [editing, setEditing] = useState(false);
-  const [sectionEdit, setSectionEdit] = useState(false);
-  const [skillsDirty, setSkillsDirty] = useState(false);
-  const editSections = sectionEdit && profile.isOwner;
+  // No global edit mode: the owner edits each part where it is (pencil, Add), one part at a time.
+  const owner = profile.isOwner;
 
   return (
     <PageContainer gap={0}>
-      {profile.isOwner && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            value={editSections ? "edit" : "preview"}
-            // A mode switch would drop unsaved skill changes: save or cancel first.
-            disabled={skillsDirty}
-            onChange={(_, mode: string | null) => {
-              if (mode) setSectionEdit(mode === "edit");
-            }}
-            aria-label={t.profile.editMode}
-          >
-            <ToggleButton value="preview">
-              <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
-              {t.profile.previewMode}
-            </ToggleButton>
-            <ToggleButton value="edit">
-              <EditIcon fontSize="small" sx={{ mr: 1 }} />
-              {t.profile.editMode}
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
+      {owner && (
+        <Alert
+          severity="info"
+          role="note"
+          icon={<EditOutlinedIcon fontSize="small" />}
+          sx={{ mb: 2 }}
+        >
+          {t.profile.ownerHint}
+        </Alert>
+      )}
+      {owner && !editing && (
+        <CompletenessCard profile={profile} onEditHeader={() => setEditing(true)} />
       )}
 
-      {editing && profile.isOwner ? (
+      {editing && owner ? (
         <ProfileHeaderForm
           initial={profile}
           onCancel={() => setEditing(false)}
@@ -77,19 +69,19 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           contactEmail={profile.contactEmail}
           avatarUrl={profile.avatarUrl}
           links={profile.links}
-          privateNotice={profile.isOwner && !profile.isPublic}
-          onEdit={profile.isOwner ? () => setEditing(true) : undefined}
+          privateNotice={owner && !profile.isPublic}
+          onEdit={owner ? () => setEditing(true) : undefined}
         />
       )}
 
-      <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
+      <Grid container spacing={3} columns={{ xs: 12, md: 12 }}>
         <Grid size={{ xs: 12, md: 8 }}>
-          {editSections ? (
+          {owner ? (
             <>
               <SectionEditor
                 section="education"
+                icon={<SchoolOutlinedIcon />}
                 items={profile.education as unknown as EditableItem[]}
-                empty={t.profile.noEducation}
                 describe={(e) => ({
                   primary: `${e.degree} • ${e.field}`,
                   secondary: `${e.institution} • ${e.startYear}${e.endYear !== null ? `–${e.endYear}` : ` – ${t.common.present}`}`,
@@ -98,8 +90,8 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
               />
               <SectionEditor
                 section="experience"
+                icon={<WorkOutlineIcon />}
                 items={profile.experience as unknown as EditableItem[]}
-                empty={t.profile.noExperience}
                 describe={(e) => ({
                   primary: `${e.title} • ${e.organization}`,
                   secondary: `${e.start} – ${e.end ?? t.common.present}`,
@@ -115,17 +107,17 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           )}
           <ProjectsGrid
             items={profile.projects}
-            onAddProject={profile.isOwner ? () => router.push("/projects/new") : undefined}
+            onAddProject={owner ? () => router.push("/projects/new") : undefined}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          {editSections ? (
+          {owner ? (
             <>
-              <SkillsEditor skills={profile.skills} onDirtyChange={setSkillsDirty} />
+              <SkillsEditor skills={profile.skills} icon={<BoltOutlinedIcon />} />
               <SectionEditor
                 section="certifications"
+                icon={<EmojiEventsOutlinedIcon />}
                 items={profile.certifications as unknown as EditableItem[]}
-                empty={t.profile.noCertifications}
                 describe={(c) => ({
                   primary: String(c.name),
                   secondary: `${c.issuer} • ${c.date}`,

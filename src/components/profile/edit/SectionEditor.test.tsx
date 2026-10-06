@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { SectionEditor, type EditableItem } from "./SectionEditor";
 
@@ -37,18 +38,19 @@ const ITEMS: EditableItem[] = [
 
 const show = (items = ITEMS) =>
   render(
-    <LanguageProvider>
-      <SectionEditor
-        section="education"
-        items={items}
-        empty="No education entries yet."
-        describe={(e) => ({
-          primary: `${e.degree}`,
-          secondary: `${e.institution}`,
-          label: `${e.degree}, ${e.institution}`,
-        })}
-      />
-    </LanguageProvider>,
+    <ThemeWrapper>
+      <LanguageProvider>
+        <SectionEditor
+          section="education"
+          items={items}
+          describe={(e) => ({
+            primary: `${e.degree}`,
+            secondary: `${e.institution}`,
+            label: `${e.degree}, ${e.institution}`,
+          })}
+        />
+      </LanguageProvider>
+    </ThemeWrapper>,
   );
 
 const fill = (label: RegExp | string, value: string) =>
@@ -59,13 +61,16 @@ beforeEach(() => vi.resetAllMocks());
 describe("SectionEditor", () => {
   it("shows the empty state", () => {
     show([]);
-    expect(screen.getByText("No education entries yet.")).toBeInTheDocument();
+    expect(screen.getByText("Add where you studied")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add education" })).toBeInTheDocument();
   });
 
   it("adds an entry through the action and reloads the page data", async () => {
     action.saveEntryAction.mockResolvedValue({ ok: true });
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     fill(/^Institution/, "MIT");
     fill(/^Degree/, "M.Sc.");
     fill(/^Field of study/, "CS");
@@ -87,7 +92,9 @@ describe("SectionEditor", () => {
 
   it("does not send an entry with a required field empty, and says which", () => {
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     fill(/^Institution/, "MIT");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(action.saveEntryAction).not.toHaveBeenCalled();
@@ -96,7 +103,9 @@ describe("SectionEditor", () => {
 
   it("makes every year a number input with the API's bounds", () => {
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     for (const label of [/^Start year/, /^End year/]) {
       const input = screen.getByLabelText(label);
       expect(input).toHaveAttribute("type", "number");
@@ -109,7 +118,9 @@ describe("SectionEditor", () => {
 
   it("does not let the scroll wheel change a focused year", () => {
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     const input = screen.getByLabelText(/^Start year/);
     input.focus();
     expect(input).toHaveFocus();
@@ -119,7 +130,9 @@ describe("SectionEditor", () => {
 
   it.each(["e", "E", "+", "-", "."])("does not accept %s in a year", (key) => {
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
     screen.getByLabelText(/^Start year/).dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
@@ -131,7 +144,9 @@ describe("SectionEditor", () => {
   it("sends the years as numbers", async () => {
     action.saveEntryAction.mockResolvedValue({ ok: true });
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     fill(/^Institution/, "MIT");
     fill(/^Degree/, "M");
     fill(/^Field of study/, "CS");
@@ -148,7 +163,9 @@ describe("SectionEditor", () => {
   describe("unsaved dialog values", () => {
     const openAdd = () => {
       show();
-      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+      );
     };
     const link = () => {
       const a = document.createElement("a");
@@ -183,16 +200,19 @@ describe("SectionEditor", () => {
       const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
       const a = link();
       render(
-        <LanguageProvider>
-          <SectionEditor
-            section="experience"
-            items={[]}
-            empty="none"
-            describe={() => ({ primary: "", label: "" })}
-          />
-        </LanguageProvider>,
+        <ThemeWrapper>
+          <LanguageProvider>
+            <SectionEditor
+              section="experience"
+              items={[]}
+              describe={() => ({ primary: "", label: "" })}
+            />
+          </LanguageProvider>
+        </ThemeWrapper>,
       );
-      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+      );
       expect(click(a).defaultPrevented).toBe(false);
       fireEvent.change(screen.getByLabelText("Skills"), { target: { value: "Rust" } });
       expect(click(a).defaultPrevented).toBe(true);
@@ -215,7 +235,9 @@ describe("SectionEditor", () => {
 
   it("flags a year outside 1900-2100", () => {
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     fill(/^Institution/, "MIT");
     fill(/^Degree/, "M");
     fill(/^Field of study/, "CS");
@@ -244,7 +266,9 @@ describe("SectionEditor", () => {
   ])("keeps the dialog and the typed text on %s", async (code, message) => {
     action.saveEntryAction.mockResolvedValue({ ok: false, code });
     show();
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Add (education|experience|certification)$/ }),
+    );
     fill(/^Institution/, "MIT");
     fill(/^Degree/, "M");
     fill(/^Field of study/, "CS");
@@ -261,9 +285,12 @@ describe("SectionEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete: B.Sc., NPUA" }));
     expect(action.deleteEntryAction).not.toHaveBeenCalled();
     expect(screen.getByText("Delete this entry?")).toBeInTheDocument();
+    // The confirmation names what is being deleted.
+    expect(screen.getByText(/Delete “B\.Sc\., NPUA”\?/)).toBeInTheDocument();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(action.deleteEntryAction).toHaveBeenCalledWith("education", "a"));
     await waitFor(() => expect(nav.refresh).toHaveBeenCalled());
+    expect(await screen.findByRole("status")).toHaveTextContent("Entry deleted");
   });
 
   it("cancelling the confirmation deletes nothing", () => {
@@ -312,14 +339,15 @@ describe("SectionEditor", () => {
     ];
     const showExp = (items = EXP) =>
       render(
-        <LanguageProvider>
-          <SectionEditor
-            section="experience"
-            items={items}
-            empty="none"
-            describe={(e) => ({ primary: `${e.title}`, label: `${e.title}, ${e.organization}` })}
-          />
-        </LanguageProvider>,
+        <ThemeWrapper>
+          <LanguageProvider>
+            <SectionEditor
+              section="experience"
+              items={items}
+              describe={(e) => ({ primary: `${e.title}`, label: `${e.title}, ${e.organization}` })}
+            />
+          </LanguageProvider>
+        </ThemeWrapper>,
       );
 
     it("edits with the checkbox ticked when the entry has no end, and sends a null end", async () => {

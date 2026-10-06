@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { SkillsEditor } from "./SkillsEditor";
 
@@ -8,13 +9,16 @@ vi.mock("next/navigation", () => ({ useRouter: () => nav }));
 const action = vi.hoisted(() => ({ replaceSkillsAction: vi.fn() }));
 vi.mock("@/lib/profile/actions", () => action);
 
-const dirty = vi.fn();
-const show = (skills = ["TypeScript"]) =>
+const show = (skills = ["TypeScript"], edit = true) => {
   render(
-    <LanguageProvider>
-      <SkillsEditor skills={skills} onDirtyChange={dirty} />
-    </LanguageProvider>,
+    <ThemeWrapper>
+      <LanguageProvider>
+        <SkillsEditor skills={skills} />
+      </LanguageProvider>
+    </ThemeWrapper>,
   );
+  if (edit) fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
+};
 const add = (name: string) => {
   fireEvent.change(screen.getByLabelText("New Skill"), { target: { value: name } });
   fireEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -48,20 +52,19 @@ describe("SkillsEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save skills" }));
     expect(await screen.findByText("TypeScript")).toBeInTheDocument();
     expect(screen.queryByText("typescript")).not.toBeInTheDocument();
-    // refresh() keeps client state, so the editor must already be clean without the new props.
-    await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(false));
-    expect(screen.getByText("Skills saved.")).toBeInTheDocument();
+    // refresh() keeps client state: back on the list with the API's list, clean, without new props.
+    expect(screen.queryByLabelText("New Skill")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Skills saved.");
   });
 
   it("counts a typed-but-not-added skill as an unsaved change", () => {
     show();
     fireEvent.change(screen.getByLabelText("New Skill"), { target: { value: "Go" } });
-    expect(dirty).toHaveBeenLastCalledWith(true);
     const unload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(unload);
     expect(unload.defaultPrevented).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(dirty).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
     expect(screen.getByLabelText("New Skill")).toHaveValue("");
   });
 
@@ -80,14 +83,22 @@ describe("SkillsEditor", () => {
     await waitFor(() => expect(action.replaceSkillsAction).toHaveBeenCalledWith(["TypeScript"]));
   });
 
-  it("reports dirty state to the parent, and Cancel discards", () => {
-    show();
-    expect(dirty).toHaveBeenLastCalledWith(false);
+  it("is a list with one pencil until you press it, and Cancel returns to the list and discards", () => {
+    show(["TypeScript"], false);
+    expect(screen.queryByLabelText("New Skill")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
     add("Go");
-    expect(dirty).toHaveBeenLastCalledWith(true);
+    expect(screen.getByText("Go")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(dirty).toHaveBeenLastCalledWith(false);
     expect(screen.queryByText("Go")).not.toBeInTheDocument();
+    expect(screen.getByText("TypeScript")).toBeInTheDocument();
+  });
+
+  it("offers a first-skill prompt when there are none", () => {
+    show([], false);
+    expect(screen.getByText("Add your first skill")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit skills" }));
+    expect(screen.getByLabelText("New Skill")).toBeInTheDocument();
   });
 
   it("warns before the tab closes only while there are unsaved changes", () => {
