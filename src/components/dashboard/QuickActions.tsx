@@ -1,103 +1,54 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Button, Card, CardContent, Typography, Stack, alpha, useTheme } from "@mui/material";
+import Link from "next/link";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-
+import ExploreIcon from "@mui/icons-material/Explore";
+import ExtensionIcon from "@mui/icons-material/Extension";
+import { Panel } from "@/components/layout/Panel";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface QuickActionsProps {
-  onAddProject?: () => void;
-  onEditProfile?: () => void;
+  editProfileHref: string;
 }
 
-const QuickActions: FC<QuickActionsProps> = ({ onAddProject, onEditProfile }) => {
+const QuickActions: FC<QuickActionsProps> = ({ editProfileHref }) => {
   const { t } = useLanguage();
-  const theme = useTheme();
+  const actions = [
+    { href: "/projects/new", icon: <AddIcon />, label: t.common.addNewProject },
+    { href: editProfileHref, icon: <EditIcon />, label: t.common.editProfile },
+    { href: "/search", icon: <ExploreIcon />, label: t.common.explorePortfolios },
+    { href: "/integrations", icon: <ExtensionIcon />, label: t.common.integrations },
+  ];
 
   return (
-    <Card
-      component="section"
-      aria-label={t.dashboard.quickActions}
-      variant="outlined"
-      sx={{
-        height: "100%",
-        transition: (t) => t.transitions.create("box-shadow"),
-      }}
-    >
-      <CardContent>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          {t.dashboard.quickActions}
-        </Typography>
-
-        <Stack spacing={2}>
+    <Panel title={t.dashboard.quickActions}>
+      <Stack spacing={1}>
+        {actions.map((a) => (
           <Button
-            fullWidth
-            size="large"
+            key={a.href}
+            component={Link}
+            href={a.href}
             variant="outlined"
-            onClick={onAddProject}
-            startIcon={<AddIcon />}
+            color="inherit"
+            startIcon={a.icon}
             sx={{
               justifyContent: "flex-start",
               textAlign: "left",
-              py: 2,
-              px: 2.5,
-              borderRadius: 2,
-              borderWidth: "1px",
-              borderColor: alpha(theme.palette.primary.main, 0.3),
-              backgroundColor: alpha(theme.palette.primary.main, 0.02),
-              color: theme.palette.text.primary,
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                borderColor: theme.palette.primary.main,
-              },
-              whiteSpace: "normal", // Allow text wrapping
-              height: "auto", // Allow height to grow
-              lineHeight: 1.5,
+              py: 1,
+              borderWidth: 1,
+              borderColor: "divider",
+              "&:hover": { borderWidth: 1, borderColor: "primary.main" },
             }}
           >
-            <Stack>
-              <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
-                {t.common.addNewProject}
-              </Typography>
-            </Stack>
+            {a.label}
           </Button>
-
-          <Button
-            fullWidth
-            size="large"
-            variant="outlined"
-            onClick={onEditProfile}
-            startIcon={<EditIcon />}
-            sx={{
-              justifyContent: "flex-start",
-              textAlign: "left",
-              py: 2,
-              px: 2.5,
-              borderRadius: 2,
-              borderWidth: "1px",
-              borderColor: alpha(theme.palette.secondary.main, 0.3),
-              backgroundColor: alpha(theme.palette.secondary.main, 0.02),
-              color: theme.palette.text.primary,
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.secondary.main, 0.08),
-                borderColor: theme.palette.secondary.main,
-              },
-              whiteSpace: "normal",
-              height: "auto",
-              lineHeight: 1.5,
-            }}
-          >
-            <Stack>
-              <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
-                {t.common.editProfile}
-              </Typography>
-            </Stack>
-          </Button>
-        </Stack>
-      </CardContent>
-    </Card>
+        ))}
+      </Stack>
+    </Panel>
   );
 };
 

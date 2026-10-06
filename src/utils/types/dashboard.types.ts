@@ -1,7 +1,10 @@
+import type { ProjectCategory } from "@/components/theme/tokens";
+
 export interface Project {
   id: string;
   title: string;
   description: string;
+  category: ProjectCategory;
   status: "ongoing" | "completed" | "archived";
   technologies: string[];
   lastUpdated: string;

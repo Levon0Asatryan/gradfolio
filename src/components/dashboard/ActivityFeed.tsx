@@ -1,208 +1,84 @@
 "use client";
 
 import { FC, memo } from "react";
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Skeleton,
-  Stack,
-  Typography,
-  useTheme,
-  alpha,
-} from "@mui/material";
-import {
-  Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  Notifications as DefaultIcon,
-} from "@mui/icons-material";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { Activity } from "@/utils/types/dashboard.types";
-import { formatDate } from "@/utils/helpers/formatDate";
+import { formatDay } from "@/utils/helpers/formatDay";
+import { Panel } from "@/components/layout/Panel";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ActivityFeedProps {
   items?: Activity[];
-  loading?: boolean;
 }
 
-const getActivityIcon = (type: Activity["type"]) => {
-  switch (type) {
-    case "project":
-      return <EditIcon fontSize="small" />;
-    case "profile":
-      return <VisibilityIcon fontSize="small" />;
-    default:
-      return <DefaultIcon fontSize="small" />;
-  }
-};
+const interpolate = (text: string, params?: Record<string, string | number>) =>
+  params ? text.replace(/{(\w+)}/g, (_, key) => String(params[key] ?? `{${key}}`)) : text;
 
-const getActivityColor = (type: Activity["type"]): "success" | "warning" | "info" => {
-  switch (type) {
-    case "project":
-      return "success";
-    case "profile":
-      return "warning";
-    default:
-      return "info";
-  }
-};
-
-const interpolate = (text: string, params?: Record<string, string | number>) => {
-  if (!params) return text;
-  return text.replace(/{(\w+)}/g, (_, key) => String(params[key] ?? `{${key}}`));
-};
-
-const ActivityFeed: FC<ActivityFeedProps> = ({ items = [], loading }) => {
-  const { t } = useLanguage();
-  const theme = useTheme();
-
-  if (loading) {
-    return (
-      <Card
-        component="section"
-        aria-label={t.dashboard.activityFeed}
-        variant="outlined"
-        sx={{
-          height: "100%",
-          transition: (t) => t.transitions.create("box-shadow"),
-          "&:hover": { boxShadow: 6 },
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {t.dashboard.activityFeed}
-          </Typography>
-          <Stack spacing={2}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Box
-                key={i}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Skeleton variant="circular" width={40} height={40} />
-                  <Stack spacing={0.5} sx={{ flex: 1 }}>
-                    <Skeleton variant="text" width="80%" height={24} />
-                    <Skeleton variant="text" width="40%" height={20} />
-                  </Stack>
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!items || items.length === 0) {
-    return (
-      <Card
-        component="section"
-        aria-label={t.dashboard.activityFeed}
-        variant="outlined"
-        sx={{
-          height: "100%",
-          transition: (t) => t.transitions.create("box-shadow"),
-          "&:hover": { boxShadow: 6 },
-        }}
-      >
-        <CardContent sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {t.dashboard.activityFeed}
-          </Typography>
-          <Box
-            sx={{
-              textAlign: "center",
-              py: 4,
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              {t.dashboard.noRecentActivity}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    );
-  }
+const ActivityFeed: FC<ActivityFeedProps> = ({ items = [] }) => {
+  const { t, language } = useLanguage();
+  const templates: Record<string, string> = t.dashboard.activity;
 
   return (
-    <Card
-      component="section"
-      aria-label={t.dashboard.activityFeed}
-      variant="outlined"
-      sx={{
-        height: "100%",
-        transition: (t) => t.transitions.create("box-shadow"),
-        "&:hover": { boxShadow: 6 },
-      }}
-    >
-      <CardContent>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }} id="activity-feed">
-          {t.dashboard.activityFeed}
+    <Panel title={t.dashboard.activityFeed}>
+      {items.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          {t.dashboard.noRecentActivity}
         </Typography>
-        <Stack spacing={2}>
-          {items.map((a) => {
-            const rawTemplate =
-              t.dashboard.activity[a.translationKey as keyof typeof t.dashboard.activity] ||
-              a.translationKey;
-            const message = interpolate(rawTemplate, a.translationParams);
-
-            const colorKey = getActivityColor(a.type);
-            const paletteColor = theme.palette[colorKey];
-
-            return (
+      ) : (
+        <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0 }}>
+          {items.map((a) => (
+            <Box
+              component="li"
+              key={a.id}
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 2,
+                py: 1.5,
+                borderTop: 1,
+                borderColor: "divider",
+                "&:first-of-type": { borderTop: 0, pt: 0 },
+                "&:last-of-type": { pb: 0 },
+              }}
+            >
               <Box
-                key={a.id}
-                sx={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 2,
-                  p: 2,
-                  borderRadius: 2,
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: alpha(paletteColor.main, 0.3),
-                  backgroundColor: alpha(paletteColor.main, 0.02),
-                  transition: theme.transitions.create(["background-color", "border-color"]),
-                  "&:hover": {
-                    backgroundColor: alpha(paletteColor.main, 0.08),
-                    borderColor: paletteColor.main,
-                  },
-                }}
+                aria-hidden
+                sx={({ palette }) => ({
+                  width: 36,
+                  height: 36,
+                  flex: "none",
+                  borderRadius: 3,
+                  display: "grid",
+                  placeItems: "center",
+                  color: a.type === "project" ? palette.success.main : palette.info.main,
+                  bgcolor: palette.surface.soft,
+                })}
               >
-                <Avatar
-                  sx={{
-                    bgcolor: alpha(paletteColor.main, 0.1),
-                    color: paletteColor.main,
-                    width: 40,
-                    height: 40,
-                  }}
-                >
-                  {getActivityIcon(a.type)}
-                </Avatar>
-                <Stack spacing={0.5} sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.4 }}>
-                    {message}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {formatDate(a.timestamp, { withTime: true })}
-                  </Typography>
-                </Stack>
+                {a.type === "project" ? (
+                  <EditIcon fontSize="small" />
+                ) : (
+                  <VisibilityIcon fontSize="small" />
+                )}
               </Box>
-            );
-          })}
-        </Stack>
-      </CardContent>
-    </Card>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle2" sx={{ overflowWrap: "anywhere" }}>
+                  {interpolate(
+                    templates[a.translationKey] ?? a.translationKey,
+                    a.translationParams,
+                  )}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {formatDay(a.timestamp, language)}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Panel>
   );
 };
 
