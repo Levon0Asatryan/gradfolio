@@ -161,6 +161,7 @@ describe("ProfileView", () => {
       expect(action.updateProfileAction).toHaveBeenCalledTimes(1);
       expect(action.updateProfileAction.mock.calls[0]?.[0]).toMatchObject({ name: "Ani P." });
       expect(screen.queryByRole("form", { name: "Edit profile" })).not.toBeInTheDocument();
+      expect(await screen.findByRole("status")).toHaveTextContent("Changes saved");
     });
 
     it("keeps the form and the typed values when the save fails", async () => {
