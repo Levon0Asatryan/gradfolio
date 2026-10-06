@@ -1,0 +1,60 @@
+<title>Gradfolio Logo Options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap">
+<style>
+:root{--bg:#F6F8FC;--paper:#FFFFFF;--text:#0F172A;--text2:#475569;--line:#D5DCE8;--primary:#1D4ED8;--secondary:#BE185D}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1220;--paper:#131C2E;--text:#E6EDF8;--text2:#9FB0C9;--line:#2A3650;--primary:#93C5FD;--secondary:#F9A8D4;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B1220;--paper:#131C2E;--text:#E6EDF8;--text2:#9FB0C9;--line:#2A3650;--primary:#93C5FD;--secondary:#F9A8D4;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:400 16px/1.5 'Nunito',system-ui,sans-serif;padding-inline:16px;padding-block:32px 64px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+h1{font-size:30px;font-weight:800;margin:0}h2{font-size:22px;font-weight:800;margin:0}p{margin:0}
+.sub{color:var(--text2);max-width:62ch}
+.opt{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:18px}
+.oh{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.badge{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:var(--paper);display:grid;place-items:center;font-weight:800;font-size:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
+.pn{border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;min-height:170px;min-width:0;border:1px solid var(--line)}
+.pn small{font-size:12px;font-weight:700;opacity:.8;letter-spacing:.04em;text-transform:uppercase}
+.l{background:#fff;color:#0F172A}.d{background:#0B1220;color:#E6EDF8}.c{background:linear-gradient(135deg,#1D4ED8,#BE185D);color:#fff}.a{background:#FCD34D;color:#0F172A}
+.row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;justify-content:center}
+.row span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px}
+.wide{grid-column:1/-1}
+svg{display:block;max-width:100%}
+</style>
+<div class="wrap">
+<header><h1>Gradfolio logo options</h1><p class="sub">Three marks in palette C (blue to magenta, amber accent). Each shows gradient, flat one-colour, app tile, on light, dark and colour, and from 16px up. Reply with A, B or C.</p></header>
+<div id="out" style="display:flex;flex-direction:column;gap:36px"></div>
+</div>
+<script>
+let n=0;
+const LIGHT={p:'#1D4ED8',s:'#BE185D',a:'#D97706'},DARK={p:'#93C5FD',s:'#F9A8D4',a:'#FCD34D'};
+function shapes(k,m,acc){
+ if(k==='A')return `<path d="M32 9 58 22 32 35 6 22z" fill="${m}" stroke="${m}" stroke-width="4" stroke-linejoin="round"/><path d="M17 33v10c0 4.5 6.7 8 15 8s15-3.5 15-8V33l-15 7.5z" fill="${m}"/><path d="M54 25v15" stroke="${acc}" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="54" cy="43.5" r="3.5" fill="${acc}"/>`;
+ if(k==='B')return `<path d="M44 20A17 17 0 1 0 47 36V31H32" fill="none" stroke="${m}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="52" cy="14" r="4" fill="${acc}"/>`;
+ return `<path d="M30 24C23 18 14 17 8 19V47c6-2 15-2 22 4z" fill="${m}"/><path d="M34 24C41 18 50 17 56 19V47c-6-2-15-2-22 4z" fill="${m}" opacity="${m==='currentColor'?.62:1}"/><path d="M32 3 43 8.5 32 14 21 8.5z" fill="${acc}" stroke="${acc}" stroke-width="2" stroke-linejoin="round"/>`}
+function mark(k,v,size,pal){
+ const id='g'+(++n),P=pal||LIGHT;
+ const g=`<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="6" y1="6" x2="58" y2="58"><stop offset="0" stop-color="${P.p}"/><stop offset="1" stop-color="${P.s}"/></linearGradient></defs>`;
+ let body;
+ if(v==='grad')body=g+shapes(k,`url(#${id})`,P.a);
+ else if(v==='flat')body=shapes(k,'currentColor','currentColor');
+ else body=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1D4ED8"/><stop offset="1" stop-color="#BE185D"/></linearGradient></defs><rect width="64" height="64" rx="15" fill="url(#${id})"/><g transform="translate(32 33) scale(.72) translate(-32 -32)">${shapes(k,'#FFFFFF','#FCD34D')}</g>`;
+ return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" role="img" aria-label="Gradfolio mark">${body}</svg>`}
+function lock(k,dark,h){
+ const P=dark?DARK:LIGHT,id='w'+(++n),tx=dark?'#E6EDF8':'#0F172A';
+ return `<svg height="${h}" viewBox="0 0 250 64" role="img" aria-label="Gradfolio"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="250" y2="64"><stop offset="0" stop-color="${P.p}"/><stop offset="1" stop-color="${P.s}"/></linearGradient></defs><g>${shapes(k,`url(#${id})`,P.a)}</g><text x="76" y="44" font-family="Nunito,system-ui,sans-serif" font-weight="800" font-size="36" letter-spacing="-.5"><tspan fill="${tx}">Grad</tspan><tspan fill="url(#${id})">folio</tspan></text></svg>`}
+const NAMES={A:['Cap','A mortarboard whose base reads as an open folder. Education plus portfolio in one glance. Amber tassel is the accent.'],B:['G spark','A bold rounded G monogram with an amber spark. Strongest as a tiny favicon and the easiest to read as a brand.'],C:['Open folio','An open book with a cap floating above it. Pages rise outward like growth. The friendliest and most illustrative.']};
+const sizes=[16,24,32,48,64,96];
+document.getElementById('out').innerHTML=['A','B','C'].map(k=>`<section class="opt" aria-labelledby="t${k}"><div class="oh"><span class="badge">${k}</span><div><h2 id="t${k}">${NAMES[k][0]}</h2><p class="sub">${NAMES[k][1]}</p></div></div>
+<div class="grid">
+<div class="pn l"><small>Gradient, light</small>${mark(k,'grad',120)}</div>
+<div class="pn d"><small>Gradient, dark</small>${mark(k,'grad',120,DARK)}</div>
+<div class="pn c"><small>Flat white on colour</small><span style="color:#fff">${mark(k,'flat',120)}</span></div>
+<div class="pn a"><small>Flat on amber</small><span style="color:#0F172A">${mark(k,'flat',120)}</span></div>
+<div class="pn l"><small>Flat, one colour</small><span style="color:#1D4ED8">${mark(k,'flat',120)}</span></div>
+<div class="pn l"><small>App tile</small>${mark(k,'tile',120)}</div>
+<div class="pn l wide"><small>Sizes 16 24 32 48 64 96, tile then gradient</small><div class="row">${sizes.map(s=>`<span>${mark(k,'tile',s)}${s}</span>`).join('')}<span style="margin-left:12px"></span>${sizes.map(s=>`<span>${mark(k,'grad',s)}${s}</span>`).join('')}</div></div>
+<div class="pn l wide"><small>Horizontal lockup</small>${lock(k,false,64)}${lock(k,false,32)}</div>
+<div class="pn d wide"><small>Horizontal lockup, dark</small>${lock(k,true,64)}${lock(k,true,32)}</div>
+</div></section>`).join('');
+</script>

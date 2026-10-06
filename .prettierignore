@@ -10,3 +10,4 @@ public/
 .idea/
 src/lib/api/openapi.yaml
 src/lib/api/schema.d.ts
+brand/
