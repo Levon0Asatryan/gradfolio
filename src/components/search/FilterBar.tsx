@@ -11,7 +11,7 @@ export interface FilterBarProps {
 }
 
 /** The role filters; the keys are what `ExplorePage` matches on. */
-export const ROLE_FILTERS = [
+const ROLE_FILTERS = [
   "All",
   "Developers",
   "Designers",
