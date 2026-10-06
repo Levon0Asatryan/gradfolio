@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, type FC, useCallback } from "react";
+import { memo, type FC } from "react";
 import {
   Button,
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ConfirmDisconnectDialogProps {
   open: boolean;
@@ -17,43 +18,30 @@ export interface ConfirmDisconnectDialogProps {
   onConfirm: () => void;
 }
 
-/**
- * ConfirmDisconnectDialog
- * Asks for confirmation before disconnecting an integration.
- */
+/** Asks for confirmation before disconnecting an integration. */
 const ConfirmDisconnectDialog: FC<ConfirmDisconnectDialogProps> = ({
   open,
   name,
   onCancel,
   onConfirm,
 }) => {
-  const handleClose = useCallback((): void => {
-    onCancel();
-  }, [onCancel]);
-
-  const handleCancel = useCallback((): void => {
-    onCancel();
-  }, [onCancel]);
-
-  const handleConfirm = useCallback((): void => {
-    onConfirm();
-  }, [onConfirm]);
+  const { t } = useLanguage();
+  const d = t.integrations.dialog;
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
-      <DialogTitle>Disconnect {name}?</DialogTitle>
+    <Dialog open={open} onClose={onCancel} fullWidth maxWidth="xs">
+      <DialogTitle>{d.disconnectTitle.replace("{name}", name)}?</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary">
-          Are you sure you want to disconnect {name}? You can reconnect at any time. Imported data
-          will remain, but the verification badge might be removed from your profile.
+          {d.disconnectBody}
         </Typography>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleCancel} color="inherit">
-          Cancel
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onCancel} color="inherit">
+          {d.cancel}
         </Button>
-        <Button onClick={handleConfirm} color="error" variant="contained">
-          Disconnect
+        <Button onClick={onConfirm} color="error" variant="contained">
+          {t.integrations.disconnect}
         </Button>
       </DialogActions>
     </Dialog>

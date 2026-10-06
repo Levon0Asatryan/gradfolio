@@ -197,6 +197,10 @@ export const en: Dictionary = {
       confirm: "Confirm",
       disconnectTitle: "Disconnect {name}",
       disconnectDesc: "Are you sure you want to disconnect {name}?",
+      connectBody:
+        "Connecting {name} turns on data import and a verification badge on your profile. You can disconnect at any time.",
+      disconnectBody:
+        "You can reconnect at any time. Imported data stays, but the verification badge may be removed from your profile.",
     },
     setup: {
       title: "Integrations Setup",
@@ -207,6 +211,13 @@ export const en: Dictionary = {
     },
   },
   projects: {
+    subtitle: "Everything you have built, with the evidence.",
+    noMatches: "No projects match your search.",
+    noMatchesHelp: "Try another word, or show every category.",
+    clearFilters: "Clear filters",
+    filterByCategory: "Category",
+    clearSearch: "Clear search",
+    moreTech: "{count} more technologies",
     categories: {
       course: "Course",
       personal: "Personal",
@@ -252,6 +263,22 @@ export const en: Dictionary = {
     },
   },
   dashboard: {
+    welcomeBack: "Welcome back, {name}",
+    welcomeSub: "Here is what is happening with your portfolio.",
+    welcomeBackAnon: "Welcome back",
+    overview: "Overview",
+    completeness: "Profile completeness",
+    completenessHelp:
+      "Your profile is {percent}% complete. A few more details and recruiters will remember you.",
+    completenessDone: "Your profile is complete. Nice work.",
+    stepsDone: "{done} of {total} done",
+    stepBasics: "Name, headline, bio and location",
+    stepContact: "Contact email",
+    stepPhoto: "Profile photo",
+    nextStep: "Next step",
+    nextBasics: "Fill in your details",
+    nextContact: "Add a contact email",
+    nextPhoto: "Add a photo",
     welcome: "Welcome",
     connections: "connections",
     engagement: "engagement",
@@ -286,7 +313,7 @@ export const en: Dictionary = {
     noResults: "No portfolios found",
     tryAdjusting: "Try adjusting your search or filters.",
     clearFilters: "Clear Filters",
-    showingResults: "Showing {count} result{s}",
+    showingResults: "Results: {count}",
     featuredProjects: "FEATURED PROJECTS",
     categories: {
       all: "All",

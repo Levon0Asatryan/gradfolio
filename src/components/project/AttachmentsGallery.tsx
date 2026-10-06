@@ -14,7 +14,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import { Panel } from "@/components/layout/Panel";
 import CloseIcon from "@mui/icons-material/Close";
 import Image from "next/image";
 import type { ProjectAttachment } from "@/data/project.mock";
@@ -37,30 +37,28 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
 
   if (!items || items.length === 0) {
     return (
-      <Card component="section" aria-label={t.common.attachments} sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
-            {t.common.attachments}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t.common.noAttachments}
-          </Typography>
-        </CardContent>
-      </Card>
+      <Panel title={t.common.attachments}>
+        <Typography variant="body2" color="text.secondary">
+          {t.common.noAttachments}
+        </Typography>
+      </Panel>
     );
   }
 
   return (
-    <Card component="section" aria-label={t.common.attachments} sx={{ mb: 3 }}>
-      <CardContent>
-        <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-          {t.common.attachmentsEvidence}
-        </Typography>
-        <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
+    <>
+      <Panel title={t.common.attachmentsEvidence}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 200px), 1fr))",
+            gap: 2,
+          }}
+        >
           {items.map((att) => (
-            <Grid key={att.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Box key={att.id} sx={{ display: "flex", minWidth: 0 }}>
               {att.type === "image" ? (
-                <Card variant="outlined">
+                <Card variant="outlined" sx={{ width: "100%" }}>
                   <CardActionArea
                     aria-label={att.title || t.common.openImage}
                     onClick={() => open(att.id)}
@@ -83,7 +81,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                   </CardActionArea>
                 </Card>
               ) : att.type === "video" ? (
-                <Card variant="outlined">
+                <Card variant="outlined" sx={{ width: "100%" }}>
                   <CardActionArea
                     component="a"
                     href={att.url}
@@ -113,26 +111,25 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                   </CardActionArea>
                 </Card>
               ) : (
-                <Card variant="outlined">
+                <Card variant="outlined" sx={{ width: "100%" }}>
                   <CardContent>
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       {att.title || att.url}
                     </Typography>
                     <Link href={att.url} target="_blank" rel="noopener noreferrer">
-                      Open{" "}
                       {att.type === "pdf"
-                        ? "PDF"
+                        ? t.common.openPDF
                         : isYouTube(att.url)
-                          ? t.common.video
+                          ? t.common.openVideo
                           : t.common.link}
                     </Link>
                   </CardContent>
                 </Card>
               )}
-            </Grid>
+            </Box>
           ))}
-        </Grid>
-      </CardContent>
+        </Box>
+      </Panel>
 
       <Dialog
         open={Boolean(active)}
@@ -197,7 +194,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
           </>
         )}
       </Dialog>
-    </Card>
+    </>
   );
 };
 

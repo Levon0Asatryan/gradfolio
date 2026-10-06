@@ -1,31 +1,21 @@
 "use client";
 
 import { type FC, memo, useCallback, useMemo, useState } from "react";
-import { Box, Container, Stack, Typography, type SxProps, type Theme } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import { Box, Typography, type SxProps, type Theme } from "@mui/material";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import IntegrationCard from "@/components/integrations/IntegrationCard";
 import ConnectIntegrationDialog from "@/components/integrations/ConnectIntegrationDialog";
 import ConfirmDisconnectDialog from "@/components/integrations/ConfirmDisconnectDialog";
 import { integrationsMock, type Integration, type IntegrationId } from "@/data/integrations.mock";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
-const containerSx: SxProps<Theme> = (theme) => ({
-  py: 3,
-  display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(2.5),
-});
-
-const headerSx: SxProps<Theme> = (theme) => ({
-  gap: theme.spacing(1),
-});
-
 const infoTextSx: SxProps<Theme> = (theme) => ({
-  bgcolor: theme.palette.action.hover,
-  color: theme.palette.text.secondary,
-  borderRadius: 1,
-  px: 1.5,
-  py: 1,
+  bgcolor: theme.palette.surface.soft,
+  color: theme.palette.text.primary,
+  borderRadius: 3,
+  px: 2,
+  py: 1.5,
 });
 
 const emptyStateSx: SxProps<Theme> = () => ({
@@ -117,7 +107,7 @@ const IntegrationsPage: FC = () => {
 
   const renderIntegrationItem = useCallback(
     (it: Integration) => (
-      <Grid key={it.id} size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
+      <Box key={it.id} sx={{ display: "flex", minWidth: 0 }}>
         <IntegrationCard
           id={it.id}
           name={it.name}
@@ -128,62 +118,48 @@ const IntegrationsPage: FC = () => {
           onDisconnect={openDisconnect}
           docUrl={it.docUrl}
         />
-      </Grid>
+      </Box>
     ),
     [openConnect, openDisconnect, t],
   );
 
-  if (!integrations || integrations.length === 0) {
-    return (
-      <Container maxWidth="md" sx={containerSx}>
-        <Stack sx={headerSx}>
-          <Typography component="h1" variant="h4">
-            {t.integrations.title}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {t.integrations.subtitle}
-          </Typography>
-        </Stack>
+  return (
+    <PageContainer maxWidth={900}>
+      <PageHeader title={t.integrations.title} subtitle={t.integrations.subtitle} />
+
+      {integrations.length === 0 ? (
         <Box sx={emptyStateSx}>
           <Typography variant="body1" color="text.secondary">
             {t.integrations.emptyState}
           </Typography>
         </Box>
-      </Container>
-    );
-  }
+      ) : (
+        <>
+          {noneConnected && (
+            <Box role="status" aria-live="polite" sx={infoTextSx}>
+              <Typography variant="body2">{t.integrations.infoText}</Typography>
+            </Box>
+          )}
 
-  return (
-    <Container maxWidth="md" sx={containerSx}>
-      <Stack sx={headerSx}>
-        <Typography component="h1" variant="h4">
-          {t.integrations.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {t.integrations.subtitle}
-        </Typography>
-      </Stack>
-
-      {noneConnected && (
-        <Box role="status" aria-live="polite" sx={infoTextSx}>
-          <Typography variant="body2">{t.integrations.infoText}</Typography>
-        </Box>
+          <Box
+            component="section"
+            aria-label={t.integrations.title}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
+              gap: 3,
+              alignItems: "stretch",
+            }}
+          >
+            {integrations.map(renderIntegrationItem)}
+          </Box>
+        </>
       )}
-
-      <Grid
-        container
-        spacing={2}
-        component="section"
-        alignItems="stretch"
-        columns={{ xs: 12, md: 12 }}
-      >
-        {integrations.map(renderIntegrationItem)}
-      </Grid>
 
       <ConnectIntegrationDialog
         open={connectOpen}
         name={target?.name ?? ""}
-        description={target?.description ?? ""}
+        description={target ? t.integrations.descriptions[target.id] : ""}
         onCancel={closeConnect}
         onConfirm={confirmConnect}
       />
@@ -194,7 +170,7 @@ const IntegrationsPage: FC = () => {
         onCancel={closeDisconnect}
         onConfirm={confirmDisconnect}
       />
-    </Container>
+    </PageContainer>
   );
 };
 

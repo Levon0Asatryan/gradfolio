@@ -1,6 +1,5 @@
-import Grid from "@mui/material/Grid";
-// import Link from "next/link"; // Removed
-// import ArrowBackIcon from "@mui/icons-material/ArrowBack"; // Removed
+import Box from "@mui/material/Box";
+import { PageContainer } from "@/components/layout/PageContainer";
 import BackButton from "@/components/project/BackButton";
 import ProjectHeader from "@/components/project/ProjectHeader";
 import ProjectDescription from "@/components/project/ProjectDescription";
@@ -10,7 +9,6 @@ import TeamList from "@/components/project/TeamList";
 import TechTagsClient from "@/components/project/TechTagsClient";
 import { getProjectById } from "@/data/project.mock";
 import { notFound } from "next/navigation";
-import { PageContainer } from "@/components/layout/PageContainer";
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
@@ -31,28 +29,36 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   if (!data) return notFound();
 
   return (
-    <PageContainer gap={0}>
+    <PageContainer maxWidth={1100}>
       <BackButton />
 
       <ProjectHeader
         title={data.title}
         aiSummary={data.aiSummary}
+        category={data.metadata?.category}
         heroImageUrl={data.heroImageUrl}
         repo={data.repo}
         liveDemoUrl={data.liveDemoUrl}
       />
 
-      <Grid container spacing={2} columns={{ xs: 12, md: 12 }}>
-        <Grid size={{ xs: 12, md: 8 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 2fr) minmax(0, 1fr)" },
+          gap: 3,
+          alignItems: "start",
+        }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
           <ProjectDescription html={data.descriptionHtml} />
           <AttachmentsGallery items={data.attachments} />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        </Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
           <ProjectMetadataCard metadata={data.metadata} />
           <TechTagsClient items={data.technologies} />
           <TeamList members={data.team} />
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </PageContainer>
   );
 }

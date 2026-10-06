@@ -1,11 +1,16 @@
 "use client";
 
-import { FC, memo, useMemo } from "react";
+import { FC, memo, useId, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
+import Chip from "@mui/material/Chip";
+import Typography from "@mui/material/Typography";
 import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
+import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectDetailData } from "@/data/project.mock";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
@@ -14,8 +19,7 @@ export interface ProjectCardProps {
   highlightQuery?: string;
 }
 
-// Helper to highlight matching text
-// Replaced by src/components/shared/HighlightedText.tsx
+const MAX_TAGS = 4;
 
 function truncate(text: string, max = 160) {
   if (!text) return "";
@@ -25,18 +29,6 @@ function truncate(text: string, max = 160) {
   return (cut > 0 ? sliced.slice(0, cut) : sliced).trimEnd() + "…";
 }
 
-const categoryColor: Record<
-  string,
-  "default" | "primary" | "secondary" | "success" | "warning" | "info" | "error"
-> = {
-  course: "info",
-  personal: "success",
-  research: "secondary",
-  hackathon: "warning",
-  other: "default",
-  "N/A": "default",
-};
-
 function formatDate(date?: string) {
   if (!date) return undefined;
   const d = new Date(date);
@@ -44,150 +36,100 @@ function formatDate(date?: string) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short" });
 }
 
-const cardSx = (theme: any) => ({
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-  "&:hover": {
-    transform: "translateY(-4px)",
-    boxShadow: theme.shadows[4],
-    borderColor: "primary.main",
-    "& .hero-image": {
-      transform: "scale(1.05)",
-    },
-  },
-});
-
 const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
-  const href = `/projects/${id}`;
   const { t } = useLanguage();
+  const titleId = useId();
 
   const { visibleTags, remainingCount } = useMemo(() => {
-    const maxTags = 4;
-    const visible = (technologies ?? []).slice(0, maxTags);
-    const remaining = Math.max(0, (technologies?.length ?? 0) - visible.length);
-    return { visibleTags: visible, remainingCount: remaining };
+    const visible = (technologies ?? []).slice(0, MAX_TAGS);
+    return {
+      visibleTags: visible,
+      remainingCount: Math.max(0, (technologies?.length ?? 0) - visible.length),
+    };
   }, [technologies]);
 
   const start = formatDate(metadata?.startDate);
   const end = formatDate(metadata?.endDate);
-  const range =
-    start || end
-      ? `${start ?? ""}${start || end ? " – " : ""}${end ?? t.common.present}`
-      : undefined;
-  const cat = metadata?.category ?? "other";
+  const range = start || end ? `${start ?? ""} – ${end ?? t.common.present}` : undefined;
+  const category = isProjectCategory(metadata?.category) ? metadata.category : "other";
 
   return (
-    <Card variant="outlined" component="article" aria-label={`Project ${title}`} sx={cardSx}>
+    <Card component="article" sx={{ display: "flex", minWidth: 0 }}>
       <CardActionArea
         component={Link}
-        href={href}
-        aria-label={`Open ${title}`}
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "stretch",
-          justifyContent: "flex-start",
-          textAlign: "inherit",
-        }}
+        href={`/projects/${id}`}
+        aria-labelledby={titleId}
+        sx={{ display: "flex", flexDirection: "column", alignItems: "stretch" }}
       >
-        {/* Hero image */}
         <Box
-          sx={{
+          aria-hidden
+          sx={({ palette }) => ({
             position: "relative",
-            width: "100%",
-            height: 160,
-            bgcolor: "action.hover",
-            overflow: "hidden", // Ensure image zoom doesn't overflow
-          }}
+            height: 144,
+            overflow: "hidden",
+            display: "grid",
+            placeItems: "center",
+            color: palette.category[category].fg,
+            bgcolor: palette.category[category].bg,
+            fontSize: "2.5rem",
+            fontWeight: 800,
+          })}
         >
           {heroImageUrl ? (
             <Image
               unoptimized
               src={heroImageUrl}
-              alt={`${title} hero image`}
+              alt=""
               fill
-              className="hero-image" // Add class for hover targeting
               sizes="(max-width: 600px) 100vw, 33vw"
-              style={{
-                objectFit: "cover",
-                transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)", // Smooth zoom
-              }}
+              style={{ objectFit: "cover" }}
             />
           ) : (
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                No image
-              </Typography>
-            </Box>
+            title.trim().charAt(0).toUpperCase()
           )}
         </Box>
-        <CardContent sx={{ flexGrow: 1, width: "100%" }}>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-            {cat && (
-              <Chip
-                size="small"
-                label={t.projects.categories[cat as keyof typeof t.projects.categories] || cat}
-                color={categoryColor[cat] ?? "default"}
-                aria-label={`Category ${cat}`}
-              />
-            )}
+        <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5, flex: 1 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+            <CategoryChip category={category} />
             {range && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                aria-label={`Date range ${range}`}
-              >
+              <Typography variant="caption" color="text.secondary">
                 {range}
               </Typography>
             )}
-          </Stack>
-
+          </Box>
           <Typography
+            id={titleId}
             variant="h6"
             component="h3"
             sx={{
-              mb: 0.5,
               display: "-webkit-box",
-              WebkitLineClamp: 1,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              lineHeight: 1.5,
-              py: 0.2, // Add small vertical padding to container to show highlight edges
+              overflowWrap: "anywhere",
             }}
           >
             <HighlightedText text={title} query={highlightQuery} />
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          <Typography variant="body2" color="text.secondary">
             {truncate(aiSummary, 170)}
           </Typography>
-
           {visibleTags.length > 0 && (
-            <Stack direction="row" flexWrap="wrap" sx={{ mb: 1 }}>
-              {visibleTags.map((t) => (
-                <Tag key={t} label={<HighlightedText text={t} query={highlightQuery} />} />
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: "auto" }}>
+              {visibleTags.map((tag) => (
+                <Tag key={tag} label={<HighlightedText text={tag} query={highlightQuery} />} />
               ))}
               {remainingCount > 0 && (
                 <Chip
                   size="small"
                   label={`+${remainingCount}`}
-                  aria-label={`${remainingCount} more technologies`}
+                  aria-label={t.projects.moreTech.replace("{count}", String(remainingCount))}
                 />
               )}
-            </Stack>
+            </Box>
           )}
-        </CardContent>
+        </Box>
       </CardActionArea>
     </Card>
   );

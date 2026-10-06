@@ -1,7 +1,7 @@
 "use client";
 
-import { FC, memo, useMemo, useState } from "react";
-import { Box, Container } from "@mui/material";
+import { FC, memo, useCallback, useMemo, useState } from "react";
+import { PageContainer } from "@/components/layout/PageContainer";
 import SearchHeader from "./SearchHeader";
 import FilterBar from "./FilterBar";
 import ResultsGrid from "./ResultsGrid";
@@ -64,16 +64,21 @@ const ExplorePage: FC = () => {
     });
   }, [searchQuery, activeCategory]);
 
+  const clearFilters = useCallback(() => {
+    setSearchQuery("");
+    setActiveCategory("All");
+  }, []);
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default", pt: 6, pb: 10 }}>
-      <Container maxWidth="xl">
-        <SearchHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-
-        <FilterBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
-
-        <ResultsGrid portfolios={filteredPortfolios} searchQuery={searchQuery} />
-      </Container>
-    </Box>
+    <PageContainer>
+      <SearchHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <FilterBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+      <ResultsGrid
+        portfolios={filteredPortfolios}
+        searchQuery={searchQuery}
+        onClearFilters={clearFilters}
+      />
+    </PageContainer>
   );
 };
 

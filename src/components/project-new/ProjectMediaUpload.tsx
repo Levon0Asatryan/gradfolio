@@ -21,6 +21,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Image from "next/image";
 import { ProjectAttachmentForm } from "./types";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectMediaUploadProps {
   attachments: ProjectAttachmentForm[];
@@ -29,6 +30,7 @@ export interface ProjectMediaUploadProps {
 }
 
 const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, onRemove }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [newType, setNewType] = useState<ProjectAttachmentForm["type"]>("image");
   const [newUrl, setNewUrl] = useState("");
@@ -51,13 +53,21 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
   }, [newUrl, newType, newTitle, onAdd]);
 
   return (
-    <Box component="section" aria-label="Media Upload" sx={{ mb: 4 }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography variant="h6" component="h2">
-          Attachments / Evidence
+    <Box component="section" aria-labelledby="media-title">
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        useFlexGap
+        flexWrap="wrap"
+        gap={2}
+        sx={{ mb: 2 }}
+      >
+        <Typography id="media-title" variant="h6" component="h2">
+          {t.projects.form.attachments}
         </Typography>
         <Button startIcon={<AddIcon />} variant="outlined" onClick={() => setOpen(true)}>
-          Add Media
+          {t.projects.form.addMedia}
         </Button>
       </Stack>
 
@@ -66,9 +76,9 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
           variant="outlined"
           sx={{ p: 4, textAlign: "center", bgcolor: "background.default", borderStyle: "dashed" }}
         >
-          <Typography color="text.secondary">No attachments added yet.</Typography>
+          <Typography color="text.secondary">{t.projects.form.noAttachments}</Typography>
           <Button sx={{ mt: 1 }} onClick={() => setOpen(true)}>
-            Add your first attachment
+            {t.projects.form.addFirstAttachment}
           </Button>
         </Card>
       ) : (
@@ -83,12 +93,12 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
                     position: "absolute",
                     top: 4,
                     right: 4,
-                    bgcolor: "rgba(0,0,0,0.5)",
-                    color: "white",
-                    "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+                    bgcolor: "background.paper",
+                    color: "text.primary",
+                    "&:hover": { bgcolor: "background.paper" },
                     zIndex: 1,
                   }}
-                  aria-label="Remove attachment"
+                  aria-label={t.projects.form.removeAttachment}
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
@@ -96,7 +106,7 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
                   {att.type === "image" || (att.type === "video" && att.thumbnailUrl) ? (
                     <Image
                       src={att.type === "image" ? att.url : att.thumbnailUrl!}
-                      alt={att.title || "Attachment"}
+                      alt={att.title || t.projects.form.attachments}
                       fill
                       sizes="(max-width: 600px) 100vw, 300px"
                       style={{ objectFit: "cover" }}
@@ -129,30 +139,30 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Attachment</DialogTitle>
+        <DialogTitle>{t.projects.form.addAttachmentTitle}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               select
-              label="Type"
+              label={t.projects.form.type}
               value={newType}
               onChange={(e) => setNewType(e.target.value as any)}
               fullWidth
             >
-              <MenuItem value="image">Image</MenuItem>
-              <MenuItem value="video">Video</MenuItem>
-              <MenuItem value="pdf">PDF</MenuItem>
-              <MenuItem value="link">Link</MenuItem>
+              <MenuItem value="image">{t.common.image}</MenuItem>
+              <MenuItem value="video">{t.common.video}</MenuItem>
+              <MenuItem value="pdf">{t.common.pdf}</MenuItem>
+              <MenuItem value="link">{t.common.link}</MenuItem>
             </TextField>
             <TextField
-              label="URL"
+              label={t.projects.form.url}
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               fullWidth
               placeholder="e.g. https://..."
             />
             <TextField
-              label="Title (Optional)"
+              label={t.projects.form.attachmentTitle}
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               fullWidth
@@ -160,7 +170,7 @@ const ProjectMediaUpload: FC<ProjectMediaUploadProps> = ({ attachments, onAdd, o
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t.projects.form.cancel}</Button>
           <Button onClick={handleAdd} variant="contained" disabled={!newUrl}>
             Add
           </Button>

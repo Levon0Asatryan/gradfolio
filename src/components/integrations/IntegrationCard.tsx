@@ -30,7 +30,6 @@ export interface IntegrationCardProps {
 }
 
 const cardSx: SxProps<Theme> = (theme) => ({
-  p: 1,
   bgcolor: theme.palette.background.paper,
   width: "100%",
   height: "100%",
@@ -38,14 +37,16 @@ const cardSx: SxProps<Theme> = (theme) => ({
   flexDirection: "column",
 });
 
-const contentSx: SxProps<Theme> = () => ({
+const contentSx: SxProps<Theme> = {
   flexGrow: 1,
-});
+  p: 3,
+  "&:last-child": { pb: 2 },
+};
 
 const headerRowSx: SxProps<Theme> = (theme) => ({
   alignItems: "center",
   justifyContent: "space-between",
-  mb: 0.5,
+  mb: 1.5,
   gap: theme.spacing(1),
 });
 
@@ -54,8 +55,8 @@ const descriptionSx: SxProps<Theme> = (theme) => ({
 });
 
 const actionsRowSx: SxProps<Theme> = (theme) => ({
-  px: 2,
-  pb: 1.5,
+  px: 3,
+  pb: 3,
   pt: 0,
   display: "flex",
   alignItems: "center",
@@ -67,10 +68,10 @@ const iconBoxSx: SxProps<Theme> = (theme) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  width: 32,
-  height: 32,
-  borderRadius: 1,
-  bgcolor: theme.palette.action.hover,
+  width: 40,
+  height: 40,
+  borderRadius: 3,
+  bgcolor: theme.palette.surface.soft,
   color: theme.palette.text.primary,
 });
 
@@ -129,10 +130,10 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
   }, [lastSyncedAt, t]);
 
   return (
-    <Card component="section" variant="outlined" sx={cardSx}>
+    <Card component="section" sx={cardSx}>
       <CardContent sx={contentSx}>
         <Stack direction="row" sx={headerRowSx}>
-          <Stack direction="row" alignItems="center" spacing={1.25}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
             <Box sx={iconBoxSx}>{ProviderIcon}</Box>
             <Typography component="h3" variant="h6">
               {name}
@@ -145,7 +146,7 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
           {description}
         </Typography>
 
-        <Box mt={1}>{lastSyncText}</Box>
+        {lastSyncText && <Box mt={1}>{lastSyncText}</Box>}
       </CardContent>
 
       <CardActions sx={actionsRowSx}>
@@ -159,7 +160,7 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
           </Button>
           <Button
             variant="text"
-            color="secondary"
+            color="primary"
             size="small"
             onClick={handleLearnMoreClick}
             disabled={!docUrl}
@@ -167,8 +168,6 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
             {t.integrations.buttons.learnMore}
           </Button>
         </Stack>
-        {/* Placeholder for potential secondary actions or badges */}
-        <span />
       </CardActions>
     </Card>
   );

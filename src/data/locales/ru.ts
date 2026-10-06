@@ -196,6 +196,10 @@ export const ru: Dictionary = {
       confirm: "Подтвердить",
       disconnectTitle: "Отключить {name}",
       disconnectDesc: "Вы уверены, что хотите отключить {name}?",
+      connectBody:
+        "После подключения {name} включается импорт данных и значок проверки в профиле. Отключить можно в любой момент.",
+      disconnectBody:
+        "Подключить снова можно в любой момент. Импортированные данные останутся, но значок проверки может пропасть из профиля.",
     },
     setup: {
       title: "Настройка интеграций",
@@ -206,6 +210,13 @@ export const ru: Dictionary = {
     },
   },
   projects: {
+    subtitle: "Всё, что вы создали, с подтверждениями.",
+    noMatches: "Проектов по запросу не найдено.",
+    noMatchesHelp: "Попробуйте другое слово или покажите все категории.",
+    clearFilters: "Сбросить фильтры",
+    filterByCategory: "Категория",
+    clearSearch: "Очистить поиск",
+    moreTech: "Ещё технологий: {count}",
     categories: {
       course: "Курсовой",
       personal: "Личный",
@@ -251,6 +262,21 @@ export const ru: Dictionary = {
     },
   },
   dashboard: {
+    welcomeBack: "С возвращением, {name}",
+    welcomeSub: "Вот что происходит с вашим портфолио.",
+    welcomeBackAnon: "С возвращением",
+    overview: "Обзор",
+    completeness: "Заполненность профиля",
+    completenessHelp: "Профиль заполнен на {percent}%. Ещё немного, и рекрутеры вас запомнят.",
+    completenessDone: "Профиль полностью заполнен. Отличная работа.",
+    stepsDone: "{done} из {total}",
+    stepBasics: "Имя, заголовок, о себе и город",
+    stepContact: "Контактная почта",
+    stepPhoto: "Фото профиля",
+    nextStep: "Следующий шаг",
+    nextBasics: "Заполнить данные",
+    nextContact: "Добавить почту",
+    nextPhoto: "Добавить фото",
     welcome: "Добро пожаловать",
     connections: "связей",
     engagement: "вовлеченность",
@@ -285,7 +311,7 @@ export const ru: Dictionary = {
     noResults: "Портфолио не найдено",
     tryAdjusting: "Попробуйте изменить поиск или фильтры.",
     clearFilters: "Очистить фильтры",
-    showingResults: "Показано {count} результат{s}",
+    showingResults: "Результатов: {count}",
     featuredProjects: "ИЗБРАННЫЕ ПРОЕКТЫ",
     categories: {
       all: "Все",

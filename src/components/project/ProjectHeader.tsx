@@ -1,87 +1,101 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import Image from "next/image";
 import type { RepoInfo } from "@/data/project.mock";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
+import { CategoryChip } from "@/components/shared/CategoryChip";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectHeaderProps {
   title: string;
   aiSummary: string;
+  category?: string;
   heroImageUrl?: string;
   repo?: RepoInfo;
   liveDemoUrl?: string;
 }
 
-import { useLanguage } from "@/components/i18n/LanguageContext";
-
 const ProjectHeader: FC<ProjectHeaderProps> = ({
   title,
   aiSummary,
+  category,
   heroImageUrl,
   repo,
   liveDemoUrl,
 }) => {
   const { t } = useLanguage();
+  // User-supplied links are rendered only as http(s).
+  const repoHref = repo?.url ? safeHttpUrl(repo.url) : undefined;
+  const demoHref = liveDemoUrl ? safeHttpUrl(liveDemoUrl) : undefined;
 
   return (
-    <Box component="header" aria-label="Project Header" sx={{ mb: 3 }}>
+    <Box component="header" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {heroImageUrl && (
         <Box
           sx={{
             position: "relative",
             width: "100%",
-            borderRadius: 1,
+            borderRadius: 5,
             overflow: "hidden",
             aspectRatio: "16 / 9",
-            mb: 2,
+            maxHeight: 420,
           }}
         >
           <Image
             src={heroImageUrl}
-            alt={`${title} hero image`}
+            alt=""
             fill
-            sizes="(max-width: 900px) 100vw, 900px"
+            sizes="(max-width: 1100px) 100vw, 1100px"
             style={{ objectFit: "cover" }}
             unoptimized
           />
         </Box>
       )}
 
-      <Typography variant="h4" component="h1" sx={{ mb: 1, wordBreak: "break-word" }}>
+      {category && (
+        <Box>
+          <CategoryChip category={category} />
+        </Box>
+      )}
+      <Typography
+        variant="h4"
+        component="h1"
+        sx={{ fontSize: { xs: "1.5625rem", sm: "1.875rem" }, overflowWrap: "anywhere" }}
+      >
         {title}
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: "70ch" }}>
         {aiSummary}
       </Typography>
 
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        {repo?.url && (
-          <Button
-            component="a"
-            variant="contained"
-            color="primary"
-            href={repo.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t.common.githubRepo}
-          >
-            {t.common.githubRepo}
-          </Button>
-        )}
-        {liveDemoUrl && (
-          <Button
-            component="a"
-            variant="outlined"
-            href={liveDemoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t.common.liveDemo}
-          >
-            {t.common.liveDemo}
-          </Button>
-        )}
-      </Stack>
+      {(repoHref || demoHref) && (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {repoHref && (
+            <Button
+              component="a"
+              variant="contained"
+              href={repoHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.common.githubRepo}
+            </Button>
+          )}
+          {demoHref && (
+            <Button
+              component="a"
+              variant="outlined"
+              href={demoHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.common.liveDemo}
+            </Button>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

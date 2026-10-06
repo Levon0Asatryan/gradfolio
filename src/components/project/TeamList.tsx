@@ -10,7 +10,7 @@ import {
   Typography,
   Link as MuiLink,
 } from "@mui/material";
-import SectionCard from "./SectionCard";
+import { Panel } from "@/components/layout/Panel";
 import type { TeamMember } from "@/data/project.mock";
 
 export interface TeamListProps {
@@ -25,8 +25,8 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
   if (!members || members.length === 0) return null;
 
   return (
-    <SectionCard title={t.common.teamMembers}>
-      <List sx={{ py: 0 }}>
+    <Panel title={t.common.teamMembers}>
+      <List disablePadding>
         {members.map((m) => (
           <ListItem key={m.id} divider>
             <ListItemAvatar>
@@ -58,7 +58,7 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
           </ListItem>
         ))}
       </List>
-    </SectionCard>
+    </Panel>
   );
 };
 

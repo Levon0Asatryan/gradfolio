@@ -14,11 +14,11 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 const ProjectBasicInfo: FC<ProjectBasicInfoProps> = ({ values, onChange }) => {
   const { t } = useLanguage();
   return (
-    <Box component="section" aria-label={t.projects.form.basicInfo} sx={{ mb: 4 }}>
-      <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+    <Box component="section" aria-labelledby="basic-info-title">
+      <Typography id="basic-info-title" variant="h6" component="h2" sx={{ mb: 2 }}>
         {t.projects.form.basicInfo}
       </Typography>
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <TextField
           label={t.projects.form.projectTitle}
           value={values.title}

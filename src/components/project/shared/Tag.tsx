@@ -19,8 +19,6 @@ const Tag: FC<TagProps> = ({ label, onClick }) => {
       size="small"
       onClick={onClick ? handleClick : undefined}
       role={onClick ? "button" : undefined}
-      aria-label={`Tag ${label}`}
-      sx={{ mr: 1, mb: 1 }}
     />
   );
 };

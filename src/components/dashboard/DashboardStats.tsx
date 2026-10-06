@@ -1,8 +1,9 @@
 "use client";
 
 import { FC, memo, ReactElement } from "react";
-import { Box, Card, CardContent, Stack, Typography, Chip, Skeleton } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import Typography from "@mui/material/Typography";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import FolderIcon from "@mui/icons-material/Folder";
 import GitHubIcon from "@mui/icons-material/GitHub";
@@ -12,116 +13,102 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface DashboardStatsProps {
   stats?: DashboardStatsType;
-  loading?: boolean;
 }
+
+type Tone = "primary" | "success" | "info" | "secondary";
 
 interface StatCardProps {
   label: string;
   value?: number;
+  noData: string;
   icon: ReactElement;
+  tone: Tone;
 }
 
-const iconContainerSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 40,
-  height: 40,
-  color: "primary.main",
-  opacity: 0.8,
-  bgcolor: "action.hover",
-  borderRadius: "50%",
-};
-
-const StatCard: FC<StatCardProps> = ({ label, value, icon }) => {
-  const isEmpty = value === undefined || value === null;
-  return (
-    <Card
-      component="section"
-      variant="outlined"
-      sx={{
-        height: "100%",
-        userSelect: "none",
-        bgcolor: "background.paper",
-        boxShadow: "none",
-      }}
+const StatCard: FC<StatCardProps> = ({ label, value, noData, icon, tone }) => (
+  <Card
+    component="li"
+    sx={{ p: 2, display: "flex", alignItems: "center", gap: 2, minWidth: 0, listStyle: "none" }}
+  >
+    <Box
+      aria-hidden
+      sx={({ palette }) => ({
+        width: 40,
+        height: 40,
+        flex: "none",
+        borderRadius: 3,
+        display: "grid",
+        placeItems: "center",
+        color: palette[tone].main,
+        bgcolor: `color-mix(in srgb, ${palette[tone].main} 12%, ${palette.background.paper})`,
+      })}
     >
-      <CardContent sx={{ py: 3 }}>
-        <Stack spacing={2}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Typography
-              variant="overline"
-              color="text.secondary"
-              sx={{ fontWeight: 600, letterSpacing: 1 }}
-            >
-              {label}
-            </Typography>
-            <Box sx={iconContainerSx}>{icon}</Box>
-          </Stack>
-          {isEmpty ? (
-            <Chip size="small" label="No data" />
-          ) : (
-            <Typography variant="h3" fontWeight="bold" sx={{ lineHeight: 1 }}>
-              {value}
-            </Typography>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-};
+      {icon}
+    </Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        variant="h5"
+        component="p"
+        sx={{ lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
+      >
+        {value ?? noData}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
+        {label}
+      </Typography>
+    </Box>
+  </Card>
+);
 
-const DashboardStats: FC<DashboardStatsProps> = ({ stats, loading }) => {
+const DashboardStats: FC<DashboardStatsProps> = ({ stats }) => {
   const { t } = useLanguage();
-
-  const items = [
+  const s = t.dashboard.stats;
+  const items: Array<Omit<StatCardProps, "noData"> & { key: string }> = [
     {
-      key: "totalProjects" as const,
-      label: t.dashboard.stats.totalProjects,
+      key: "projects",
+      label: s.totalProjects,
       value: stats?.totalProjects,
       icon: <FolderIcon />,
+      tone: "primary",
     },
     {
-      key: "githubStars" as const,
-      label: t.dashboard.stats.githubStars,
+      key: "stars",
+      label: s.githubStars,
       value: stats?.githubStars,
       icon: <GitHubIcon />,
+      tone: "info",
     },
     {
-      key: "linkedinConnections" as const,
-      label: t.dashboard.stats.linkedinConnections,
+      key: "connections",
+      label: s.linkedinConnections,
       value: stats?.linkedinConnections,
       icon: <LinkedInIcon />,
+      tone: "secondary",
     },
     {
-      key: "recentActivities" as const,
-      label: t.dashboard.stats.recentActivities,
+      key: "activity",
+      label: s.recentActivities,
       value: stats?.recentActivities,
       icon: <TrendingUpIcon />,
+      tone: "success",
     },
-  ] as const;
+  ];
 
   return (
-    <Box component="section" aria-label="Dashboard Stats" sx={{ mb: 2 }}>
-      <Grid container spacing={2} columns={{ xs: 12 }}>
-        {items.map((it) => (
-          <Grid key={it.key} size={{ xs: 12, sm: 6, md: 3 }}>
-            {loading ? (
-              <Card component="section" variant="outlined" sx={{ p: 2, height: "100%" }}>
-                <Stack spacing={1}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Skeleton variant="text" width={80} />
-                    <Skeleton variant="circular" width={24} height={24} />
-                  </Stack>
-                  <Skeleton variant="text" width={60} height={40} />
-                </Stack>
-              </Card>
-            ) : (
-              <StatCard label={it.label} value={it.value} icon={it.icon} />
-            )}
-          </Grid>
-        ))}
-      </Grid>
+    <Box
+      component="ul"
+      aria-label={t.dashboard.overview}
+      sx={{
+        m: 0,
+        p: 0,
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+        gap: 2,
+      }}
+    >
+      {items.map(({ key, ...it }) => (
+        <StatCard key={key} noData={t.dashboard.noData} {...it} />
+      ))}
     </Box>
   );
 };

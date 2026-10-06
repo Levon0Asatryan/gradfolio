@@ -3,6 +3,7 @@ import type { Activity, DashboardStats, Project } from "@/utils/types/dashboard.
 export const projectsMock: Project[] = [
   {
     id: "ecoroute",
+    category: "personal",
     title: "EcoRoute – CO₂-aware Navigation",
     description:
       "A Next.js web app that finds eco-friendly driving routes using OpenStreetMap data.",
@@ -12,6 +13,7 @@ export const projectsMock: Project[] = [
   },
   {
     id: "smart-garden-iot",
+    category: "course",
     title: "Smart Garden IoT System",
     description:
       "An Arduino + Raspberry Pi system automating irrigation with real-time soil moisture monitoring.",
@@ -21,6 +23,7 @@ export const projectsMock: Project[] = [
   },
   {
     id: "paper-summarizer",
+    category: "research",
     title: "Paper Summarizer (NLP)",
     description: "Extractive + abstractive summarization for arXiv PDFs built with PyTorch.",
     status: "completed",

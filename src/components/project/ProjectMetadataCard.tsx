@@ -2,7 +2,7 @@
 
 import { FC, memo } from "react";
 import { Stack, Typography } from "@mui/material";
-import SectionCard from "./SectionCard";
+import { Panel } from "@/components/layout/Panel";
 import type { ProjectMetadata } from "@/data/project.mock";
 
 export interface ProjectMetadataCardProps {
@@ -33,7 +33,7 @@ const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
   const end = fmtDate(metadata.endDate);
 
   return (
-    <SectionCard title={t.common.projectInfo}>
+    <Panel title={t.common.projectInfo}>
       <Stack spacing={1}>
         {(start || end) && (
           <Typography variant="body2">
@@ -58,7 +58,7 @@ const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
           </Typography>
         )}
       </Stack>
-    </SectionCard>
+    </Panel>
   );
 };
 
