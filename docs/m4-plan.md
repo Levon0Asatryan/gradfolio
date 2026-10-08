@@ -166,8 +166,8 @@ generated types from `openapi.yaml` replace it (Q5: bump the pinned API commit i
 
 ## 5. Upload UX (Q6)
 
-Q6 is Levon's. The FE does the same for the form in both cases; only the Media section's
-file controls change.
+Q6 is decided: GCS with signed reads. Signed read URLs change about every 50 minutes, so
+the FE never stores or caches an image URL it was given.
 
 - **GCS, signed reads (decided):** next to the URL field each image/PDF control gets **Upload a file**.
   Flow (API §3.4; the token never reaches the browser):
