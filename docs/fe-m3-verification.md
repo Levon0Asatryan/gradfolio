@@ -21,8 +21,8 @@ Findings that were fixed are in PRs #53, #54, #55.
 Automated sweep (en, ru, am x 390, 1024, 1440 px, light theme, rail sidebar): horizontal
 overflow, elements past the viewport, ellipsis truncation, controls under 32px at 390,
 tab title, h1 count, console errors and warnings. Dark theme and the expanded sidebar
-were checked by eye on `/projects`, `/integrations/connections` and `/search`
-(screenshots), and by the console sweep on `/`, `/projects`, `/integrations`, `/nope`
+were checked by eye on `/projects` (ru, dark, rail) and `/integrations/connections`
+(en dark; am and en light, expanded and rail) with screenshots, and by the console sweep on `/`, `/projects`, `/integrations`, `/nope`
 in all three languages.
 
 ## Findings fixed
