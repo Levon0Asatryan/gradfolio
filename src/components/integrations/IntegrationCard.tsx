@@ -16,6 +16,7 @@ import {
 import GitHub from "@mui/icons-material/GitHub";
 import LinkedIn from "@mui/icons-material/LinkedIn";
 import type { IntegrationId, IntegrationStatus } from "@/data/integrations.mock";
+import { formatDay } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface IntegrationCardProps {
@@ -89,7 +90,7 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
   onDisconnect,
   docUrl,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isConnected = status === "connected";
 
   const StatusChip = useMemo(() => {
@@ -121,13 +122,13 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
   const lastSyncText = useMemo(() => {
     if (!lastSyncedAt) return null;
     const d = new Date(lastSyncedAt);
-    const formatted = isNaN(d.getTime()) ? lastSyncedAt : d.toLocaleString();
+    const formatted = isNaN(d.getTime()) ? lastSyncedAt : formatDay(lastSyncedAt, language);
     return (
       <Typography variant="caption" color="text.secondary">
         {t.integrations.lastSynced} {formatted}
       </Typography>
     );
-  }, [lastSyncedAt, t]);
+  }, [lastSyncedAt, t, language]);
 
   return (
     <Card component="section" sx={cardSx}>

@@ -9,35 +9,23 @@ export interface ProjectMetadataCardProps {
   metadata?: ProjectMetadata;
 }
 
-function fmtDate(d?: string): string | undefined {
-  if (!d) return undefined;
-  try {
-    return new Date(d).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    });
-  } catch {
-    return d;
-  }
-}
-
+import { formatDay } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   if (!metadata) return null;
 
-  const start = fmtDate(metadata.startDate);
-  const end = fmtDate(metadata.endDate);
+  const start = metadata.startDate ? formatDay(metadata.startDate, language) : undefined;
+  const end = metadata.endDate ? formatDay(metadata.endDate, language) : undefined;
 
   return (
     <Panel title={t.common.projectInfo}>
       <Stack spacing={1}>
         {(start || end) && (
           <Typography variant="body2">
-            <strong>{t.common.timeline}</strong> {start || "N/A"} {"–"} {end || t.common.present}
+            <strong>{t.common.timeline}</strong> {start || "—"} {"–"} {end || t.common.present}
           </Typography>
         )}
         {metadata.category && (

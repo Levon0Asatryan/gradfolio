@@ -12,6 +12,7 @@ import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectDetailData } from "@/data/project.mock";
+import { formatMonth } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectCardProps {
@@ -29,16 +30,9 @@ function truncate(text: string, max = 160) {
   return (cut > 0 ? sliced.slice(0, cut) : sliced).trimEnd() + "…";
 }
 
-function formatDate(date?: string) {
-  if (!date) return undefined;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return undefined;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short" });
-}
-
 const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const titleId = useId();
 
   const { visibleTags, remainingCount } = useMemo(() => {
@@ -49,8 +43,8 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
     };
   }, [technologies]);
 
-  const start = formatDate(metadata?.startDate);
-  const end = formatDate(metadata?.endDate);
+  const start = metadata?.startDate ? formatMonth(metadata.startDate, language) : undefined;
+  const end = metadata?.endDate ? formatMonth(metadata.endDate, language) : undefined;
   const range = start || end ? `${start ?? ""} – ${end ?? t.common.present}` : undefined;
   const category = isProjectCategory(metadata?.category) ? metadata.category : "other";
 

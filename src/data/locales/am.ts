@@ -74,6 +74,12 @@ export const am: Dictionary = {
     image: "Նկար",
     pdf: "PDF",
   },
+  notFound: {
+    title: "Էջը չի գտնվել",
+    body: "Չհաջողվեց գտնել փնտրվող էջը։ Հնարավոր է՝ այն տեղափոխվել կամ հեռացվել է։",
+    home: "Անցնել վահանակ",
+    explore: "Դիտել պորտֆոլիոները",
+  },
   profile: {
     addEducation: "Ավելացնել կրթություն",
     addExperience: "Ավելացնել փորձ",

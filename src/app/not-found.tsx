@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 import { Noise } from "@/components/effects/Noise";
 
 export default function NotFound() {
   const { setHidden } = useSidebarVisibility();
+  const { t } = useLanguage();
 
   useEffect(() => {
     setHidden(true);
@@ -24,6 +26,7 @@ export default function NotFound() {
         </Box>
         <Typography
           variant="h3"
+          component="h1"
           sx={{
             fontWeight: 800,
             letterSpacing: "-0.02em",
@@ -38,11 +41,11 @@ export default function NotFound() {
             WebkitTextFillColor: "transparent",
           }}
         >
-          404 — Page not found
+          404 — {t.notFound.title}
         </Typography>
 
         <Typography color="text.secondary" sx={{ mt: 1.5 }}>
-          Sorry, we couldn’t find the page you’re looking for. It may have been moved or removed.
+          {t.notFound.body}
         </Typography>
 
         <Stack
@@ -58,7 +61,7 @@ export default function NotFound() {
             href="/"
             sx={{ borderRadius: 9999 }}
           >
-            Go to Dashboard
+            {t.notFound.home}
           </Button>
           <Button
             variant="outlined"
@@ -67,7 +70,7 @@ export default function NotFound() {
             href="/search"
             sx={{ borderRadius: 9999 }}
           >
-            Explore Portfolios
+            {t.notFound.explore}
           </Button>
         </Stack>
       </Box>

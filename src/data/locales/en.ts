@@ -74,6 +74,12 @@ export const en: Dictionary = {
     image: "Image",
     pdf: "PDF",
   },
+  notFound: {
+    title: "Page not found",
+    body: "Sorry, we couldn’t find the page you’re looking for. It may have been moved or removed.",
+    home: "Go to Dashboard",
+    explore: "Explore portfolios",
+  },
   profile: {
     addEducation: "Add education",
     addExperience: "Add experience",

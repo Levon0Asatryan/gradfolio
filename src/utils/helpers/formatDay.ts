@@ -16,3 +16,14 @@ export const formatDay = (iso: string, language: Language): string => {
     timeZone: "UTC",
   }).format(d);
 };
+
+/** A month and year ("Dec 2025") in the UI language, in UTC (same reason as `formatDay`). */
+export const formatMonth = (iso: string, language: Language): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(htmlLang(language), {
+    year: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(d);
+};

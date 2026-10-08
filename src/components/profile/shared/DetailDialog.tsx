@@ -2,6 +2,7 @@
 
 import { FC, memo, ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
+import { useLanguage } from "@/components/i18n/LanguageContext";
 import CloseIcon from "@mui/icons-material/Close";
 
 export interface DetailDialogProps {
@@ -12,13 +13,14 @@ export interface DetailDialogProps {
 }
 
 const DetailDialog: FC<DetailDialogProps> = ({ open, title, onClose, children }) => {
+  const { t } = useLanguage();
   const titleId = "dialog-title-" + title.replace(/\s+/g, "-").toLowerCase();
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby={titleId} fullWidth maxWidth="md">
       <DialogTitle id={titleId} sx={{ pr: 6 }}>
         {title}
         <IconButton
-          aria-label="Close"
+          aria-label={t.common.close}
           onClick={onClose}
           sx={{ position: "absolute", right: 8, top: 8 }}
         >
