@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Box, SxProps, Theme, Typography } from "@mui/material";
+import { Box, ButtonBase, SxProps, Theme, Typography } from "@mui/material";
 import { motion } from "motion/react";
 
 export type StepIndicatorProps = {
@@ -7,6 +7,7 @@ export type StepIndicatorProps = {
   currentStep: number;
   onClickStep: (clicked: number) => void;
   disableStepIndicators?: boolean;
+  label?: string;
 };
 
 export const StepIndicator: React.FC<StepIndicatorProps> = ({
@@ -14,6 +15,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   currentStep,
   onClickStep,
   disableStepIndicators,
+  label,
 }) => {
   const status = currentStep === step ? "active" : currentStep < step ? "inactive" : "complete";
 
@@ -22,66 +24,55 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   }, [currentStep, disableStepIndicators, onClickStep, step]);
 
   return (
-    <motion.div
+    <ButtonBase
       onClick={handleClick}
-      initial={false}
-      animate={status as any}
-      style={{ cursor: "pointer" }}
+      disabled={disableStepIndicators}
+      aria-label={label ?? String(step)}
+      aria-current={status === "active" ? "step" : undefined}
+      sx={{ borderRadius: "50%", p: 0.5, flexShrink: 0 }}
     >
-      <motion.div
-        variants={{
-          inactive: { scale: 1 },
-          active: { scale: 1 },
-          complete: { scale: 1 },
-        }}
-        transition={{ duration: 0.3 }}
-        style={{ display: "flex", alignItems: "center" }}
+      <Box
+        sx={(theme) => ({
+          height: 32,
+          width: 32,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 600,
+          color:
+            status === "inactive"
+              ? theme.palette.text.secondary
+              : theme.palette.getContrastText(theme.palette.primary.main),
+          bgcolor:
+            status === "inactive" ? theme.palette.action.selected : theme.palette.primary.main,
+        })}
       >
-        <Box
-          sx={(theme) => ({
-            height: 32,
-            width: 32,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 600,
-            color:
-              status === "inactive"
-                ? theme.palette.text.disabled
-                : theme.palette.getContrastText(theme.palette.primary.main),
-            bgcolor:
-              status === "inactive"
-                ? theme.palette.action.disabledBackground
-                : theme.palette.primary.main,
-          })}
-        >
-          {status === "complete" ? (
-            <CheckIcon sx={{ color: (theme) => theme.palette.background.paper }} />
-          ) : status === "active" ? (
-            <Box
-              sx={{
-                height: 12,
-                width: 12,
-                borderRadius: "50%",
-                bgcolor: (theme) => theme.palette.background.paper,
-              }}
-            />
-          ) : (
-            <Typography variant="body2" component="span">
-              {step}
-            </Typography>
-          )}
-        </Box>
-      </motion.div>
-    </motion.div>
+        {status === "complete" ? (
+          <CheckIcon />
+        ) : status === "active" ? (
+          <Box
+            sx={{
+              height: 12,
+              width: 12,
+              borderRadius: "50%",
+              bgcolor: (theme) => theme.palette.primary.contrastText,
+            }}
+          />
+        ) : (
+          <Typography variant="body2" component="span" aria-hidden>
+            {step}
+          </Typography>
+        )}
+      </Box>
+    </ButtonBase>
   );
 };
 
 const CheckIcon: React.FC<{ sx?: SxProps<Theme> }> = ({ sx }) => (
   <Box
     component="svg"
-    sx={{ height: 16, width: 16, color: (t) => t.palette.common.white, ...(sx as any) }}
+    sx={{ height: 16, width: 16, color: "inherit", ...(sx as any) }}
     fill="none"
     viewBox="0 0 24 24"
   >

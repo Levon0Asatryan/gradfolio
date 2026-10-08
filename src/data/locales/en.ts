@@ -157,9 +157,9 @@ export const en: Dictionary = {
       learnMore: "Learn more",
     },
     steps: {
-      welcome: "Welcome to the Gradfolio!",
+      welcome: "Welcome to Gradfolio",
       welcomeSubtitle:
-        "Connect your GitHub or LinkedIn to auto-import data, or skip and fill things manually — your call 🎯✨",
+        "Connect your GitHub or LinkedIn to auto-import data, or skip and fill things manually — your call.",
       importGithub: "Import from GitHub",
       importLinkedin: "Import from LinkedIn",
       importingGithub: "Importing from GitHub...",
@@ -211,6 +211,11 @@ export const en: Dictionary = {
         "Let’s get your Gradfolio ready by connecting your data sources and filling in the basics.",
       back: "Previous",
       next: "Next",
+      complete: "Finish",
+      doneTitle: "Setup finished",
+      doneBody: "Your answers are not saved yet. Edit your profile any time from My profile.",
+      toProfile: "Go to my profile",
+      stepOf: "Step {step} of {total}",
     },
   },
   projects: {

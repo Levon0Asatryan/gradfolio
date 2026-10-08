@@ -201,6 +201,11 @@ export interface Dictionary {
       subtitle: string;
       back: string;
       next: string;
+      complete: string;
+      doneTitle: string;
+      doneBody: string;
+      toProfile: string;
+      stepOf: string;
     };
   };
   projects: {
