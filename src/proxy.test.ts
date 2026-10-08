@@ -8,7 +8,7 @@ const sdk = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth0", () => ({ auth0: sdk }));
 
-const { proxy } = await import("./proxy");
+const { proxy, config } = await import("./proxy");
 
 const ORIGIN = "https://gradfolio.test";
 const request = (path: string) => new NextRequest(new URL(path, ORIGIN));
@@ -80,5 +80,14 @@ describe("proxy", () => {
       path: "/search",
       error: "Error",
     });
+  });
+});
+
+describe("proxy matcher", () => {
+  const re = new RegExp(`^${config.matcher[0]}$`);
+  it("skips /fonts/* (public static files) and keeps pages", () => {
+    expect(re.test("/fonts/nunito-variable.woff2")).toBe(false);
+    expect(re.test("/profile/u_001")).toBe(true);
+    expect(re.test("/auth/login")).toBe(true);
   });
 });
