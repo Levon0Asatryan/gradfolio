@@ -30,7 +30,7 @@ in all three languages.
 | Finding                                                                                                                                                                                      | Severity | PR  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --- |
 | 404 page English only, no h1                                                                                                                                                                 | P2       | #53 |
-| Dates used the machine locale: hydration error in ru/am on the dashboard                                                                                                                     | P2       | #53 |
+| Dates on the project page, project cards and integration cards used the machine locale: hydration error in ru/am (the dashboard already used `formatDay`, since #44)                         | P2       | #53 |
 | Dashboard tab title was bare "Gradfolio" (now localized)                                                                                                                                     | P2       | #53 |
 | DetailDialog close label hardcoded English                                                                                                                                                   | P2       | #53 |
 | Setup stepper: step indicators were clickable divs (no keyboard, no name), hardcoded "Complete", blank card on finish, looping typing animation, heavy shadow, motion ignored reduced-motion | P2       | #54 |
