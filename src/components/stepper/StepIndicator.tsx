@@ -29,7 +29,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
       disabled={disableStepIndicators}
       aria-label={label ?? String(step)}
       aria-current={status === "active" ? "step" : undefined}
-      sx={{ borderRadius: "50%", p: 0.5, flexShrink: 0 }}
+      sx={(theme) => ({
+        borderRadius: "50%",
+        p: 0.5,
+        flexShrink: 0,
+        // ButtonBase removes the browser outline; keyboard users need to see the focused step.
+        "&.Mui-focusVisible": {
+          outline: `2px solid ${theme.palette.primary.main}`,
+          outlineOffset: 2,
+        },
+      })}
     >
       <Box
         sx={(theme) => ({

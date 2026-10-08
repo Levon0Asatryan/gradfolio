@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { ConnectionsContent } from "./ConnectionsContent";
@@ -31,5 +31,26 @@ describe("integrations setup stepper", () => {
       "href",
       "/profile",
     );
+  });
+});
+
+describe("integrations setup stepper, keyboard", () => {
+  it("shows a focus outline on the step button a keyboard user reached", () => {
+    renderInApp(<ConnectionsContent />);
+    const first = screen.getByRole("button", { name: "Step 1 of 4" });
+    // What the browser does for Tab: a key press, then focus (MUI keys focus-visible off it).
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    act(() => first.focus());
+    expect(first).toHaveFocus();
+    expect(getComputedStyle(first).getPropertyValue("outline")).toMatch(/^2px solid/);
+  });
+});
+
+describe("integrations setup welcome step", () => {
+  it("has its heading from the first render and keeps it (no typing animation)", () => {
+    renderInApp(<ConnectionsContent />, "ru");
+    expect(
+      screen.getByRole("heading", { name: "Добро пожаловать в Gradfolio!" }),
+    ).toBeInTheDocument();
   });
 });
