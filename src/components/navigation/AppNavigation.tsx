@@ -27,7 +27,7 @@ export interface NavUser {
 }
 
 /** Wide enough for "Ինտեգրացիաներ" and "Կարգավորումներ" (Armenian) on one line at 11px, bold. */
-export const RAIL_WIDTH = 124;
+const RAIL_WIDTH = 124;
 
 /**
  * The sidebar from `sm` up: icon, label and user card from `lg`; below that an
