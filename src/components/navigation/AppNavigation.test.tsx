@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
-import { AppNavigation, type NavUser } from "./AppNavigation";
+import { AppNavigation, RAIL_WIDTH, type NavUser } from "./AppNavigation";
 import type { NavMode } from "./navMode";
 
 // TypographyWithTooltip watches its own size; jsdom has no ResizeObserver.
@@ -182,5 +182,12 @@ describe("sidebar toggle", () => {
       expect(screen.getByRole("link", { name: "Log out" })).toBeInTheDocument();
       unmount();
     }
+  });
+
+  it("keeps the collapsed rail wide enough for the longest Armenian label", () => {
+    show({ name: "Ani" }, "rail");
+    const css = [...document.querySelectorAll("style")].map((s) => s.textContent).join("");
+    expect(css).toContain(`width:${RAIL_WIDTH}px`);
+    expect(RAIL_WIDTH).toBeGreaterThanOrEqual(124);
   });
 });

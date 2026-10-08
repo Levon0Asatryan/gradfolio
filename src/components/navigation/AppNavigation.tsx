@@ -26,6 +26,9 @@ export interface NavUser {
   picture?: string;
 }
 
+/** Wide enough for "Ինտեգրացիաներ" and "Կարգավորումներ" (Armenian) on one line at 11px, bold. */
+export const RAIL_WIDTH = 124;
+
 /**
  * The sidebar from `sm` up: icon, label and user card from `lg`; below that an
  * icon-over-label rail. Labels wrap instead of truncating (ru and am run long).
@@ -61,7 +64,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
         flexDirection: "column",
         gap: 0.75,
         flex: "none",
-        width: pick(108, 248),
+        width: pick(RAIL_WIDTH, 248),
         transition: theme.transitions.create("width", { duration: 200 }),
         "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         position: "sticky",
