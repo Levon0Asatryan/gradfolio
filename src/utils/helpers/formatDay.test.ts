@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDay } from "./formatDay";
+import { formatDay, formatMonth } from "./formatDay";
 
 describe("formatDay", () => {
   it("prints the same day in the UI language, whatever the machine's time zone", () => {
@@ -11,5 +11,16 @@ describe("formatDay", () => {
 
   it("returns an empty string for a date it cannot read", () => {
     expect(formatDay("not a date", "en")).toBe("");
+  });
+});
+
+describe("formatMonth", () => {
+  it("prints the UTC month in the UI language", () => {
+    expect(formatMonth("2025-12-31T23:30:00.000Z", "en")).toBe("Dec 2025");
+    expect(formatMonth("2025-12-31T23:30:00.000Z", "ru")).toMatch(/дек.*2025/);
+  });
+
+  it("returns an empty string for a date it cannot read", () => {
+    expect(formatMonth("nope", "en")).toBe("");
   });
 });
