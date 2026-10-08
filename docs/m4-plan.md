@@ -12,9 +12,13 @@ isomorphic-dompurify (jsdom 30.1.2), Playwright 1.64 with Chromium 156, axe-core
 **Not run:** anything that needs the API's M4 endpoints (none are deployed yet) or a
 storage bucket (Q6 is open).
 
-Levon decides: **the editor** (§1, recommendation Tiptap) and **whether Playwright joins
-the repo** (§8, recommendation: yes, as its own PR). Q6 (storage) is the API plan's
-question; §5 covers the upload UX for both answers.
+## Decisions (Levon, 2026-10-08)
+
+- **Editor: Tiptap** (§1).
+- **Playwright joins the repo**, as its own PR (PR 6), never stacked with a feature PR (§8).
+- **Q6: Google Cloud Storage, private bucket, signed read URLs** (API plan option S; the
+  API sub-agent builds it, the bucket is approved). The upload PR (PR 5) is on: §5 applies
+  in its "S" form, and the "D, URL only" branch is dropped.
 
 ## 1. Editor: Tiptap or Lexical
 
@@ -165,10 +169,7 @@ generated types from `openapi.yaml` replace it (Q5: bump the pinned API commit i
 Q6 is Levon's. The FE does the same for the form in both cases; only the Media section's
 file controls change.
 
-- **D, URL only:** hero and attachments are URL fields with a type select (image, video,
-  PDF, link), validated https only on the client and by the API. No upload controls, no
-  `/me/uploads`, PR 5 does not exist.
-- **S or P (GCS):** next to the URL field each image/PDF control gets **Upload a file**.
+- **GCS, signed reads (decided):** next to the URL field each image/PDF control gets **Upload a file**.
   Flow (API §3.4; the token never reaches the browser):
   1. the browser sends type and size to a server action (no file bytes);
   2. the action calls `POST /me/uploads` with the caller's token and returns
@@ -288,8 +289,7 @@ render and pass axe in en/ru/am; the public profile page of a seeded public user
 axe and has no console errors; the language switch changes `<html lang>`. A CI job runs
 them against `next build && next start` with fake Auth0 variables (pages render without
 them, `CLAUDE.md`). Browsers are downloaded in CI (cached), never committed. It is
-groundwork for tracker 9.6; the logged-in journey stays in 9.6. If Levon says no, M4
-keeps scratch scripts and the verification record carries their results.
+groundwork for tracker 9.6; the logged-in journey stays in 9.6. Approved by Levon.
 
 ## 9. Security properties and how each is proved
 
@@ -310,18 +310,18 @@ Each guard is proved by removing it, as in every PR since M2.
 
 ## 10. Pull requests
 
-1. **Codex follow-ups from #53–#56** (gradfolio #58): open.
-2. **This plan** (docs only; one review round, then it merges). **Stop: Levon decides the
-   editor (§1) and Playwright (§8); the API plan's Q6 decides PR 5.**
+1. **Codex follow-ups from #53–#56** (gradfolio #58).
+2. **This plan** (docs only; one review round, then it merges). Decided: Tiptap, Playwright (PR 6), GCS
+   with signed reads (PR 5 on).
 3. **Types, list and detail** (4.8, 4.9, 4.10 read side): bump the pinned API commit and
    regenerate types; `/projects` and `/projects/[id]` on the API; `sanitizeDescription`
    with the corpus; `safeMediaUrl`; mock removed; states; i18n of the leftover English.
    Needs API PR (a) merged **and** Deploy green. Merges after that, not before.
 4. **Form, edit page and delete** (4.6, 4.7): Tiptap, `ProjectForm`, actions, limits,
    the unsaved guard, the delete dialog. Needs API PR (b) deployed.
-5. **Uploads** (if Q6 is not D): the upload control, avatar on the account page. Needs
+5. **Uploads** (on: Q6 = GCS): the upload control, avatar on the account page. Needs
    API PR (c) and the bucket.
-6. **Playwright groundwork** (if Levon agrees; independent of 3–5, never stacked).
+6. **Playwright groundwork** (approved; independent of 3–5, never stacked).
 7. `docs/fe-m4-verification.md`: what ran, including the Playwright results per changed
    page and what was not verified.
 
