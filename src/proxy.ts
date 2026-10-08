@@ -56,9 +56,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 export const config = {
   matcher: [
     /*
-     * Every path except Next's static files and image optimizer, and the
-     * metadata files.
+     * Every path except Next's static files and image optimizer, the
+     * metadata files, and the public fonts (Auth0 fetches them cross-origin).
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|fonts/).*)",
   ],
 };
