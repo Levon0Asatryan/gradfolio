@@ -78,6 +78,12 @@ export interface Dictionary {
     image: string;
     pdf: string;
   };
+  notFound: {
+    title: string;
+    body: string;
+    home: string;
+    explore: string;
+  };
   profile: {
     addEducation: string;
     addExperience: string;
