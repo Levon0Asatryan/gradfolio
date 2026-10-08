@@ -48,6 +48,28 @@ describe("language and <html lang>", () => {
     expect(document.cookie).toContain("language=ru");
   });
 
+  it("retitles the dashboard tab when it migrates a saved language the server did not see", () => {
+    localStorage.setItem("language", "ru");
+    document.title = "Dashboard | Gradfolio";
+    render(
+      <LanguageProvider>
+        <Probe />
+      </LanguageProvider>,
+    );
+    expect(document.title).toBe("Дашборд | Gradfolio");
+  });
+
+  it("leaves another page's tab title alone when it migrates", () => {
+    localStorage.setItem("language", "ru");
+    document.title = "Settings | Gradfolio";
+    render(
+      <LanguageProvider>
+        <Probe />
+      </LanguageProvider>,
+    );
+    expect(document.title).toBe("Settings | Gradfolio");
+  });
+
   it("lets the cookie win over an older localStorage value", () => {
     localStorage.setItem("language", "en");
     document.cookie = "language=am; path=/";

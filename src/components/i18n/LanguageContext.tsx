@@ -6,7 +6,7 @@ import { en } from "@/data/locales/en";
 import { ru } from "@/data/locales/ru";
 import { am } from "@/data/locales/am";
 import { cookiesLanguageKey } from "@/utils/constants/constants";
-import { htmlLang, isLanguage } from "./language";
+import { dashboardTitle, htmlLang, isLanguage } from "./language";
 
 interface LanguageContextProps {
   language: Language;
@@ -49,6 +49,10 @@ export const LanguageProvider: FC<{ children: ReactNode; initialLanguage?: Langu
     if (isLanguage(saved)) {
       setLanguage(saved);
       rememberLanguage(saved);
+      // The server had no cookie, so it titled the tab in English. Only the dashboard's
+      // title is localized (the others are constant), and only it can be stale here.
+      if (document.title === dashboardTitle(en))
+        document.title = dashboardTitle(dictionaries[saved]);
     }
   }, []);
 

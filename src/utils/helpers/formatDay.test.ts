@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { formatDay, formatMonth } from "./formatDay";
 
 describe("formatDay", () => {
@@ -26,22 +26,26 @@ describe("formatMonth", () => {
 });
 
 describe("time zone", () => {
-  // vitest runs with TZ=UTC, so output alone cannot show a lost `timeZone`: check the option itself.
-  it.each([
-    ["formatDay", (l: "en") => formatDay("2025-12-06T00:00:00Z", l)],
-    ["formatMonth", (l: "en") => formatMonth("2025-12-06T00:00:00Z", l)],
-  ])("%s formats in UTC, whatever the machine's zone", (_name, run) => {
-    const seen: (string | undefined)[] = [];
-    const Real = Intl.DateTimeFormat;
-    const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (
-      locale?: string | string[],
-      options?: Intl.DateTimeFormatOptions,
-    ) {
-      seen.push(options?.timeZone);
-      return new Real(locale, options);
-    } as never);
-    run("en");
-    spy.mockRestore();
-    expect(seen).toEqual(["UTC"]);
+  // vitest pins TZ=UTC, which would hide a lost `timeZone: "UTC"`. Run the formatters in a
+  // zone ahead of UTC and compare what a reader sees: 23:30 UTC is already the next day there.
+  const original = process.env.TZ;
+  beforeEach(() => {
+    process.env.TZ = "Asia/Yerevan";
+  });
+  afterEach(() => {
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
+  });
+
+  it("the test's zone really is ahead of UTC", () => {
+    expect(new Date("2025-12-06T23:30:00Z").getDate()).toBe(7);
+  });
+
+  it("formatDay prints the UTC day", () => {
+    expect(formatDay("2025-12-06T23:30:00Z", "en")).toBe("Dec 6, 2025");
+  });
+
+  it("formatMonth prints the UTC month", () => {
+    expect(formatMonth("2025-12-31T23:30:00Z", "en")).toBe("Dec 2025");
   });
 });

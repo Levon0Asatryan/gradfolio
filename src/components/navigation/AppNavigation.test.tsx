@@ -1,8 +1,9 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { am } from "@/data/locales/am";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
-import { AppNavigation, RAIL_WIDTH, type NavUser } from "./AppNavigation";
+import { AppNavigation, type NavUser } from "./AppNavigation";
 import type { NavMode } from "./navMode";
 
 // TypographyWithTooltip watches its own size; jsdom has no ResizeObserver.
@@ -184,10 +185,22 @@ describe("sidebar toggle", () => {
     }
   });
 
-  it("keeps the collapsed rail wide enough for the longest Armenian label", () => {
-    show({ name: "Ani" }, "rail");
-    const css = [...document.querySelectorAll("style")].map((s) => s.textContent).join("");
-    expect(css).toContain(`width:${RAIL_WIDTH}px`);
-    expect(RAIL_WIDTH).toBeGreaterThanOrEqual(124);
+  it("renders the long Armenian labels in the collapsed rail", () => {
+    // jsdom has no layout (and ignores the media-query widths), so it cannot measure whether
+    // the text clips; that was checked in a browser (#55) and the width is RAIL_WIDTH. This pins
+    // what jsdom can see: the rail is collapsed and the Armenian labels are the ones rendered.
+    render(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider initialLanguage="am">
+          <AppNavigation user={{ name: "Ani" }} initialMode="rail" />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(screen.getByRole("link", { name: am.common.integrations })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: am.common.settings })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: am.common.sidebar })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });
