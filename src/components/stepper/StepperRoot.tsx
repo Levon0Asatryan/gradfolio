@@ -2,6 +2,7 @@
 
 import React, { Children, FC, Fragment, useCallback, useMemo, useState } from "react";
 import { Box, Button, Stack } from "@mui/material";
+import { MotionConfig } from "motion/react";
 import type { StepperProps } from "./types";
 import { StepIndicator } from "./StepIndicator";
 import { StepConnector } from "./StepConnector";
@@ -14,6 +15,9 @@ export const Stepper: FC<StepperProps> = ({
   onFinalStepCompleted = () => {},
   backButtonText = "Back",
   nextButtonText = "Continue",
+  completeButtonText = "Complete",
+  completedContent,
+  stepLabel,
   backButtonProps,
   nextButtonProps,
   disableStepIndicators = false,
@@ -80,85 +84,89 @@ export const Stepper: FC<StepperProps> = ({
   }, [canProceed, currentStep, isLastStep]);
 
   return (
-    <Stack alignItems="center" justifyContent="center" sx={sx} {...(rest as any)}>
-      <Box
-        sx={(theme) => ({
-          width: "100%",
-          maxWidth: 448,
-          borderRadius: 4,
-          boxShadow: theme.shadows[8],
-          border: `1px solid ${theme.palette.divider}`,
-          bgcolor: theme.palette.background.paper,
-          ...((stepperContainerSx as any) || {}),
-        })}
-      >
-        <Stack direction="row" alignItems="center" sx={{ width: "100%", p: 2 }}>
-          {stepsArray.map((_, index) => {
-            const stepNumber = index + 1;
-            const isNotLastStep = index < totalSteps - 1;
-            const indicator = renderStepIndicator ? (
-              renderStepIndicator({ step: stepNumber, currentStep, onStepClick: onClickStep })
-            ) : (
-              <StepIndicator
-                step={stepNumber}
-                currentStep={currentStep}
-                disableStepIndicators={disableStepIndicators}
-                onClickStep={onClickStep}
-              />
-            );
-            return (
-              <Fragment key={stepNumber}>
-                {indicator}
-                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
-              </Fragment>
-            );
+    <MotionConfig reducedMotion="user">
+      <Stack alignItems="center" justifyContent="center" sx={sx} {...(rest as any)}>
+        <Box
+          sx={(theme) => ({
+            width: "100%",
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${theme.palette.divider}`,
+            bgcolor: theme.palette.background.paper,
+            overflow: "hidden",
+            ...((stepperContainerSx as any) || {}),
           })}
-        </Stack>
-
-        <StepContentWrapper
-          isCompleted={isCompleted}
-          currentStep={currentStep}
-          direction={direction}
-          sx={contentSx}
         >
-          {stepsArray[currentStep - 1]}
-        </StepContentWrapper>
+          <Stack direction="row" alignItems="center" sx={{ width: "100%", p: 2 }}>
+            {stepsArray.map((_, index) => {
+              const stepNumber = index + 1;
+              const isNotLastStep = index < totalSteps - 1;
+              const indicator = renderStepIndicator ? (
+                renderStepIndicator({ step: stepNumber, currentStep, onStepClick: onClickStep })
+              ) : (
+                <StepIndicator
+                  step={stepNumber}
+                  currentStep={currentStep}
+                  disableStepIndicators={disableStepIndicators}
+                  onClickStep={onClickStep}
+                  label={stepLabel?.(stepNumber, totalSteps)}
+                />
+              );
+              return (
+                <Fragment key={stepNumber}>
+                  {indicator}
+                  {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
+                </Fragment>
+              );
+            })}
+          </Stack>
 
-        {!isCompleted && (
-          <Box sx={{ px: 2, pb: 2, ...(footerSx as any) }}>
-            <Stack
-              direction="row"
-              mt={2.5}
-              justifyContent={currentStep !== 1 ? "space-between" : "flex-end"}
-            >
-              {currentStep !== 1 && (
-                <Button
-                  variant="text"
-                  color="inherit"
-                  onClick={handleBack}
-                  {...backButtonProps}
-                  sx={{
-                    ...((backButtonProps as any)?.sx || {}),
-                    color: (theme) => theme.palette.text.secondary,
-                  }}
-                >
-                  {backButtonText}
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={isLastStep ? handleComplete : handleNext}
-                disabled={isNextDisabled}
-                {...nextButtonProps}
-                sx={{ borderRadius: 9999, ...(nextButtonProps as any)?.sx }}
+          <StepContentWrapper
+            isCompleted={isCompleted}
+            currentStep={currentStep}
+            direction={direction}
+            sx={contentSx}
+          >
+            {stepsArray[currentStep - 1]}
+          </StepContentWrapper>
+
+          {isCompleted && <Box sx={{ p: 3 }}>{completedContent}</Box>}
+
+          {!isCompleted && (
+            <Box sx={{ px: 2, pb: 2, ...(footerSx as any) }}>
+              <Stack
+                direction="row"
+                mt={2.5}
+                justifyContent={currentStep !== 1 ? "space-between" : "flex-end"}
               >
-                {isLastStep ? "Complete" : nextButtonText}
-              </Button>
-            </Stack>
-          </Box>
-        )}
-      </Box>
-    </Stack>
+                {currentStep !== 1 && (
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={handleBack}
+                    {...backButtonProps}
+                    sx={{
+                      ...((backButtonProps as any)?.sx || {}),
+                      color: (theme) => theme.palette.text.secondary,
+                    }}
+                  >
+                    {backButtonText}
+                  </Button>
+                )}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={isLastStep ? handleComplete : handleNext}
+                  disabled={isNextDisabled}
+                  {...nextButtonProps}
+                  sx={{ borderRadius: 9999, ...(nextButtonProps as any)?.sx }}
+                >
+                  {isLastStep ? completeButtonText : nextButtonText}
+                </Button>
+              </Stack>
+            </Box>
+          )}
+        </Box>
+      </Stack>
+    </MotionConfig>
   );
 };

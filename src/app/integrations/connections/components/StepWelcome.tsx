@@ -5,7 +5,6 @@ import { Stack, Typography, Button } from "@mui/material";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import { TextType } from "@/components/text/TextType";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export type StepWelcomeProps = {
@@ -29,17 +28,10 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
 
   return (
     <Stack spacing={3} sx={{ py: 1 }}>
-      <Stack>
-        <TextType
-          text={[t.integrations.steps.welcome]}
-          variant="h5"
-          typingSpeed={60}
-          pauseDuration={600}
-          showCursor
-          cursorCharacter="_"
-          loop
-          sx={{ height: 52 }}
-        />
+      <Stack spacing={1}>
+        <Typography variant="h5" component="h2">
+          {t.integrations.steps.welcome}
+        </Typography>
         <Typography color="text.secondary">{t.integrations.steps.welcomeSubtitle}</Typography>
       </Stack>
       <Stack spacing={2}>
