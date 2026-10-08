@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { formatDay, formatMonth } from "./formatDay";
 
 describe("formatDay", () => {
@@ -22,5 +22,26 @@ describe("formatMonth", () => {
 
   it("returns an empty string for a date it cannot read", () => {
     expect(formatMonth("nope", "en")).toBe("");
+  });
+});
+
+describe("time zone", () => {
+  // vitest runs with TZ=UTC, so output alone cannot show a lost `timeZone`: check the option itself.
+  it.each([
+    ["formatDay", (l: "en") => formatDay("2025-12-06T00:00:00Z", l)],
+    ["formatMonth", (l: "en") => formatMonth("2025-12-06T00:00:00Z", l)],
+  ])("%s formats in UTC, whatever the machine's zone", (_name, run) => {
+    const seen: (string | undefined)[] = [];
+    const Real = Intl.DateTimeFormat;
+    const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (
+      locale?: string | string[],
+      options?: Intl.DateTimeFormatOptions,
+    ) {
+      seen.push(options?.timeZone);
+      return new Real(locale, options);
+    } as never);
+    run("en");
+    spy.mockRestore();
+    expect(seen).toEqual(["UTC"]);
   });
 });
