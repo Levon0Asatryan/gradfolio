@@ -35,7 +35,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         flexShrink: 0,
         // ButtonBase removes the browser outline; keyboard users need to see the focused step.
         "&.Mui-focusVisible": {
-          outline: `2px solid ${theme.palette.primary.main}`,
+          outline: `3px solid ${theme.palette.primary.main}`,
           outlineOffset: 2,
         },
       })}

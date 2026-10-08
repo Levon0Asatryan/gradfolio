@@ -42,7 +42,7 @@ describe("integrations setup stepper, keyboard", () => {
     fireEvent.keyDown(document.body, { key: "Tab" });
     act(() => first.focus());
     expect(first).toHaveFocus();
-    expect(getComputedStyle(first).getPropertyValue("outline")).toMatch(/^2px solid/);
+    expect(getComputedStyle(first).getPropertyValue("outline")).toMatch(/^3px solid/);
   });
 });
 
