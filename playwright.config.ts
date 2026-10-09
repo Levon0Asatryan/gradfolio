@@ -36,6 +36,9 @@ export default defineConfig({
           AUTH0_CLIENT_SECRET: "e2e-secret",
           AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
           APP_BASE_URL: baseURL,
+          // A port nothing listens on: a request with no session must stop at the token
+          // check (401) before it is ever sent, which the notifications spec relies on.
+          API_BASE_URL: "http://127.0.0.1:9",
           NEXT_TELEMETRY_DISABLED: "1",
           // Vercel's Node does not allow require() of an ES module. Without this the server here
           // would, so a dependency that needs it (jsdom 30 broke every project page that way)
