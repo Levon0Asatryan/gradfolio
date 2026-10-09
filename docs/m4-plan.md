@@ -192,7 +192,7 @@ the FE never stores or caches an image URL it was given.
   upload from the account page in PR 5 (same component).
 - **Previews cannot upload** unless the preview origin is in the bucket CORS (API §3.1,
   no `*.vercel.app` wildcard). A failed signing is
-  `UPLOAD_UNAVAILABLE`, but a missing CORS rule shows up only **at the browser `PUT`**
+  `STORAGE_UNAVAILABLE` (the API's 503 when no bucket is configured), but a missing CORS rule shows up only **at the browser `PUT`**
   (the request fails with no status, an `XMLHttpRequest` `error` event with
   `status === 0`, after signing succeeded). The control treats that as a distinct result:
   it says "Uploads are not available on this site; paste a link instead" and keeps the

@@ -24,6 +24,11 @@ const {
   createProject,
   updateProject,
   deleteProject,
+  addAttachment,
+  updateAttachment,
+  deleteAttachment,
+  reorderAttachments,
+  createUpload,
 } = await import("./client");
 
 const ME = {
@@ -385,5 +390,63 @@ describe("project writes", () => {
     sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
     vi.stubGlobal("fetch", vi.fn());
     await expect(createProject({ title: "T" })).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+});
+
+describe("attachments and uploads", () => {
+  const PID = "5c1d9a3e-aaaa-4bbb-8ccc-ddddeeeeffff";
+  const AID = "6c1d9a3e-aaaa-4bbb-8ccc-ddddeeeeffff";
+
+  it("addAttachment POSTs to the project's attachments with the token", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(201, { id: AID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await addAttachment(PID, { type: "link", url: "https://x.test" });
+    const [url, init] = call(fetchMock);
+    expect(url.pathname).toBe(`/v1/projects/${PID}/attachments`);
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("update, delete and reorder use their paths and methods", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, []));
+    const last = (m: typeof fetchMock) =>
+      m.mock.calls.at(-1) as [URL, RequestInit & { headers: Record<string, string> }];
+    vi.stubGlobal("fetch", fetchMock);
+    await updateAttachment(PID, AID, { title: "T" });
+    expect([last(fetchMock)[0].pathname, last(fetchMock)[1].method]).toEqual([
+      `/v1/projects/${PID}/attachments/${AID}`,
+      "PATCH",
+    ]);
+    await reorderAttachments(PID, [AID]);
+    expect([last(fetchMock)[0].pathname, last(fetchMock)[1].method]).toEqual([
+      `/v1/projects/${PID}/attachments/order`,
+      "PUT",
+    ]);
+    expect(JSON.parse(last(fetchMock)[1].body as string)).toEqual({ ids: [AID] });
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(deleteAttachment(PID, AID)).resolves.toBeUndefined();
+  });
+
+  it("never sends a non-UUID id", async () => {
+    const guard = vi.fn();
+    vi.stubGlobal("fetch", guard);
+    await expect(
+      addAttachment("..", { type: "link", url: "https://x.test" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(deleteAttachment(PID, "../x")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(reorderAttachments("x", [])).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(guard).not.toHaveBeenCalled();
+  });
+
+  it("createUpload POSTs the request and passes STORAGE_UNAVAILABLE through", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(json(503, { code: "STORAGE_UNAVAILABLE", message: "no bucket" }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      createUpload({ purpose: "avatar", contentType: "image/png", size: 3 }),
+    ).rejects.toMatchObject({ status: 503, code: "STORAGE_UNAVAILABLE" });
+    expect(call(fetchMock)[0].pathname).toBe("/v1/me/uploads");
+    expect(call(fetchMock)[1].method).toBe("POST");
   });
 });

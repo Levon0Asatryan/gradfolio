@@ -7,8 +7,13 @@ import type {
   Profile,
   ProfileHeader,
   ProfileHeaderPatch,
+  AttachmentBody,
+  AttachmentPatch,
+  ProjectAttachment,
   ProjectDetail,
   ProjectListQuery,
+  UploadRequest,
+  UploadTicket,
   ProjectWriteBody,
   ProjectPage,
 } from "./types";
@@ -165,6 +170,55 @@ export async function updateProject(
 export async function deleteProject(id: string): Promise<void> {
   if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
   await request<undefined>({ method: "DELETE", path: `/v1/projects/${id}` });
+}
+
+const attachmentPath = (projectId: string, attachmentId?: string): string => {
+  if (!UUID.test(projectId) || (attachmentId !== undefined && !UUID.test(attachmentId))) {
+    throw new ApiError(404, "NOT_FOUND", "no such attachment");
+  }
+  const base = `/v1/projects/${projectId}/attachments`;
+  return attachmentId ? `${base}/${attachmentId}` : base;
+};
+
+export async function addAttachment(
+  projectId: string,
+  body: AttachmentBody,
+): Promise<ProjectAttachment> {
+  return request<ProjectAttachment>({ method: "POST", path: attachmentPath(projectId), body });
+}
+
+export async function updateAttachment(
+  projectId: string,
+  attachmentId: string,
+  body: AttachmentPatch,
+): Promise<ProjectAttachment> {
+  return request<ProjectAttachment>({
+    method: "PATCH",
+    path: attachmentPath(projectId, attachmentId),
+    body,
+  });
+}
+
+export async function deleteAttachment(projectId: string, attachmentId: string): Promise<void> {
+  await request<undefined>({ method: "DELETE", path: attachmentPath(projectId, attachmentId) });
+}
+
+/** `ids` is every attachment of the project in its new order. */
+export async function reorderAttachments(
+  projectId: string,
+  ids: string[],
+): Promise<ProjectAttachment[]> {
+  if (!UUID.test(projectId)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return request<ProjectAttachment[]>({
+    method: "PUT",
+    path: `/v1/projects/${projectId}/attachments/order`,
+    body: { ids },
+  });
+}
+
+/** A signed PUT for one file. The browser uploads straight to storage; the token stays here (Q11). */
+export function createUpload(body: UploadRequest): Promise<UploadTicket> {
+  return request<UploadTicket>({ method: "POST", path: "/v1/me/uploads", body });
 }
 
 /** The caller's own projects, every state; one page, keyset-paginated by `cursor`. */

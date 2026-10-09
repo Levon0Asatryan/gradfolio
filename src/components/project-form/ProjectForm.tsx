@@ -38,7 +38,12 @@ import {
   type ProjectFormValues,
 } from "@/lib/projects/form";
 import { PROJECT_LIMITS } from "@/lib/projects/limits";
+import type { ProjectAttachment } from "@/lib/api/types";
+import type { AttachmentValues } from "@/lib/projects/attachments";
+import { UploadControl } from "@/components/uploads/UploadControl";
+import { signUploadAction } from "@/lib/uploads/actions";
 import { counterText } from "@/components/profile/fieldErrorText";
+import { AttachmentsEditor, failedKey } from "./AttachmentsEditor";
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
 import { RichTextEditorLazy } from "./RichTextEditorLazy";
 import { TermsInput } from "./TermsInput";
@@ -49,6 +54,8 @@ export interface ProjectFormProps {
   /** Edit only: the project's id and its stored values. */
   projectId?: string;
   initial?: ProjectFormValues;
+  /** Edit only: the stored attachments, which are saved by their own requests. */
+  attachments?: ProjectAttachment[];
 }
 
 /** What the form shows for a failed save: the API's code is the contract. */
@@ -75,12 +82,18 @@ function failureKey(code: string) {
  * said yes; a failed save keeps every typed value. The UI is not the guard: the
  * actions take no user id and the API answers 404 to a non-owner.
  */
-export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = EMPTY_PROJECT }) => {
+export const ProjectForm: FC<ProjectFormProps> = ({
+  mode,
+  projectId,
+  initial = EMPTY_PROJECT,
+  attachments = [],
+}) => {
   const { t } = useLanguage();
   const text = t.projects.form;
   const router = useRouter();
   const [values, setValues] = useState<ProjectFormValues>(initial);
-  const [baseline, setBaseline] = useState(JSON.stringify(initial));
+  const [draftAttachments, setDraftAttachments] = useState<AttachmentValues[]>([]);
+  const [baseline, setBaseline] = useState(JSON.stringify([initial, []]));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,7 +102,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = E
   const descLabelId = useId();
   const descErrorId = useId();
 
-  const dirty = !leaving && JSON.stringify(values) !== baseline;
+  const dirty = !leaving && JSON.stringify([values, draftAttachments]) !== baseline;
   useUnsavedGuard(dirty, t.profileEdit.leavePrompt);
 
   const errorCount = Object.keys(errors).length;
@@ -119,12 +132,22 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = E
     try {
       const result =
         mode === "create"
-          ? await createProjectAction(values)
+          ? await createProjectAction(values, draftAttachments)
           : await updateProjectAction(projectId, values);
       if (result.ok) {
         // Nothing is lost past this point: stop warning about unsaved changes, then go.
-        setBaseline(JSON.stringify(values));
+        setBaseline(JSON.stringify([values, draftAttachments]));
         setLeaving(true);
+        if (result.failedAttachments?.length) {
+          // The project is saved but some attachments are not: hand their values to the edit page.
+          try {
+            sessionStorage.setItem(failedKey(result.id), JSON.stringify(result.failedAttachments));
+          } catch {
+            // Blocked storage: the project exists, the user adds them again.
+          }
+          router.push(`/projects/${result.id}/edit?flash=created`);
+          return;
+        }
         router.push(`/projects/${result.id}?flash=${mode === "create" ? "created" : "saved"}`);
         return;
       }
@@ -347,6 +370,17 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = E
               {text_("liveDemoUrl", text.liveDemoUrl, { type: "url", placeholder: "https://" })}
               {text_("repoUrl", text.repoUrl, { type: "url", placeholder: "https://github.com/" })}
               {text_("heroImageUrl", text.heroImageUrl, { type: "url", placeholder: "https://" })}
+              {mode === "edit" && projectId ? (
+                <UploadControl
+                  kind="image"
+                  sign={(req) => signUploadAction({ ...req, purpose: "hero", projectId })}
+                  onUploaded={(fileUrl) => set("heroImageUrl", fileUrl)}
+                />
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  {t.projects.upload.uploadAfterSave}
+                </Typography>
+              )}
               <Typography variant="subtitle2" component="h3">
                 {text.links}
               </Typography>
@@ -413,6 +447,14 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = E
               </Box>
             </>,
           )}
+
+          <AttachmentsEditor
+            key={attachments.map((a) => a.id).join(",")}
+            projectId={mode === "edit" ? projectId : undefined}
+            initial={attachments}
+            draft={draftAttachments}
+            onDraftChange={setDraftAttachments}
+          />
 
           {section(
             text.sectionVisibility,

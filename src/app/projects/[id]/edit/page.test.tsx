@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { isValidElement } from "react";
+import { isValidElement, type ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { projectDetail } from "@/testing/fixtures";
 
@@ -26,6 +26,16 @@ vi.mock("@/lib/api/client", () => {
 
 const { default: EditPage, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
+function findForm(node: unknown): ReactElement | undefined {
+  if (!isValidElement(node)) return undefined;
+  if ((node.props as { mode?: string }).mode === "edit") return node;
+  const children = (node.props as { children?: unknown }).children;
+  for (const child of Array.isArray(children) ? children : [children]) {
+    const hit = findForm(child);
+    if (hit) return hit;
+  }
+  return undefined;
+}
 const page = () => EditPage({ params: Promise.resolve({ id: "p1" }) });
 
 beforeEach(() => vi.resetAllMocks());
@@ -34,10 +44,12 @@ describe("/projects/[id]/edit", () => {
   it("renders the form with the stored values for the owner", async () => {
     api.getProject.mockResolvedValue(projectDetail({ id: "p1", title: "EcoRoute", isOwner: true }));
     const el = await page();
-    expect(isValidElement(el) && el.props).toMatchObject({
+    const form = findForm(el);
+    expect(form?.props).toMatchObject({
       mode: "edit",
       projectId: "p1",
       initial: { title: "EcoRoute" },
+      attachments: [],
     });
   });
 

@@ -962,6 +962,385 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/attachments:
+    post:
+      operationId: addAttachment
+      tags:
+        - projects
+      summary: Add an attachment to a project
+      description: "Placed last. Every URL is https without credentials. `image` and `pdf` may be an uploaded file (the `fileUrl` of `POST /v1/me/uploads`, registered here once) or an external URL. `video` must be a YouTube or Vimeo link; the server computes `embedUrl` and the thumbnail. `link` cannot point at an uploaded file. At the per-project cap: 409 `LIMIT_REACHED`. A file that is not the caller’s, missing, of the wrong type or size, or already registered: 400 `INVALID_FILE` / `FILE_IN_USE`."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - image
+                    - video
+                    - pdf
+                    - link
+                url:
+                  type: string
+                title:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+              required:
+                - type
+                - url
+              additionalProperties: false
+      responses:
+        "201":
+          description: The new attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectAttachment"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "LIMIT_REACHED: the project holds the maximum number of attachments"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/attachments/{attachmentId}:
+    patch:
+      operationId: updateAttachment
+      tags:
+        - projects
+      summary: Change an attachment’s title or URL
+      description: The type is fixed. A new `url` is validated for that type; replacing an uploaded file deletes the old object. Sending back the same file (even its signed read URL) keeps it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The attachment id (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                title:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+              additionalProperties: false
+      responses:
+        "200":
+          description: The attachment after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectAttachment"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such attachment of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAttachment
+      tags:
+        - projects
+      summary: Delete an attachment
+      description: An uploaded file is deleted from storage after the row is gone.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The attachment id (UUID)
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such attachment of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/attachments/order:
+    put:
+      operationId: reorderAttachments
+      tags:
+        - projects
+      summary: Set the order of a project’s attachments
+      description: Atomic. `ids` must be exactly the project’s attachments, each once. An id that is not this project’s is 404; the right ids but an incomplete list is 409 `ORDER_STALE`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  maxItems: 1000
+                  type: array
+                  items:
+                    type: string
+                    maxLength: 36
+                  description: Exactly the ids of the section’s entries, each once.
+              required:
+                - ids
+              additionalProperties: false
+      responses:
+        "200":
+          description: The attachments in their new order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectAttachment"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such attachment of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "ORDER_STALE: the list changed; reload it and try again"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/uploads:
+    post:
+      operationId: createUpload
+      tags:
+        - projects
+      summary: Get a signed URL to upload an avatar, hero image, image or PDF
+      description: "The browser then PUTs the file straight to storage with the returned `headers` (exactly: type and size are signed), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                purpose:
+                  type: string
+                  enum:
+                    - avatar
+                    - hero
+                    - attachment
+                contentType:
+                  type: string
+                  enum:
+                    - image/png
+                    - image/jpeg
+                    - image/webp
+                    - image/gif
+                    - application/pdf
+                size:
+                  type: integer
+                  minimum: 1
+                  maximum: 9007199254740991
+                  description: Exact size in bytes; signed into the URL.
+                projectId:
+                  description: "Required for `hero` and `attachment`: a project of the caller’s."
+                  type: string
+                  maxLength: 36
+              required:
+                - purpose
+                - contentType
+                - size
+              additionalProperties: false
+      responses:
+        "201":
+          description: The signed upload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadTicket"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "LIMIT_REACHED: the user holds the maximum number of files"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/projects:
     get:
       operationId: listMyProjects
@@ -2712,6 +3091,34 @@ components:
         - role
         - avatarUrl
         - userId
+      additionalProperties: false
+    UploadTicket:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          description: PUT the file here. Valid for `expiresAt`.
+        method:
+          type: string
+          enum:
+            - PUT
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Send these headers exactly: they are part of the signature."
+        fileUrl:
+          type: string
+          description: After the upload, send this as `avatarUrl`, `heroImageUrl` or an attachment `url`.
+        expiresAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - uploadUrl
+        - method
+        - headers
+        - fileUrl
+        - expiresAt
       additionalProperties: false
   securitySchemes:
     bearerAuth:

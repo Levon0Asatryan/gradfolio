@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ProjectForm } from "@/components/project-form/ProjectForm";
+import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { ApiError, getProject } from "@/lib/api/client";
 import { toFormValues } from "@/lib/projects/form";
@@ -49,5 +50,15 @@ export default async function EditProjectPage({ params }: PageProps) {
   }
   if (!project) notFound();
   if (!project.isOwner) notFound();
-  return <ProjectForm mode="edit" projectId={project.id} initial={toFormValues(project)} />;
+  return (
+    <>
+      <FlashToast />
+      <ProjectForm
+        mode="edit"
+        projectId={project.id}
+        initial={toFormValues(project)}
+        attachments={project.attachments}
+      />
+    </>
+  );
 }
