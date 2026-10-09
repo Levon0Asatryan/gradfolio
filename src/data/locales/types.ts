@@ -290,7 +290,6 @@ export interface Dictionary {
       attachmentDismiss: string;
       uploadForHero: string;
       uploadForAvatar: string;
-      uploadAfterSave: string;
       chooseImage: string;
       chooseFile: string;
       limitsImage: string;

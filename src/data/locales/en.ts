@@ -270,7 +270,7 @@ export const en: Dictionary = {
       mediaIntro:
         "Images, PDFs, videos and links that back this project up. Changes here save at once.",
       mediaIntroDraft:
-        "Add links now. Uploading images and PDFs needs a saved project: do it from the edit page after you create it.",
+        "Images, PDFs, videos and links that back this project up. They are added when you create the project.",
       attachmentsEmpty: "No attachments yet.",
       addAttachment: "Add attachment",
       attachmentType: "Type",
@@ -305,7 +305,6 @@ export const en: Dictionary = {
       attachmentDismiss: "Dismiss",
       uploadForHero: "Or upload a cover image",
       uploadForAvatar: "Or upload a photo",
-      uploadAfterSave: "Save the project first to upload a cover image.",
       chooseImage: "Upload an image",
       chooseFile: "Upload a file",
       limitsImage: "PNG, JPEG, WebP or GIF, up to 5 MB.",

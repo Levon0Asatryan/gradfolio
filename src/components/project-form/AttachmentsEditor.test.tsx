@@ -237,14 +237,13 @@ describe("AttachmentsEditor, live", () => {
 });
 
 describe("AttachmentsEditor, draft (a new project)", () => {
-  it("holds links in the form, offers no upload, and reorders and removes locally", async () => {
+  it("holds items in the form, and reorders and removes locally", async () => {
     const onChange = vi.fn();
     const draft = [
       { type: "link" as const, url: "https://a.test", title: "A" },
       { type: "link" as const, url: "https://b.test", title: "B" },
     ];
     renderInApp(<AttachmentsEditor draft={draft} onDraftChange={onChange} />);
-    expect(screen.getByText(/Uploading images and PDFs needs a saved project/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Move A down" }));
     expect(onChange).toHaveBeenLastCalledWith([draft[1], draft[0]]);
     fireEvent.click(screen.getByRole("button", { name: "Remove B" }));
@@ -253,11 +252,27 @@ describe("AttachmentsEditor, draft (a new project)", () => {
     );
     expect(onChange).toHaveBeenLastCalledWith([draft[0]]);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
-    expect(
-      within(await screen.findByRole("dialog")).queryByRole("button", { name: /Upload/ }),
-    ).toBeNull();
     expect(act_.add).not.toHaveBeenCalled();
+  });
+
+  it("offers the upload for an image or a PDF before the project exists, signed without a project id", async () => {
+    act_.sign.mockResolvedValue({ ok: false, code: "STORAGE_UNAVAILABLE" });
+    renderInApp(<AttachmentsEditor draft={[]} onDraftChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: /Upload/ })).toBeNull();
+    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Image" }));
+    expect(within(dialog).getByRole("button", { name: "Upload an image" })).toBeVisible();
+    fireEvent.change(within(dialog).getByTestId("upload-input"), {
+      target: { files: [new File([new Uint8Array(3)], "a.png", { type: "image/png" })] },
+    });
+    await within(dialog).findByText(/Uploads are not available on this site/);
+    expect(act_.sign).toHaveBeenCalledWith({
+      contentType: "image/png",
+      size: 3,
+      purpose: "attachment",
+    });
   });
 
   it("adds a link to the draft without calling the API", async () => {

@@ -43,16 +43,17 @@ export async function signUploadAction(input: unknown): Promise<SignResult> {
   if (checkFile({ type: contentType, size }, kind) !== "ok") {
     return invalid;
   }
-  const needsProject = purpose === "hero" || purpose === "attachment";
-  if (needsProject && typeof projectId !== "string") return invalid;
-  if (!needsProject && projectId !== undefined) return invalid;
+  // A cover or attachment may be uploaded before its project exists (the file is keyed by the
+  // user, not the project), so `projectId` is optional there; an avatar belongs to no project.
+  if (purpose === "avatar" && projectId !== undefined) return invalid;
+  if (projectId !== undefined && typeof projectId !== "string") return invalid;
 
   try {
     const ticket = await createUpload({
       purpose: purpose as Purpose,
       contentType: contentType as "image/png",
       size,
-      ...(needsProject ? { projectId: projectId as string } : {}),
+      ...(typeof projectId === "string" ? { projectId } : {}),
     });
     try {
       const url = new URL(ticket.uploadUrl);

@@ -329,7 +329,7 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Still mock until their milestones: dashboard, search, integrations.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Still mock until their milestones: dashboard, search, integrations.
 
 ## Environment variables
 
