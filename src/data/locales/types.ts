@@ -253,6 +253,26 @@ export interface Dictionary {
       nameAZ: string;
       nameZA: string;
     };
+    upload: {
+      chooseImage: string;
+      chooseFile: string;
+      limitsImage: string;
+      limitsFile: string;
+      uploading: string;
+      progress: string;
+      cancelUpload: string;
+      uploaded: string;
+      retry: string;
+      errorType: string;
+      errorImageOnly: string;
+      errorTooBig: string;
+      errorEmpty: string;
+      errorSign: string;
+      errorSignLimit: string;
+      errorRejected: string;
+      errorUnavailable: string;
+      errorNetwork: string;
+    };
     form: {
       newTitle: string;
       editTitle: string;
