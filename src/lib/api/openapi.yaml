@@ -12,6 +12,8 @@ tags:
     description: The caller’s own account
   - name: profiles
     description: "Profiles: reading anyone’s, editing your own"
+  - name: projects
+    description: "Projects: reading (writes arrive with M4 PRs b and c)"
 paths:
   /healthz:
     get:
@@ -488,6 +490,287 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}:
+    get:
+      operationId: getProject
+      tags:
+        - projects
+      summary: A project with its attachments, tags, technologies and team
+      description: Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+      responses:
+        "200":
+          description: The project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project, or it is private/draft and the caller is not its owner"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/projects:
+    get:
+      operationId: listMyProjects
+      tags:
+        - projects
+      summary: The caller’s own projects, in every state
+      description: "Published, private and draft projects together; `state` narrows. Keyset pagination: pass `nextCursor` back as `cursor` with the same `sort`. Unknown query keys, a cursor for another sort and a `limit` over the maximum are 400."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            default: newest
+            description: newest/oldest by creation, updated by last change, name_* by title. Every order ends in the id, so pages never repeat or skip a row.
+            type: string
+            enum:
+              - newest
+              - oldest
+              - updated
+              - name_asc
+              - name_desc
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - academic
+              - personal
+              - research
+              - hackathon
+              - course
+              - other
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ongoing
+              - completed
+              - archived
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: technology
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            description: Title or technology contains this text (case-insensitive).
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most PROJECTS_PAGE_MAX (default 50).
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: The `nextCursor` of the previous page, with the same `sort`. Anything else is 400.
+            type: string
+            minLength: 1
+            maxLength: 600
+        - name: state
+          in: query
+          required: false
+          schema:
+            description: "published: public and not a draft; private: not public and not a draft; draft: a draft."
+            type: string
+            enum:
+              - published
+              - private
+              - draft
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/users/{id}/projects:
+    get:
+      operationId: listUserProjects
+      tags:
+        - projects
+      summary: A user’s public projects
+      description: Public, published projects only, even for the owner (who uses `/v1/me/projects`). Needs no token. 404 when the user’s profile is private and the caller is not its owner, or the user does not exist. Same pagination as `/v1/me/projects`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The user id (UUID)
+            example: 0b6f2c1e-…
+        - name: sort
+          in: query
+          required: false
+          schema:
+            default: newest
+            description: newest/oldest by creation, updated by last change, name_* by title. Every order ends in the id, so pages never repeat or skip a row.
+            type: string
+            enum:
+              - newest
+              - oldest
+              - updated
+              - name_asc
+              - name_desc
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - academic
+              - personal
+              - research
+              - hackathon
+              - course
+              - other
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ongoing
+              - completed
+              - archived
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: technology
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            description: Title or technology contains this text (case-insensitive).
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most PROJECTS_PAGE_MAX (default 50).
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: The `nextCursor` of the previous page, with the same `sort`. Anything else is 400.
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such user, or their profile is private and the caller is not its owner"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
           content:
             application/json:
               schema:
@@ -1638,6 +1921,375 @@ components:
         - role
         - isPublic
         - isDraft
+      additionalProperties: false
+    ProjectAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - image
+            - video
+            - pdf
+            - link
+        url:
+          type: string
+        title:
+          nullable: true
+          type: string
+        thumbnailUrl:
+          nullable: true
+          type: string
+        embedUrl:
+          nullable: true
+          description: "Videos on an allow-listed host only: the URL to put in an iframe. Never embed `url`."
+          type: string
+      required:
+        - id
+        - type
+        - url
+        - title
+        - thumbnailUrl
+        - embedUrl
+      additionalProperties: false
+    ProjectDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          nullable: true
+          description: The author’s own text. Plain text.
+          type: string
+        category:
+          type: string
+          enum:
+            - academic
+            - personal
+            - research
+            - hackathon
+            - course
+            - other
+        status:
+          type: string
+          enum:
+            - ongoing
+            - completed
+            - archived
+        heroImageUrl:
+          nullable: true
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+          enum:
+            - owner
+          description: "Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only)."
+        technologies:
+          type: array
+          items:
+            type: string
+        isPublic:
+          type: boolean
+        isDraft:
+          type: boolean
+          description: A draft is readable by its owner only.
+        isOwner:
+          type: boolean
+          description: The caller owns the project.
+        ownerId:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/ProjectMetadata"
+        createdAt:
+          type: string
+          description: ISO 8601, UTC.
+        updatedAt:
+          type: string
+          description: ISO 8601, UTC.
+        aiSummary:
+          nullable: true
+          description: Generated text (M8); null until then.
+          type: string
+        descriptionHtml:
+          nullable: true
+          description: Sanitized HTML (allow-list in docs/m4-plan.md §4.1). Render it with a second sanitizer anyway.
+          type: string
+        liveDemoUrl:
+          nullable: true
+          type: string
+        repo:
+          $ref: "#/components/schemas/ProjectRepo"
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+            required:
+              - label
+              - url
+            additionalProperties: false
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+            required:
+              - label
+              - url
+            additionalProperties: false
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectAttachment"
+        team:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectTeamMember"
+          description: Accepted team members, read-only until M5. The owner is `owner`, not a member.
+        owner:
+          $ref: "#/components/schemas/ProjectOwner"
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+      required:
+        - id
+        - title
+        - summary
+        - category
+        - status
+        - heroImageUrl
+        - tags
+        - role
+        - technologies
+        - isPublic
+        - isDraft
+        - isOwner
+        - ownerId
+        - metadata
+        - createdAt
+        - updatedAt
+        - aiSummary
+        - descriptionHtml
+        - liveDemoUrl
+        - repo
+        - links
+        - files
+        - attachments
+        - team
+        - owner
+        - source
+      additionalProperties: false
+    ProjectMetadata:
+      type: object
+      properties:
+        startDate:
+          nullable: true
+          type: string
+          description: YYYY-MM-DD
+          example: 2026-10-08
+        endDate:
+          nullable: true
+          type: string
+          description: "YYYY-MM-DD; null: ongoing."
+          example: 2026-10-08
+        course:
+          nullable: true
+          type: string
+        professor:
+          nullable: true
+          type: string
+      required:
+        - startDate
+        - endDate
+        - course
+        - professor
+      additionalProperties: false
+    ProjectOwner:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          nullable: true
+          description: null when the owner’s profile is private.
+          type: string
+      required:
+        - id
+        - name
+        - avatarUrl
+      additionalProperties: false
+    ProjectPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectSummary"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+      required:
+        - items
+        - nextCursor
+      additionalProperties: false
+    ProjectRepo:
+      type: object
+      properties:
+        url:
+          nullable: true
+          type: string
+        latestCommitDate:
+          nullable: true
+          type: string
+          description: YYYY-MM-DD
+          example: 2026-10-08
+        readmeUrl:
+          nullable: true
+          type: string
+        stars:
+          nullable: true
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        forks:
+          nullable: true
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        language:
+          nullable: true
+          type: string
+      required:
+        - url
+        - latestCommitDate
+        - readmeUrl
+        - stars
+        - forks
+        - language
+      additionalProperties: false
+      description: Only `url` is writable. The rest is filled by the GitHub import (M7).
+    ProjectSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          nullable: true
+          description: The author’s own text. Plain text.
+          type: string
+        category:
+          type: string
+          enum:
+            - academic
+            - personal
+            - research
+            - hackathon
+            - course
+            - other
+        status:
+          type: string
+          enum:
+            - ongoing
+            - completed
+            - archived
+        heroImageUrl:
+          nullable: true
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+          enum:
+            - owner
+          description: "Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only)."
+        technologies:
+          type: array
+          items:
+            type: string
+        isPublic:
+          type: boolean
+        isDraft:
+          type: boolean
+          description: A draft is readable by its owner only.
+        isOwner:
+          type: boolean
+          description: The caller owns the project.
+        ownerId:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/ProjectMetadata"
+        createdAt:
+          type: string
+          description: ISO 8601, UTC.
+        updatedAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - id
+        - title
+        - summary
+        - category
+        - status
+        - heroImageUrl
+        - tags
+        - role
+        - technologies
+        - isPublic
+        - isDraft
+        - isOwner
+        - ownerId
+        - metadata
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ProjectTeamMember:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          nullable: true
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+        userId:
+          nullable: true
+          description: The member’s account, for a profile link. null when the account is gone or its profile is not visible to the caller.
+          type: string
+      required:
+        - id
+        - name
+        - role
+        - avatarUrl
+        - userId
       additionalProperties: false
   securitySchemes:
     bearerAuth:

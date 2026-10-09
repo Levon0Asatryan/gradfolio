@@ -2,7 +2,15 @@ import "server-only";
 import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
 import type { Section } from "@/lib/profile/sections";
-import type { Me, Profile, ProfileHeader, ProfileHeaderPatch } from "./types";
+import type {
+  Me,
+  Profile,
+  ProfileHeader,
+  ProfileHeaderPatch,
+  ProjectDetail,
+  ProjectListQuery,
+  ProjectPage,
+} from "./types";
 
 /**
  * gradfolio-api, called from this app's server only (Q11): the access token
@@ -125,6 +133,25 @@ export function updateMyProfile(patch: ProfileHeaderPatch): Promise<ProfileHeade
 
 export function completeOnboarding(): Promise<{ onboarded: true }> {
   return request<{ onboarded: true }>({ method: "POST", path: "/v1/me/onboarding/complete" });
+}
+
+/**
+ * One project. Sends the token when there is a session: the owner reads their own
+ * private or draft project, everyone else gets a 404 for it, as for an unknown id (Q3).
+ */
+export async function getProject(id: string): Promise<ProjectDetail> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return request<ProjectDetail>({ method: "GET", path: `/v1/projects/${id}`, auth: "optional" });
+}
+
+/** The caller's own projects, every state; one page, keyset-paginated by `cursor`. */
+export function listMyProjects(query: ProjectListQuery = {}): Promise<ProjectPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return request<ProjectPage>({ method: "GET", path: `/v1/me/projects${qs ? `?${qs}` : ""}` });
 }
 
 /** Section entries (education, experience, certifications): `/v1/me/<section>`. */
