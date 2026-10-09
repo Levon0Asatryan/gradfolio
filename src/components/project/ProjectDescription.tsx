@@ -1,52 +1,36 @@
-"use client";
-
-import { FC, memo, useMemo } from "react";
 import { Box } from "@mui/material";
 import { Panel } from "@/components/layout/Panel";
+import { sanitizeDescription } from "@/lib/sanitize";
 
 export interface ProjectDescriptionProps {
-  html: string;
+  html: string | null;
+  title: string;
 }
 
-// Minimal sanitizer: strips <script>, javascript: URLs, and inline event handlers.
-function sanitize(html: string): string {
-  let out = html;
-  // Remove script/style tags entirely
-  out = out.replace(/<\/(?:script|style)>/gi, "");
-  out = out.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "");
-  // Remove on* attributes (onclick, onerror, etc.)
-  out = out.replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "");
-  out = out.replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "");
-  out = out.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
-  // Disallow javascript: in href/src
-  out = out.replace(/(href|src)\s*=\s*"javascript:[^"]*"/gi, '$1="#"');
-  out = out.replace(/(href|src)\s*=\s*'javascript:[^']*'/gi, "$1='#'");
-  return out;
-}
-
-import { useLanguage } from "@/components/i18n/LanguageContext";
-
-const ProjectDescription: FC<ProjectDescriptionProps> = ({ html }) => {
-  const safeHtml = useMemo(() => sanitize(html), [html]);
-  const { t } = useLanguage();
-
+/**
+ * The author's description. A server component on purpose: the HTML goes through
+ * the allow-list sanitizer here, on the server (F1, tracker 4.8), and only the
+ * sanitized markup reaches the browser. The API sanitized it on write as well.
+ */
+export default function ProjectDescription({ html, title }: ProjectDescriptionProps) {
+  const safeHtml = sanitizeDescription(html);
+  if (!safeHtml) return null;
   return (
-    <Panel title={t.common.description}>
+    <Panel title={title}>
       <Box
         component="div"
         sx={{
-          // content styling
-          "& h3, & h4": { mt: 2, mb: 1 },
+          "& h2, & h3, & h4": { mt: 2, mb: 1 },
           "& p": { mb: 2 },
           "& ul, & ol": { pl: 3, mb: 2 },
           "& li": { mb: 0.5 },
-          "& a": { color: "primary.main" },
+          "& a[href]": { color: "primary.main" },
+          "& pre": { overflowX: "auto", p: 1.5, borderRadius: 1, bgcolor: "action.hover" },
+          "& blockquote": { m: 0, mb: 2, pl: 2, borderLeft: 3, borderColor: "divider" },
+          overflowWrap: "anywhere",
         }}
         dangerouslySetInnerHTML={{ __html: safeHtml }}
-        aria-label={t.common.description}
       />
     </Panel>
   );
-};
-
-export default memo(ProjectDescription);
+}
