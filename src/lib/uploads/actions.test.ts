@@ -93,6 +93,14 @@ describe("signUploadAction", () => {
     expect((await signUploadAction({ ...pdf, size: 20 * 1024 * 1024 + 1 })).ok).toBe(false);
   });
 
+  it("accepts the path-style URL the API's signer really returns (the production shape)", async () => {
+    // Printed by @google-cloud/storage getSignedUrl({ version: "v4", action: "write" }) for this bucket.
+    const uploadUrl =
+      "https://storage.googleapis.com/gradfolio-files-1058577031182/u/x/a.png?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Signature=abc";
+    api.createUpload.mockResolvedValue({ ...TICKET, uploadUrl });
+    expect(await signUploadAction(req)).toMatchObject({ ok: true, uploadUrl });
+  });
+
   it("passes STORAGE_UNAVAILABLE and LIMIT_REACHED through", async () => {
     for (const code of ["STORAGE_UNAVAILABLE", "LIMIT_REACHED", "NOT_FOUND", "RATE_LIMITED"]) {
       api.createUpload.mockRejectedValueOnce(new ApiError(503, code, "x"));
@@ -104,6 +112,8 @@ describe("signUploadAction", () => {
     "http://x.storage.googleapis.com/u/1/a.png",
     "https://evil.test/u/1/a.png",
     "https://storage.googleapis.com.evil.test/a",
+    "https://evilstorage.googleapis.com/b/u/1/a.png",
+    "https://storage.googleapis.com@evil.test/b/u/1/a.png",
     "javascript:alert(1)",
     "not a url",
   ])("never gives the browser an upload URL like %s", async (uploadUrl) => {
