@@ -8,8 +8,9 @@ import { notification } from "./fixtures";
 import { NotificationsPopoverButton, NotificationsSheet } from "./NotificationsBell";
 import { NotificationsProvider } from "./NotificationsProvider";
 
+const PATH = vi.hoisted(() => ({ current: "/" }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => PATH.current,
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 const actions = vi.hoisted(() => ({ one: vi.fn(), all: vi.fn(), respond: vi.fn() }));
@@ -28,6 +29,7 @@ let page: { items: Notification[]; nextCursor: string | null } | { code: string;
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  PATH.current = "/";
   unread = 2;
   page = { items: [], nextCursor: null };
   fetchMock = vi.fn((url: string) => {
@@ -128,6 +130,23 @@ describe("the panel", () => {
     const dialog = await open();
     fireEvent.click(await within(dialog).findByRole("link", { name: /Ani joined/ }));
     expect(actions.one).toHaveBeenCalledWith(ID(1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("closes when the route changes (the back button, a link elsewhere)", async () => {
+    page = { items: [notification({ id: ID(1) })], nextCursor: null };
+    const view = show();
+    await open();
+    PATH.current = "/projects";
+    view.rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider initialLanguage="en">
+          <NotificationsProvider pollMs={0}>
+            <NotificationsPopoverButton {...button} />
+          </NotificationsProvider>
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { type FC, useId, useState } from "react";
+import { type FC, useEffect, useId, useState } from "react";
+import { usePathname } from "next/navigation";
 import Badge from "@mui/material/Badge";
 import ButtonBase from "@mui/material/ButtonBase";
 import Drawer from "@mui/material/Drawer";
@@ -52,6 +53,9 @@ export const NotificationsPopoverButton: FC<{ sx: SxProps<Theme> }> = ({ sx }) =
   const label = useBellLabel();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = anchor !== null;
+  const pathname = usePathname();
+  // Navigating (a link, the back button) closes the panel.
+  useEffect(() => setAnchor(null), [pathname]);
   // Safari does not focus a button on click, so MUI would have nowhere to return focus to.
   const close = () => {
     anchor?.focus();
