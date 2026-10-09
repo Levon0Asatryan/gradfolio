@@ -6,6 +6,7 @@ const api = vi.hoisted(() => ({
   createProject: vi.fn(),
   updateProject: vi.fn(),
   deleteProject: vi.fn(),
+  addAttachment: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => {
@@ -25,6 +26,7 @@ vi.mock("@/lib/api/client", () => {
     createProject: api.createProject,
     updateProject: api.updateProject,
     deleteProject: api.deleteProject,
+    addAttachment: api.addAttachment,
   };
 });
 
@@ -165,5 +167,61 @@ describe("fieldsFromDetails", () => {
   it("ignores details it cannot read", () => {
     expect(fieldsFromDetails(undefined)).toBeUndefined();
     expect(fieldsFromDetails([{ path: "" }, null, { path: 3 }])).toBeUndefined();
+  });
+});
+
+describe("createProjectAction with attachments", () => {
+  const link = { type: "link", url: "https://x.test/a", title: "Docs" };
+
+  it("creates the project, then each attachment in order", async () => {
+    api.createProject.mockResolvedValue({ id: "p1" });
+    api.addAttachment.mockResolvedValue({ id: "a" });
+    const result = await createProjectAction(form, [link, { ...link, title: "Two" }]);
+    expect(result).toEqual({ ok: true, id: "p1" });
+    expect(api.addAttachment.mock.calls.map((c) => (c[1] as { title: string }).title)).toEqual([
+      "Docs",
+      "Two",
+    ]);
+    expect(api.addAttachment.mock.calls[0]?.[0]).toBe("p1");
+  });
+
+  it("keeps the project when an attachment fails, and returns that attachment's values", async () => {
+    api.createProject.mockResolvedValue({ id: "p1" });
+    api.addAttachment
+      .mockRejectedValueOnce(new ApiError(400, "INVALID_FILE", "no"))
+      .mockResolvedValueOnce({ id: "b" });
+    const result = await createProjectAction(form, [link, { ...link, title: "Two" }]);
+    expect(result).toEqual({
+      ok: true,
+      id: "p1",
+      failedAttachments: [
+        { type: "link", url: "https://x.test/a", title: "Docs", code: "INVALID_FILE" },
+      ],
+    });
+    expect(api.addAttachment).toHaveBeenCalledTimes(2);
+  });
+
+  it("creates nothing when an attachment is malformed", async () => {
+    const result = await createProjectAction(form, [link, { type: "link", url: "http://x.test" }]);
+    expect(result).toMatchObject({
+      ok: false,
+      code: "VALIDATION_FAILED",
+      fields: { "attachments.1": "invalid" },
+    });
+    expect(api.createProject).not.toHaveBeenCalled();
+  });
+
+  it("refuses a non-list", async () => {
+    expect(await createProjectAction(form, "x")).toEqual({ ok: false, code: "VALIDATION_FAILED" });
+    expect(api.createProject).not.toHaveBeenCalled();
+  });
+
+  it("does not add attachments when the project itself is refused", async () => {
+    api.createProject.mockRejectedValue(new ApiError(409, "LIMIT_REACHED", "x"));
+    expect(await createProjectAction(form, [link])).toMatchObject({
+      ok: false,
+      code: "LIMIT_REACHED",
+    });
+    expect(api.addAttachment).not.toHaveBeenCalled();
   });
 });

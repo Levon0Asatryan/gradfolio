@@ -35,3 +35,21 @@ describe("checkFile", () => {
     expect(acceptAttribute("image")).not.toContain("svg");
   });
 });
+
+describe("a PDF-only control", () => {
+  it("takes a PDF and refuses an image; an image control refuses a PDF", () => {
+    expect(checkFile({ type: "application/pdf", size: 10 }, "pdf")).toBe("ok");
+    expect(checkFile({ type: "image/png", size: 10 }, "pdf")).toBe("type");
+    expect(checkFile({ type: "application/pdf", size: 10 }, "image")).toBe("type");
+    expect(acceptAttribute("pdf")).toBe("application/pdf");
+  });
+});
+
+describe("a PDF-only control", () => {
+  it("takes a PDF and refuses an image; an image control refuses a PDF", () => {
+    expect(checkFile({ type: "application/pdf", size: 10 }, "pdf")).toBe("ok");
+    expect(checkFile({ type: "image/png", size: 10 }, "pdf")).toBe("type");
+    expect(checkFile({ type: "application/pdf", size: 10 }, "image")).toBe("type");
+    expect(acceptAttribute("pdf")).toBe("application/pdf");
+  });
+});
