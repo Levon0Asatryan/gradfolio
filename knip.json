@@ -1,5 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [".claude/workflows/*.js"],
-  "ignoreExportsUsedInFile": { "interface": true, "type": true }
+  "entry": [".claude/workflows/*.js", "e2e/**/*.spec.ts", "playwright.config.ts"],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  }
 }
