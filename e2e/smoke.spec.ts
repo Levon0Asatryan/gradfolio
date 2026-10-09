@@ -123,6 +123,16 @@ test("the edit page of a project is protected too, and the return path is kept",
   );
 });
 
+test("a project page loads its server code (sanitizer, jsdom) and shows the API error, not a 500", async ({
+  page,
+}) => {
+  // No API in this run: the page must reach its error screen, which needs the whole route's
+  // modules to load (DOMPurify and jsdom among them). A module that cannot load is a 500.
+  const response = await page.goto("/projects/5c1d9a3e-aaaa-4bbb-8ccc-ddddeeeeffff");
+  expect(response?.status()).toBe(200);
+  await expect(page.locator("main")).toContainText("This project could not be loaded");
+});
+
 test("a public page needs no login", async ({ request }) => {
   const response = await request.get("/settings", { maxRedirects: 0 });
   expect(response.status()).toBe(200);
