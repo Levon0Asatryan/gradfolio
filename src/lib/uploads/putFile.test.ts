@@ -60,6 +60,28 @@ describe("putFile", () => {
     expect(await result).toEqual({ ok: true });
   });
 
+  it("sends every header of the ticket, even ones it has never heard of, and no others", async () => {
+    const result = putFile({
+      url: "https://b.storage.googleapis.com/u/1/a.png?sig=1",
+      headers: {
+        "Content-Type": "image/png",
+        "x-goog-content-length-range": "1,1",
+        "x-goog-if-generation-match": "0",
+        "x-goog-future-header": "v",
+      },
+      file: blob,
+    });
+    expect(FakeXhr.last.headers).toEqual({
+      "Content-Type": "image/png",
+      "x-goog-content-length-range": "1,1",
+      "x-goog-if-generation-match": "0",
+      "x-goog-future-header": "v",
+    });
+    FakeXhr.last.status = 200;
+    FakeXhr.last.onload?.();
+    await result;
+  });
+
   it("reports progress as a fraction", async () => {
     const seen: number[] = [];
     const result = start({ onProgress: (f: number) => seen.push(f) });

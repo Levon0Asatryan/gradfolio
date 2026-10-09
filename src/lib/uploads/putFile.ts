@@ -17,7 +17,7 @@ export type PutResult =
 
 export interface PutOptions {
   url: string;
-  /** Exactly the headers the API signed (`Content-Type`, `x-goog-content-length-range`). */
+  /** Exactly the headers the ticket returned, whatever they are (the API may sign more, e.g. `x-goog-if-generation-match`). */
   headers: Record<string, string>;
   file: Blob;
   onProgress?: (fraction: number) => void;

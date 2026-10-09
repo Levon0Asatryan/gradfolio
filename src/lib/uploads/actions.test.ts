@@ -49,6 +49,12 @@ describe("signUploadAction", () => {
     expect(JSON.stringify(result)).not.toMatch(/bearer|token|authorization/i);
   });
 
+  it("passes the ticket's headers on as they are, including ones added later", async () => {
+    const headers = { ...TICKET.headers, "x-goog-if-generation-match": "0" };
+    api.createUpload.mockResolvedValue({ ...TICKET, headers });
+    expect(await signUploadAction(req)).toMatchObject({ ok: true, headers });
+  });
+
   it("needs no project for an avatar, and refuses one", async () => {
     api.createUpload.mockResolvedValue(TICKET);
     expect(
