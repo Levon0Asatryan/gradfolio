@@ -270,7 +270,7 @@ export const ru: Dictionary = {
       mediaIntro:
         "Изображения, PDF, видео и ссылки, подтверждающие проект. Изменения здесь сохраняются сразу.",
       mediaIntroDraft:
-        "Добавьте ссылки сейчас. Загрузка изображений и PDF возможна после сохранения проекта: со страницы редактирования.",
+        "Изображения, PDF, видео и ссылки, подтверждающие проект. Они добавятся при создании проекта.",
       attachmentsEmpty: "Вложений пока нет.",
       addAttachment: "Добавить вложение",
       attachmentType: "Тип",
@@ -304,7 +304,6 @@ export const ru: Dictionary = {
       attachmentDismiss: "Отклонить",
       uploadForHero: "Или загрузите обложку",
       uploadForAvatar: "Или загрузите фото",
-      uploadAfterSave: "Сначала сохраните проект, чтобы загрузить обложку.",
       chooseImage: "Загрузить изображение",
       chooseFile: "Загрузить файл",
       limitsImage: "PNG, JPEG, WebP или GIF, до 5 МБ.",

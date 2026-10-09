@@ -370,17 +370,17 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               {text_("liveDemoUrl", text.liveDemoUrl, { type: "url", placeholder: "https://" })}
               {text_("repoUrl", text.repoUrl, { type: "url", placeholder: "https://github.com/" })}
               {text_("heroImageUrl", text.heroImageUrl, { type: "url", placeholder: "https://" })}
-              {mode === "edit" && projectId ? (
-                <UploadControl
-                  kind="image"
-                  sign={(req) => signUploadAction({ ...req, purpose: "hero", projectId })}
-                  onUploaded={(fileUrl) => set("heroImageUrl", fileUrl)}
-                />
-              ) : (
-                <Typography variant="caption" color="text.secondary">
-                  {t.projects.upload.uploadAfterSave}
-                </Typography>
-              )}
+              <UploadControl
+                kind="image"
+                sign={(req) =>
+                  signUploadAction({
+                    ...req,
+                    purpose: "hero",
+                    ...(mode === "edit" && projectId ? { projectId } : {}),
+                  })
+                }
+                onUploaded={(fileUrl) => set("heroImageUrl", fileUrl)}
+              />
               <Typography variant="subtitle2" component="h3">
                 {text.links}
               </Typography>

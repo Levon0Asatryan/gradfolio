@@ -186,10 +186,14 @@ the FE never stores or caches an image URL it was given.
   done (thumbnail or file name), failed (the reason, Retry; the form keeps its other
   edits). Client checks type and size first, so the common failures never leave the
   browser; the signature enforces them anyway.
-- **Uploads need an existing project** (`hero` and `attachment` take a `projectId`,
-  API §3.5). On `/projects/new` the Media section is URL-only with a note; file upload
-  appears on the edit page, where a new project lands after the first save. Avatars
-  upload from the account page in PR 5 (same component).
+- **Uploads do not need an existing project** (changed after M4 PR 5; API PR #56 makes
+  `projectId` optional for `hero` and `attachment`). A file is keyed by the user
+  (`u/<userId>/`), so `/projects/new` has the full Media section and the cover upload.
+  The form sends the project first, then each attachment with its `fileUrl` (the
+  partial-failure flow below is unchanged). Originally (PR 5) a project id was required
+  and `/projects/new` was URL-only; that was an API restriction, not a design need.
+  Avatars upload from the account page (same component). The host check accepts the
+  signer's path-style URL `https://storage.googleapis.com/<bucket>/<key>` (#70).
 - **Previews cannot upload** unless the preview origin is in the bucket CORS (API §3.1,
   no `*.vercel.app` wildcard). A failed signing is
   `STORAGE_UNAVAILABLE` (the API's 503 when no bucket is configured), but a missing CORS rule shows up only **at the browser `PUT`**

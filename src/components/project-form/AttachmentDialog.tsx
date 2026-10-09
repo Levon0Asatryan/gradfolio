@@ -28,7 +28,7 @@ export interface AttachmentDialogProps {
   open: boolean;
   /** Present when editing: the type is then fixed (API: the type cannot change). */
   editing?: AttachmentValues;
-  /** Present when the project exists: image and PDF attachments can then be uploaded. */
+  /** Present when the project exists; absent on a new project (uploads still work). */
   projectId?: string;
   /** Saves; returns the API's field errors or a message key to keep the dialog open, or null when done. */
   onSubmit: (
@@ -91,7 +91,7 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
     }
   }
 
-  // Uploading needs a saved project, and only images and PDFs are files.
+  // Only images and PDFs are files. On a new project there is no id yet: the upload is keyed by the user.
   const uploadKind = values.type === "image" ? "image" : values.type === "pdf" ? "pdf" : null;
 
   return (
@@ -138,11 +138,17 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
               error={Boolean(errors.url)}
               helperText={err("url")}
             />
-            {uploadKind && projectId && (
+            {uploadKind && (
               <UploadControl
                 key={uploadKind}
                 kind={uploadKind}
-                sign={(req) => signUploadAction({ ...req, purpose: "attachment", projectId })}
+                sign={(req) =>
+                  signUploadAction({
+                    ...req,
+                    purpose: "attachment",
+                    ...(projectId ? { projectId } : {}),
+                  })
+                }
                 onUploaded={(fileUrl) => setValues((v) => ({ ...v, url: fileUrl }))}
               />
             )}

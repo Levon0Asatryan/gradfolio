@@ -11,13 +11,14 @@ const act_ = vi.hoisted(() => ({
   create: vi.fn(),
   update: vi.fn(),
   del: vi.fn(),
+  sign: vi.fn(),
 }));
 vi.mock("@/lib/projects/actions", () => ({
   createProjectAction: act_.create,
   updateProjectAction: act_.update,
   deleteProjectAction: act_.del,
 }));
-vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: vi.fn() }));
+vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: act_.sign }));
 vi.mock("@/lib/projects/attachmentActions", () => ({
   addAttachmentAction: vi.fn(),
   updateAttachmentAction: vi.fn(),
@@ -287,10 +288,41 @@ describe("ProjectForm, create", () => {
     expect(unloads()).toBe(true);
   });
 
-  it("offers the cover upload only on a saved project", () => {
+  it("signs a cover upload on a new project without a project id, and on a saved one with it", async () => {
+    act_.sign.mockResolvedValue({ ok: false, code: "STORAGE_UNAVAILABLE" });
+    const pick = () =>
+      fireEvent.change(screen.getAllByTestId("upload-input")[0] as HTMLElement, {
+        target: { files: [new File([new Uint8Array(3)], "c.png", { type: "image/png" })] },
+      });
     const { unmount } = renderInApp(<ProjectForm mode="create" />);
-    expect(screen.queryByRole("button", { name: "Upload an image" })).toBeNull();
-    expect(screen.getByText("Save the project first to upload a cover image.")).toBeVisible();
+    pick();
+    await waitFor(() => expect(act_.sign).toHaveBeenCalledTimes(1));
+    expect(act_.sign).toHaveBeenLastCalledWith({
+      contentType: "image/png",
+      size: 3,
+      purpose: "hero",
+    });
+    unmount();
+    renderInApp(
+      <ProjectForm
+        mode="edit"
+        projectId="p-9"
+        initial={toFormValues(projectDetail({ id: "p-9" }))}
+      />,
+    );
+    pick();
+    await waitFor(() => expect(act_.sign).toHaveBeenCalledTimes(2));
+    expect(act_.sign).toHaveBeenLastCalledWith({
+      contentType: "image/png",
+      size: 3,
+      purpose: "hero",
+      projectId: "p-9",
+    });
+  });
+
+  it("offers the cover upload on a new project too, and on a saved one", () => {
+    const { unmount } = renderInApp(<ProjectForm mode="create" />);
+    expect(screen.getByRole("button", { name: "Upload an image" })).toBeVisible();
     unmount();
     renderInApp(
       <ProjectForm

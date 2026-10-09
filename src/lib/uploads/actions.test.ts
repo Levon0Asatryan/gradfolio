@@ -73,7 +73,7 @@ describe("signUploadAction", () => {
   });
 
   it.each([
-    ["no project for a hero", { ...req, projectId: undefined }],
+    ["a non-string project id", { ...req, projectId: 7 }],
     ["an unknown purpose", { ...req, purpose: "admin" }],
     ["an SVG", { ...req, contentType: "image/svg+xml" }],
     ["a PDF as a hero", { ...req, contentType: "application/pdf" }],
@@ -84,6 +84,20 @@ describe("signUploadAction", () => {
   ])("refuses %s without calling the API", async (_n, input) => {
     expect(await signUploadAction(input)).toEqual({ ok: false, code: "VALIDATION_FAILED" });
     expect(api.createUpload).not.toHaveBeenCalled();
+  });
+
+  it("signs a cover and an attachment without a project id (a new project has none yet)", async () => {
+    api.createUpload.mockResolvedValue(TICKET);
+    for (const purpose of ["hero", "attachment"]) {
+      expect((await signUploadAction({ purpose, contentType: "image/png", size: 3 })).ok).toBe(
+        true,
+      );
+    }
+    expect(api.createUpload).toHaveBeenLastCalledWith({
+      purpose: "attachment",
+      contentType: "image/png",
+      size: 3,
+    });
   });
 
   it("allows a PDF as an attachment up to 20 MB", async () => {
