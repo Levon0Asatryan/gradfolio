@@ -17,15 +17,34 @@ import {
 import { Panel } from "@/components/layout/Panel";
 import CloseIcon from "@mui/icons-material/Close";
 import Image from "next/image";
-import type { ProjectAttachment } from "@/data/project.mock";
+import type { ProjectAttachment } from "@/lib/api/types";
+import { safeHttpUrl, safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 
 export interface AttachmentsGalleryProps {
   items?: ProjectAttachment[];
 }
 
-const isYouTube = (url: string) => /youtube\.com|youtu\.be/.test(url);
+/** The only places an iframe may point (the API computes `embedUrl` for allow-listed hosts). */
+const EMBED_PREFIXES = [
+  "https://www.youtube-nocookie.com/embed/",
+  "https://player.vimeo.com/video/",
+];
+export const safeEmbedUrl = (url: string | null): string | undefined =>
+  url && EMBED_PREFIXES.some((p) => url.startsWith(p)) ? url : undefined;
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
+
+/** An https image, or an empty box: a URL that is not https is never loaded. */
+const Pic: FC<{ src: string | null; alt: string; sizes: string; fit: "cover" | "contain" }> = ({
+  src,
+  alt,
+  sizes,
+  fit,
+}) => {
+  const safe = safeHttpsUrl(src);
+  if (!safe) return <Box sx={{ width: "100%", height: "100%", bgcolor: "action.hover" }} />;
+  return <Image src={safe} alt={alt} fill sizes={sizes} style={{ objectFit: fit }} unoptimized />;
+};
 
 const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
   const [lightboxId, setLightboxId] = useState<string | null>(null);
@@ -64,13 +83,11 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                     onClick={() => open(att.id)}
                   >
                     <Box sx={{ position: "relative", aspectRatio: "16 / 10" }}>
-                      <Image
-                        src={att.thumbnailUrl || att.url}
+                      <Pic
+                        src={att.thumbnailUrl ?? att.url}
                         alt={att.title || t.common.projectImage}
-                        fill
                         sizes="(max-width: 600px) 100vw, 300px"
-                        style={{ objectFit: "cover" }}
-                        unoptimized
+                        fit="cover"
                       />
                     </Box>
                     {att.title && (
@@ -84,20 +101,18 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                 <Card variant="outlined" sx={{ width: "100%" }}>
                   <CardActionArea
                     component="a"
-                    href={att.url}
+                    href={safeHttpUrl(att.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={att.title || t.common.openVideo}
                   >
                     <Box sx={{ position: "relative", aspectRatio: "16 / 9" }}>
-                      {att.thumbnailUrl ? (
-                        <Image
+                      {safeHttpsUrl(att.thumbnailUrl) ? (
+                        <Pic
                           src={att.thumbnailUrl}
                           alt={att.title || t.common.videoThumbnail}
-                          fill
                           sizes="(max-width: 600px) 100vw, 300px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
+                          fit="cover"
                         />
                       ) : (
                         <Box sx={{ width: "100%", height: "100%", bgcolor: "action.hover" }} />
@@ -116,12 +131,8 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       {att.title || att.url}
                     </Typography>
-                    <Link href={att.url} target="_blank" rel="noopener noreferrer">
-                      {att.type === "pdf"
-                        ? t.common.openPDF
-                        : isYouTube(att.url)
-                          ? t.common.openVideo
-                          : t.common.link}
+                    <Link href={safeHttpUrl(att.url)} target="_blank" rel="noopener noreferrer">
+                      {att.type === "pdf" ? t.common.openPDF : t.common.link}
                     </Link>
                   </CardContent>
                 </Card>
@@ -154,23 +165,22 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
               {active.type === "image" ? (
                 <Stack sx={{ alignItems: "center" }}>
                   <Box sx={{ position: "relative", width: "100%", aspectRatio: "16 / 9" }}>
-                    <Image
+                    <Pic
                       src={active.url}
                       alt={active.title || t.common.attachmentImage}
-                      fill
                       sizes="100vw"
-                      style={{ objectFit: "contain" }}
-                      unoptimized
+                      fit="contain"
                     />
                   </Box>
                 </Stack>
               ) : active.type === "video" ? (
                 <Box sx={{ position: "relative", pt: "56.25%" }}>
-                  {/* Simple embed for YouTube */}
-                  {isYouTube(active.url) ? (
+                  {safeEmbedUrl(active.embedUrl) ? (
                     <iframe
                       title={active.title || t.common.video}
-                      src={active.url.replace("watch?v=", "embed/")}
+                      src={safeEmbedUrl(active.embedUrl)}
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      sandbox="allow-scripts allow-same-origin allow-presentation"
                       style={{
                         position: "absolute",
                         inset: 0,

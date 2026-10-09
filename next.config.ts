@@ -8,14 +8,13 @@ const fontHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
+    // Uploaded files live in the private bucket and are read through signed URLs on this host
+    // (API plan Q6 = S). User media is rendered `unoptimized` (any https image is allowed), so
+    // this entry only matters if an optimized image is ever added.
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "i.pravatar.cc",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "gradfolio-files-1058577031182.storage.googleapis.com",
       },
     ],
   },

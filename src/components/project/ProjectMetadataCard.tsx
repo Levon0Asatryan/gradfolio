@@ -3,19 +3,19 @@
 import { FC, memo } from "react";
 import { Stack, Typography } from "@mui/material";
 import { Panel } from "@/components/layout/Panel";
-import type { ProjectMetadata } from "@/data/project.mock";
+import type { ProjectDetail } from "@/lib/api/types";
 
 export interface ProjectMetadataCardProps {
-  metadata?: ProjectMetadata;
+  metadata: ProjectDetail["metadata"];
+  /** Top-level on the API's project; shown with the rest of the facts. */
+  category: string;
 }
 
 import { formatDay } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
-const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
+const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata, category }) => {
   const { t, language } = useLanguage();
-
-  if (!metadata) return null;
 
   const start = metadata.startDate ? formatDay(metadata.startDate, language) : undefined;
   const end = metadata.endDate ? formatDay(metadata.endDate, language) : undefined;
@@ -28,13 +28,10 @@ const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata }) => {
             <strong>{t.common.timeline}</strong> {start || "—"} {"–"} {end || t.common.present}
           </Typography>
         )}
-        {metadata.category && (
-          <Typography variant="body2">
-            <strong>{t.common.category}</strong>{" "}
-            {t.projects.categories[metadata.category as keyof typeof t.projects.categories] ||
-              metadata.category}
-          </Typography>
-        )}
+        <Typography variant="body2">
+          <strong>{t.common.category}</strong>{" "}
+          {t.projects.categories[category as keyof typeof t.projects.categories] ?? category}
+        </Typography>
         {metadata.course && (
           <Typography variant="body2">
             <strong>{t.common.course}</strong> {metadata.course}

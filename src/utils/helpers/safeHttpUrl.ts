@@ -12,3 +12,9 @@ export function safeHttpUrl(url: string | null | undefined): string | undefined 
     return undefined;
   }
 }
+
+/** Like `safeHttpUrl`, but https only: uploaded media and video thumbnails never load over http. */
+export function safeHttpsUrl(url: string | null | undefined): string | undefined {
+  const safe = safeHttpUrl(url);
+  return safe && new URL(safe).protocol === "https:" ? safe : undefined;
+}

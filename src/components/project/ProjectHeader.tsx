@@ -3,23 +3,23 @@
 import { FC, memo } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import Image from "next/image";
-import type { RepoInfo } from "@/data/project.mock";
-import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
+import type { ProjectDetail } from "@/lib/api/types";
+import { safeHttpUrl, safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectHeaderProps {
   title: string;
-  aiSummary: string;
+  summary: string | null;
   category?: string;
-  heroImageUrl?: string;
-  repo?: RepoInfo;
-  liveDemoUrl?: string;
+  heroImageUrl: string | null;
+  repo?: ProjectDetail["repo"];
+  liveDemoUrl: string | null;
 }
 
 const ProjectHeader: FC<ProjectHeaderProps> = ({
   title,
-  aiSummary,
+  summary,
   category,
   heroImageUrl,
   repo,
@@ -29,10 +29,11 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
   // User-supplied links are rendered only as http(s).
   const repoHref = repo?.url ? safeHttpUrl(repo.url) : undefined;
   const demoHref = liveDemoUrl ? safeHttpUrl(liveDemoUrl) : undefined;
+  const heroSrc = safeHttpsUrl(heroImageUrl);
 
   return (
     <Box component="header" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {heroImageUrl && (
+      {heroSrc && (
         <Box
           sx={{
             position: "relative",
@@ -44,7 +45,7 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
           }}
         >
           <Image
-            src={heroImageUrl}
+            src={heroSrc}
             alt=""
             fill
             sizes="(max-width: 1100px) 100vw, 1100px"
@@ -66,9 +67,11 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
       >
         {title}
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: "70ch" }}>
-        {aiSummary}
-      </Typography>
+      {summary && (
+        <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: "70ch" }}>
+          {summary}
+        </Typography>
+      )}
 
       {(repoHref || demoHref) && (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>

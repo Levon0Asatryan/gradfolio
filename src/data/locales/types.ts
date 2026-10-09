@@ -215,6 +215,18 @@ export interface Dictionary {
     };
   };
   projects: {
+    loadErrorTitle: string;
+    projectLoadErrorTitle: string;
+    errorNotConfigured: string;
+    errorUnreachable: string;
+    errorGeneric: string;
+    errorSignInAgain: string;
+    tryAgain: string;
+    loading: string;
+    loadMore: string;
+    loadMoreFailed: string;
+    private: string;
+    draft: string;
     subtitle: string;
     noMatches: string;
     noMatchesHelp: string;

@@ -6,11 +6,11 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import ProjectCard from "./ProjectCard";
-import type { ProjectDetailData } from "@/data/project.mock";
+import type { ProjectSummary } from "@/lib/api/types";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectsListProps {
-  projects: ProjectDetailData[];
+  projects: ProjectSummary[];
   searchQuery?: string;
   /** A search or category filter is on: an empty list then means "no match", not "no projects". */
   filtered?: boolean;

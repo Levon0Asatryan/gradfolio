@@ -10,11 +10,12 @@ import {
   Typography,
   Link as MuiLink,
 } from "@mui/material";
+import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 import { Panel } from "@/components/layout/Panel";
-import type { TeamMember } from "@/data/project.mock";
+import type { ProjectTeamMember } from "@/lib/api/types";
 
 export interface TeamListProps {
-  members?: TeamMember[];
+  members?: ProjectTeamMember[];
 }
 
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -34,8 +35,8 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
                 {/* Next/Image doesn't fit inside Avatar src; we rely on Avatar img fallback */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={m.avatarUrl || "/light_logo.png"}
-                  alt={m.name + " avatar"}
+                  src={safeHttpsUrl(m.avatarUrl) ?? "/light_logo.png"}
+                  alt=""
                   width={36}
                   height={36}
                 />
@@ -43,8 +44,8 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
             </ListItemAvatar>
             <ListItemText
               primary={
-                m.profileUrl ? (
-                  <MuiLink href={m.profileUrl} underline="hover">
+                m.userId ? (
+                  <MuiLink href={`/profile/${m.userId}`} underline="hover">
                     {m.name}
                   </MuiLink>
                 ) : (
@@ -53,7 +54,7 @@ const TeamList: FC<TeamListProps> = ({ members = [] }) => {
                   </Typography>
                 )
               }
-              secondary={m.role}
+              secondary={m.role ?? undefined}
             />
           </ListItem>
         ))}

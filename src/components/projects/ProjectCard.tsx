@@ -11,12 +11,13 @@ import Typography from "@mui/material/Typography";
 import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
-import type { ProjectDetailData } from "@/data/project.mock";
+import type { ProjectSummary } from "@/lib/api/types";
+import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 import { formatMonth } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface ProjectCardProps {
-  project: ProjectDetailData;
+  project: ProjectSummary;
   highlightQuery?: string;
 }
 
@@ -31,22 +32,23 @@ function truncate(text: string, max = 160) {
 }
 
 const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
-  const { id, title, aiSummary, heroImageUrl, technologies, metadata } = project;
+  const { id, title, summary, technologies, metadata, category: rawCategory } = project;
+  const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const { t, language } = useLanguage();
   const titleId = useId();
 
   const { visibleTags, remainingCount } = useMemo(() => {
-    const visible = (technologies ?? []).slice(0, MAX_TAGS);
+    const visible = technologies.slice(0, MAX_TAGS);
     return {
       visibleTags: visible,
-      remainingCount: Math.max(0, (technologies?.length ?? 0) - visible.length),
+      remainingCount: Math.max(0, technologies.length - visible.length),
     };
   }, [technologies]);
 
-  const start = metadata?.startDate ? formatMonth(metadata.startDate, language) : undefined;
-  const end = metadata?.endDate ? formatMonth(metadata.endDate, language) : undefined;
+  const start = metadata.startDate ? formatMonth(metadata.startDate, language) : undefined;
+  const end = metadata.endDate ? formatMonth(metadata.endDate, language) : undefined;
   const range = start || end ? `${start ?? ""} – ${end ?? t.common.present}` : undefined;
-  const category = isProjectCategory(metadata?.category) ? metadata.category : "other";
+  const category = isProjectCategory(rawCategory) ? rawCategory : "other";
 
   return (
     <Card component="article" sx={{ display: "flex", minWidth: 0 }}>
@@ -86,6 +88,11 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
         <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5, flex: 1 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
             <CategoryChip category={category} />
+            {project.isDraft ? (
+              <Chip size="small" variant="outlined" label={t.projects.draft} />
+            ) : !project.isPublic ? (
+              <Chip size="small" variant="outlined" label={t.projects.private} />
+            ) : null}
             {range && (
               <Typography variant="caption" color="text.secondary">
                 {range}
@@ -107,7 +114,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
             <HighlightedText text={title} query={highlightQuery} />
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {truncate(aiSummary, 170)}
+            {truncate(summary ?? "", 170)}
           </Typography>
           {visibleTags.length > 0 && (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: "auto" }}>
