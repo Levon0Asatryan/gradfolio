@@ -36,5 +36,18 @@ export type ProjectTeamMember = components["schemas"]["ProjectTeamMember"];
 export type ProjectWriteBody = NonNullable<
   paths["/v1/projects"]["post"]["requestBody"]
 >["content"]["application/json"];
+/** `POST /v1/projects/{id}/attachments`. */
+export type AttachmentBody = NonNullable<
+  paths["/v1/projects/{id}/attachments"]["post"]["requestBody"]
+>["content"]["application/json"];
+/** `PATCH /v1/projects/{id}/attachments/{attachmentId}`: `url` and/or `title`. */
+export type AttachmentPatch = NonNullable<
+  paths["/v1/projects/{id}/attachments/{attachmentId}"]["patch"]["requestBody"]
+>["content"]["application/json"];
+/** `POST /v1/me/uploads`. */
+export type UploadRequest = NonNullable<
+  paths["/v1/me/uploads"]["post"]["requestBody"]
+>["content"]["application/json"];
+export type UploadTicket = components["schemas"]["UploadTicket"];
 /** The query of `listMyProjects`: what the list page and "load more" send. */
 export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["parameters"]["query"]>;
