@@ -16,7 +16,7 @@ A fresh clone of `main` (not the working tree), `npm ci`, then:
 | `npm run test:coverage` | 82 files, 878 tests pass. Statements 87.21, branches 83.68, functions 81.12, lines 88.45. Floors: 48 / 46 / 38 / 48 |
 | `npm run knip`          | pass                                                                                                                |
 | `npm run build`         | pass; `/projects`, `/projects/[id]`, `/projects/[id]/edit`, `/projects/new` are dynamic                             |
-| `npm run e2e`           | 14 passed (2.8 s)                                                                                                   |
+| `npm run e2e`           | 14 passed (2.8 s), at 42ba98c; 15 on main now                                                                       |
 
 The smoke specs (`e2e/smoke.spec.ts`, no login, production build, fake Auth0 tenant): 14 ran at the gate; #65 added a 15th, listed last.
 
@@ -99,7 +99,7 @@ rm state.json
 ```
 
 What exists instead, so far: the same flows are covered by unit and component tests
-(section 2), the 14 no-login smoke specs (section 1), and #64's findings came from an
+(section 2), the 15 no-login smoke specs (section 1), and #64's findings came from an
 earlier manual run of the deployed site (section 6).
 
 ## 5. Pages and looks
