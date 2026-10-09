@@ -18,36 +18,38 @@ A fresh clone of `main` (not the working tree), `npm ci`, then:
 | `npm run build`         | pass; `/projects`, `/projects/[id]`, `/projects/[id]/edit`, `/projects/new` are dynamic                             |
 | `npm run e2e`           | 14 passed (2.8 s)                                                                                                   |
 
-The 14 smoke specs (`e2e/smoke.spec.ts`, no login, production build, fake Auth0 tenant):
+The smoke specs (`e2e/smoke.spec.ts`, no login, production build, fake Auth0 tenant): 14 ran at the gate; #65 added a 15th, listed last.
 
 - the 404 page: one h1, translated, `<html lang>`, axe clean, console clean (en, ru, am);
 - `/settings` and `/search`: render, axe clean, console clean (en, ru, am);
 - `/settings` in the dark theme: axe clean;
-- a protected page without a session answers a 302 to `/auth/login?returnTo=...` as an
-  HTTP response (not followed);
+- a protected page (`/projects`, `/projects/new`, `/account`, `/`) without a session answers a
+  307 to `/auth/login?returnTo=<path>` as an HTTP response (not followed);
 - `/projects/<id>/edit` is protected too and keeps its return path;
 - a public page needs no login;
-- choosing a language changes `<html lang>` and the text, and survives a reload.
+- choosing a language changes `<html lang>` and the text, and survives a reload;
+- (#65, not in the 14) a project page loads its server code (sanitizer, jsdom) and shows the
+  API error screen, not a 500, with the server run without `require(esm)` like Vercel.
 
 ## 2. Plan walk (docs/m4-plan.md, "must" and "is excluded" sentences)
 
 | Requirement                                                                                                   | Where it is implemented, and how it was checked                                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Editor is Tiptap, loaded on the form routes only, H2 to H4, http(s) links, no autolink                        | `RichTextEditor.tsx`, `RichTextEditorLazy.tsx` (`next/dynamic`, `ssr: false`); unit tests; XSS paste in section 4                                                 |
-| The editor emits only tags the allow-list keeps                                                               | paste of script, iframe, img onerror, `javascript:` link: nothing survives in the editor (section 4)                                                              |
+| Editor is Tiptap, loaded on the form routes only, H2 to H4, http(s) links, no autolink                        | `RichTextEditor.tsx`, `RichTextEditorLazy.tsx` (`next/dynamic`, `ssr: false`); unit tests; XSS paste: PENDING, section 4                                          |
+| The editor emits only tags the allow-list keeps                                                               | paste of script, iframe, img onerror, `javascript:` link: nothing survives in the editor (PENDING, section 4; the sanitizer corpus covers render)                 |
 | One form for create and edit; errors under the field; summary takes focus; toast                              | `ProjectForm.tsx`; `ProjectForm.test.tsx` (28 tests)                                                                                                              |
 | Fields the API owns are never sent (ids, `thumbnailUrl`, `aiSummary`, `source`, `repo*`)                      | `src/lib/projects/form.ts`; `form.test.ts`                                                                                                                        |
 | Create: project first, then each attachment; a failed attachment goes to the edit page with its values        | `actions.ts`, `ProjectForm.tsx` (`failedKey`); `actions.test.ts`, `ProjectForm.test.tsx`                                                                          |
 | `useUnsavedGuard` while dirty                                                                                 | `ProjectForm.tsx`; test "warns before the tab closes"; guard proved (section 3)                                                                                   |
 | Edit page: 404 or `isOwner === false` gives `notFound()`; the UI is not the guard                             | `edit/page.tsx`; `page.test.tsx`; actions send only the path id and body, the API answers 404 (action tests)                                                      |
-| Edit link on the detail page only when `isOwner`                                                              | `app/projects/[id]/page.tsx`, `OwnerBar.tsx`; `page.test.tsx`; production run section 5                                                                           |
-| A private project is 404 to everyone but the owner                                                            | API owns it; page shows not-found; production run section 5 (anonymous, no second account)                                                                        |
-| Delete: dialog names the project, Cancel has the focus, failure keeps the dialog open                         | `DeleteProjectDialog.tsx`; tests; keyboard check section 5                                                                                                        |
+| Edit link on the detail page only when `isOwner`                                                              | `app/projects/[id]/page.tsx`, `OwnerBar.tsx`; `page.test.tsx`; production check PENDING, section 4                                                                |
+| A private project is 404 to everyone but the owner                                                            | API owns it; page shows not-found; production check PENDING, section 4 (anonymous, no second account)                                                             |
+| Delete: dialog names the project, Cancel has the focus, failure keeps the dialog open                         | `DeleteProjectDialog.tsx`; tests; keyboard check PENDING, section 5                                                                                               |
 | Description is sanitized on the server at render, fails closed without a DOM                                  | `src/lib/sanitize.ts`; `sanitize.test.ts`, `sanitize.load.test.ts`                                                                                                |
 | User URLs reach `href` and `src` as https only (http(s) for demo, repo, description links)                    | `safeHttpUrl.ts`; tests with `javascript:`, `data:`, `//host`                                                                                                     |
-| Uploads: the token stays on the server; the browser PUTs to the signed URL; only a GCS https host is accepted | `uploads/actions.ts`; `actions.test.ts`; production PUT statuses section 5                                                                                        |
+| Uploads: the token stays on the server; the browser PUTs to the signed URL; only a GCS https host is accepted | `uploads/actions.ts`; `actions.test.ts`; production PUT statuses PENDING, section 4                                                                               |
 | `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"                                             | `UploadControl`; unit test. Bucket is configured in production, so not seen live                                                                                  |
-| Every string in en, ru, am                                                                                    | `Dictionary` type, `locales.test.ts`; look matrix section 5                                                                                                       |
+| Every string in en, ru, am                                                                                    | `Dictionary` type, `locales.test.ts`; look matrix PENDING, section 5                                                                                              |
 | Playwright smoke suite in the repo and in CI (PR 6)                                                           | #63; section 1                                                                                                                                                    |
 | Second-account check on the edit URL (plan section 8.7, section 9)                                            | **Skipped.** Covered by the anonymous check, the unit tests that call the actions with a non-owner id, and the API's own tests. Not run with a real second login. |
 
