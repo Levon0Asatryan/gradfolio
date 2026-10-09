@@ -1,11 +1,12 @@
 import { Metadata } from "next";
-import ProjectNewForm from "@/components/project-new/ProjectNewForm";
+import { ProjectForm } from "@/components/project-form/ProjectForm";
+import { requestDictionary } from "@/lib/requestDictionary";
 
-export const metadata: Metadata = {
-  title: "Add New Project",
-  description: "Create a new project entry",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await requestDictionary();
+  return { title: t.projects.form.newTitle };
+}
 
 export default function NewProjectPage() {
-  return <ProjectNewForm />;
+  return <ProjectForm mode="create" />;
 }

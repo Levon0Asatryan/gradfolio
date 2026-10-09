@@ -9,6 +9,7 @@ import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import ProjectsList from "@/components/projects/ProjectsList";
 import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
+import { FlashToast } from "@/components/shared/FlashToast";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -64,6 +65,7 @@ export default function ProjectsContent({ items, nextCursor, query }: ProjectsCo
 
   return (
     <PageContainer>
+      <FlashToast />
       <PageHeader
         title={t.common.projects}
         subtitle={t.projects.subtitle}

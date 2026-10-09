@@ -326,7 +326,7 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Still mock until their milestones: dashboard, search, integrations, the new-project form.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Still mock until their milestones: dashboard, search, integrations.
 
 ## Environment variables
 
@@ -359,7 +359,8 @@ mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` firs
 | `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                       |
 | `/projects`                 | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)       |
 | `/projects/[id]`            | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team      |
-| `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                          |
+| `/projects/new`             | `ProjectForm` (create): sections, Tiptap description, terms, links, visibility; login required           |
+| `/projects/[id]/edit`       | `ProjectForm` (edit) for the owner (404 otherwise) and delete with a confirmation naming the project     |
 | `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                                 |
 | `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                             |
 | `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                          |
