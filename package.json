@@ -81,5 +81,10 @@
     "typescript": "^5",
     "typescript-eslint": "^8.71.0",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "isomorphic-dompurify": {
+      "jsdom": "26.1.0"
+    }
   }
 }
