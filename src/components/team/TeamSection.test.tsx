@@ -85,7 +85,9 @@ describe("for everyone but the owner", () => {
     expect(screen.getAllByRole("button", { name: "Leave project" })).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Leave project" }));
     const dialog = await screen.findByRole("dialog", { name: "Leave Smart Campus?" });
-    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus(),
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "Leave" }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects?flash=left"));
     expect(actions.leave).toHaveBeenCalledWith(P);
@@ -148,7 +150,9 @@ describe("for the owner", () => {
     owner([member()]);
     fireEvent.click(screen.getByRole("button", { name: "Remove Ani" }));
     const dialog = await screen.findByRole("dialog", { name: "Remove Ani from Smart Campus?" });
-    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus(),
+    );
     expect(actions.remove).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
     await waitFor(() =>

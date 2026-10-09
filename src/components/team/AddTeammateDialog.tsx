@@ -24,6 +24,7 @@ import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 import { teamErrorText } from "./teamErrors";
 
 const DEBOUNCE_MS = 300;
+const SEARCH_ID = "add-teammate-search";
 
 type Search =
   | { state: "idle" }
@@ -157,6 +158,10 @@ export const AddTeammateDialog: FC<{
       fullWidth
       maxWidth="sm"
       aria-labelledby="add-teammate-title"
+      // `autoFocus` is lost while the dialog fades in (its content is `visibility: hidden`).
+      slotProps={{
+        transition: { onEntered: () => document.getElementById(SEARCH_ID)?.focus() },
+      }}
     >
       <DialogTitle id="add-teammate-title">{text.addTitle}</DialogTitle>
       <Tabs
@@ -205,6 +210,7 @@ export const AddTeammateDialog: FC<{
           >
             {isDraft && <Alert severity="info">{text.draftNote}</Alert>}
             <Autocomplete<LookupUser>
+              id={SEARCH_ID}
               options={options}
               value={picked}
               inputValue={input}
@@ -252,12 +258,7 @@ export const AddTeammateDialog: FC<{
                 );
               }}
               renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={text.searchLabel}
-                  helperText={text.searchHint}
-                  autoFocus
-                />
+                <TextField {...params} label={text.searchLabel} helperText={text.searchHint} />
               )}
             />
             <TextField

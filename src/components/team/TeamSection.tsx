@@ -1,6 +1,6 @@
 "use client";
 
-import { type FC, useState } from "react";
+import { type FC, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
@@ -80,6 +80,7 @@ export const TeamSection: FC<TeamSectionProps> = ({
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
 
   const rows: Row[] =
     isOwner && managed ? managed : members.map((m) => ({ ...m, status: "accepted" as const }));
@@ -347,6 +348,10 @@ export const TeamSection: FC<TeamSectionProps> = ({
         onClose={() => !busy && setConfirm(null)}
         aria-labelledby="team-confirm-title"
         aria-describedby="team-confirm-body"
+        // `autoFocus` is lost here: the dialog's content is `visibility: hidden` while it fades in,
+        // so the browser refuses the focus and MUI falls back to the dialog frame. Focus Cancel
+        // once the dialog is visible, so Enter can never confirm a removal by accident.
+        slotProps={{ transition: { onEntered: () => cancelButton.current?.focus() } }}
       >
         <DialogTitle id="team-confirm-title">{copy?.title}</DialogTitle>
         <DialogContent>
@@ -358,7 +363,12 @@ export const TeamSection: FC<TeamSectionProps> = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button autoFocus onClick={() => setConfirm(null)} disabled={busy} sx={{ minHeight: 44 }}>
+          <Button
+            ref={cancelButton}
+            onClick={() => setConfirm(null)}
+            disabled={busy}
+            sx={{ minHeight: 44 }}
+          >
             {text.cancel}
           </Button>
           <Button
