@@ -7,6 +7,7 @@ import { ProfileView } from "./ProfileView";
 
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
+vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: vi.fn() }));
 const action = vi.hoisted(() => ({ updateProfileAction: vi.fn() }));
 vi.mock("@/lib/profile/actions", () => ({
   ...action,

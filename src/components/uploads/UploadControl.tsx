@@ -4,13 +4,12 @@ import { FC, useId, useRef, useState } from "react";
 import { Alert, Box, Button, LinearProgress, Stack, Typography } from "@mui/material";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import type { SignResult } from "@/lib/uploads/actions";
 import { putFile } from "@/lib/uploads/putFile";
 import { acceptAttribute, checkFile, maxBytesFor, type UploadKind } from "@/lib/uploads/rules";
 
 /** What the server action that talks to the API returns: a signed PUT, or why not. */
-export type SignResult =
-  | { ok: true; uploadUrl: string; headers: Record<string, string>; fileUrl: string }
-  | { ok: false; code: string };
+export type { SignResult } from "@/lib/uploads/actions";
 
 export interface UploadControlProps {
   kind: UploadKind;
@@ -48,8 +47,15 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }
 
   async function start(file: File) {
     const verdict = checkFile(file, kind);
-    if (verdict === "type")
-      return fail(file, kind === "image" ? text.errorImageOnly : text.errorType, false);
+    if (verdict === "type") {
+      const message =
+        kind === "image"
+          ? text.errorImageOnly
+          : kind === "pdf"
+            ? text.errorPdfOnly
+            : text.errorType;
+      return fail(file, message, false);
+    }
     if (verdict === "empty") return fail(file, text.errorEmpty, false);
     if (verdict === "too_big") {
       const max = (maxBytesFor(file.type, kind) ?? 0) / (1024 * 1024);
@@ -68,7 +74,7 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }
     if (controller.signal.aborted) return setState({ name: "idle" });
     if (!signed.ok) {
       if (signed.code === "LIMIT_REACHED") return fail(file, text.errorSignLimit, false);
-      if (signed.code === "UPLOAD_UNAVAILABLE") return fail(file, text.errorUnavailable, false);
+      if (signed.code === "STORAGE_UNAVAILABLE") return fail(file, text.errorUnavailable, false);
       return fail(file, text.errorSign);
     }
 
@@ -128,7 +134,7 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }
         </Button>
       </Box>
       <Typography id={hintId} variant="caption" color="text.secondary">
-        {kind === "image" ? text.limitsImage : text.limitsFile}
+        {kind === "image" ? text.limitsImage : kind === "pdf" ? text.limitsPdf : text.limitsFile}
       </Typography>
 
       {state.name === "uploading" && (

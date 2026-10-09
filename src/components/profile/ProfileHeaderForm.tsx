@@ -7,6 +7,8 @@ import type { Dictionary } from "@/data/locales/types";
 import type { ProfileLinks } from "@/lib/api/types";
 import { updateProfileAction } from "@/lib/profile/actions";
 import { useUnsavedGuard } from "@/lib/profile/useUnsavedGuard";
+import { UploadControl } from "@/components/uploads/UploadControl";
+import { signUploadAction } from "@/lib/uploads/actions";
 import { counterText, fieldErrorText } from "./fieldErrorText";
 import { LIMITS, measure, type Limit } from "@/lib/profile/limits";
 import { parseHeaderPatch, type FieldError } from "@/lib/profile/headerPatch";
@@ -149,6 +151,11 @@ export const ProfileHeaderForm: FC<{
           placeholder: "https://",
         })}
         {field("contactEmail", text.contactEmail, { type: "email", autoComplete: "email" })}
+        <UploadControl
+          kind="image"
+          sign={(req) => signUploadAction({ ...req, purpose: "avatar" })}
+          onUploaded={(fileUrl) => set("avatarUrl")(fileUrl)}
+        />
         {LINK_KEYS.map((key) => (
           <TextField
             key={key}

@@ -139,7 +139,7 @@ describe("UploadControl", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not start the upload");
   });
 
-  it("LIMIT_REACHED and UPLOAD_UNAVAILABLE are final: no Retry", async () => {
+  it("LIMIT_REACHED and STORAGE_UNAVAILABLE are final: no Retry", async () => {
     show(vi.fn().mockResolvedValue({ ok: false, code: "LIMIT_REACHED" }));
     choose(png());
     expect(await screen.findByRole("alert")).toHaveTextContent("limit of uploaded files");

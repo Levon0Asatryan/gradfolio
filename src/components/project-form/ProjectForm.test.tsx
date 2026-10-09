@@ -17,6 +17,13 @@ vi.mock("@/lib/projects/actions", () => ({
   updateProjectAction: act_.update,
   deleteProjectAction: act_.del,
 }));
+vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: vi.fn() }));
+vi.mock("@/lib/projects/attachmentActions", () => ({
+  addAttachmentAction: vi.fn(),
+  updateAttachmentAction: vi.fn(),
+  deleteAttachmentAction: vi.fn(),
+  reorderAttachmentsAction: vi.fn(),
+}));
 // Tiptap needs a real browser selection API; the editor has its own test.
 vi.mock("./RichTextEditorLazy", () => ({
   RichTextEditorLazy: ({
@@ -80,6 +87,7 @@ describe("ProjectForm, create", () => {
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects/p-1?flash=created"));
     expect(act_.create).toHaveBeenCalledWith(
       expect.objectContaining({ title: "EcoRoute", course: "Databases" }),
+      [],
     );
   });
 
@@ -216,6 +224,62 @@ describe("ProjectForm, create", () => {
     save("Create project");
     await waitFor(() => expect(nav.push).toHaveBeenCalled());
     expect(unloads()).toBe(false);
+  });
+
+  it("sends the new project's attachments with it, and hands failed ones to the edit page", async () => {
+    act_.create.mockResolvedValue({
+      ok: true,
+      id: "p-7",
+      failedAttachments: [
+        { type: "link", url: "https://lost.test", title: "Lost", code: "INVALID_FILE" },
+      ],
+    });
+    renderInApp(<ProjectForm mode="create" />);
+    type(title(), "EcoRoute");
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    type(within(dialog).getByLabelText("Address (https://)"), "https://lost.test");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    save("Create project");
+    await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects/p-7/edit?flash=created"));
+    expect(act_.create).toHaveBeenCalledWith(expect.anything(), [
+      { type: "link", url: "https://lost.test", title: "" },
+    ]);
+    expect(JSON.parse(sessionStorage.getItem("gradfolio.failedAttachments.p-7") ?? "[]")).toEqual([
+      { type: "link", url: "https://lost.test", title: "Lost", code: "INVALID_FILE" },
+    ]);
+  });
+
+  it("counts a draft attachment as an unsaved change", async () => {
+    renderInApp(<ProjectForm mode="create" />);
+    const unloads = () => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    expect(unloads()).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    type(within(dialog).getByLabelText("Address (https://)"), "https://a.test");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(unloads()).toBe(true);
+  });
+
+  it("offers the cover upload only on a saved project", () => {
+    const { unmount } = renderInApp(<ProjectForm mode="create" />);
+    expect(screen.queryByRole("button", { name: "Upload an image" })).toBeNull();
+    expect(screen.getByText("Save the project first to upload a cover image.")).toBeVisible();
+    unmount();
+    renderInApp(
+      <ProjectForm
+        mode="edit"
+        projectId="p-9"
+        initial={toFormValues(projectDetail({ id: "p-9" }))}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Upload an image" })).toBeVisible();
   });
 
   it("labels the form in Russian", () => {

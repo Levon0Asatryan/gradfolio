@@ -34,6 +34,7 @@ export type FieldError =
   | "invalid_range"
   | "too_long"
   | "too_many"
+  | "invalid_host"
   | "invalid";
 export type FieldErrors = Partial<Record<string, FieldError>>;
 
