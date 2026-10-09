@@ -151,18 +151,21 @@ Absolute path: `/Users/levon/Dev/university/gradfolio-repos`.
 
 ### Commands
 
-| Purpose                                                   | Command                                                                  |
-| --------------------------------------------------------- | ------------------------------------------------------------------------ |
-| install                                                   | `npm ci`                                                                 |
-| dev server (Turbopack; reads `.env.local`)                | `npm run dev`                                                            |
-| production build / serve it                               | `npm run build` / `npm start`                                            |
-| verify (format + lint + types + tests; the pre-push gate) | `npm run verify`                                                         |
-| unit and component tests / watch                          | `npm test` / `npm run test:watch`                                        |
-| coverage (a ratchet: floor in `vitest.config.mts`)        | `npm run test:coverage`                                                  |
-| types / lint / lint and fix                               | `npm run typecheck` / `npm run lint` / `npm run lint:fix`                |
-| format / check formatting                                 | `npm run format` / `npm run format:check`                                |
-| unused files, exports, dependencies (CI runs it)          | `npm run knip`                                                           |
-| request both reviewers / check both reviewed the head     | `sh scripts/request-review.sh [pr]` / `sh scripts/review-status.sh [pr]` |
+| Purpose                                                     | Command                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| install                                                     | `npm ci`                                                                 |
+| dev server (Turbopack; reads `.env.local`)                  | `npm run dev`                                                            |
+| production build / serve it                                 | `npm run build` / `npm start`                                            |
+| verify (format + lint + types + tests; the pre-push gate)   | `npm run verify`                                                         |
+| unit and component tests / watch                            | `npm test` / `npm run test:watch`                                        |
+| coverage (a ratchet: floor in `vitest.config.mts`)          | `npm run test:coverage`                                                  |
+| types / lint / lint and fix                                 | `npm run typecheck` / `npm run lint` / `npm run lint:fix`                |
+| format / check formatting                                   | `npm run format` / `npm run format:check`                                |
+| unused files, exports, dependencies (CI runs it)            | `npm run knip`                                                           |
+| browser smoke tests (needs `npm run build` first; Chromium) | `npm run e2e`                                                            |
+| request both reviewers / check both reviewed the head       | `sh scripts/request-review.sh [pr]` / `sh scripts/review-status.sh [pr]` |
+
+Browser tests (`e2e/`, Playwright, CI job "Browser smoke tests") run the production build with throwaway Auth0 values and never log in. Locally keep the browser in the sandbox: `export PLAYWRIGHT_BROWSERS_PATH=/Users/levon/Dev/university/.sandbox/ms-playwright; npx playwright install chromium`. A logged-in journey stays in tracker 9.6.
 
 Pages render without any environment variables; logging in needs the Auth0 ones
 (`.env.example`). The build does not need them (`docs/setup-plan.md` §1).
