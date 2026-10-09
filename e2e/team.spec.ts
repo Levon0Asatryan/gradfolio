@@ -63,7 +63,7 @@ test.describe("owner (account A)", () => {
   for (const language of LANGUAGES)
     for (const theme of THEMES)
       for (const size of SIZES) {
-        test(`${language} ${theme} ${size.name}: team, add dialog, remove confirm`, async ({
+        test(`${language} ${theme} ${size.name}: team, add dialog, and the remove confirm when a row exists`, async ({
           page,
         }, testInfo) => {
           await page.context().addCookies([
@@ -97,6 +97,23 @@ test.describe("owner (account A)", () => {
           expect(await seriousAxe(page)).toEqual([]);
           await page.keyboard.press("Escape");
           await expect(dialog).toBeHidden();
+          // The remove (or cancel-invitation) confirmation, when the project has a team row.
+          const removers = page.getByRole("button", {
+            name: /^(Remove|Cancel the invitation|Убрать|Отозвать|Հեռացնել|Չեղարկել)/,
+          });
+          if ((await removers.count()) > 0) {
+            await removers.first().click();
+            const confirm = page.getByRole("dialog");
+            await expect(confirm).toBeVisible();
+            await expect(confirm.getByRole("button").first()).toBeFocused(); // Cancel has the focus
+            await testInfo.attach("confirm", {
+              body: await page.screenshot(),
+              contentType: "image/png",
+            });
+            expect(await seriousAxe(page)).toEqual([]);
+            await page.keyboard.press("Escape");
+            await expect(confirm).toBeHidden();
+          }
           expect(found).toEqual([]);
         });
       }
