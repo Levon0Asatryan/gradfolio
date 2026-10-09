@@ -56,3 +56,7 @@ export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["para
 export type Notification = components["schemas"]["Notification"];
 export type NotificationPage = components["schemas"]["NotificationPage"];
 export type UnreadCount = components["schemas"]["UnreadCount"];
+/** One row of a project's team, `GET /v1/projects/{id}/team` (owner only; every status). */
+export type TeamMember = components["schemas"]["TeamMember"];
+/** A person to invite, `GET /v1/users/lookup`. */
+export type LookupUser = components["schemas"]["UserLookupResult"]["items"][number];
