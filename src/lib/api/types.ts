@@ -24,3 +24,13 @@ export type Education = components["schemas"]["Education"];
 export type Experience = components["schemas"]["Experience"];
 export type Certification = components["schemas"]["Certification"];
 export type ProfileLinks = components["schemas"]["ProfileLinks"];
+
+/** A project in a list, `GET /v1/me/projects` (`listMyProjects`). */
+export type ProjectSummary = components["schemas"]["ProjectSummary"];
+/** A project with everything on its page, `GET /v1/projects/{id}` (`getProject`). */
+export type ProjectDetail = components["schemas"]["ProjectDetail"];
+export type ProjectPage = components["schemas"]["ProjectPage"];
+export type ProjectAttachment = components["schemas"]["ProjectAttachment"];
+export type ProjectTeamMember = components["schemas"]["ProjectTeamMember"];
+/** The query of `listMyProjects`: what the list page and "load more" send. */
+export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["parameters"]["query"]>;

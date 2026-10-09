@@ -149,6 +149,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A project with its attachments, tags, technologies and team
+         * @description Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
+         */
+        get: operations["getProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s own projects, in every state
+         * @description Published, private and draft projects together; `state` narrows. Keyset pagination: pass `nextCursor` back as `cursor` with the same `sort`. Unknown query keys, a cursor for another sort and a `limit` over the maximum are 400.
+         */
+        get: operations["listMyProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A user’s public projects
+         * @description Public, published projects only, even for the owner (who uses `/v1/me/projects`). Needs no token. 404 when the user’s profile is private and the caller is not its owner, or the user does not exist. Same pagination as `/v1/me/projects`.
+         */
+        get: operations["listUserProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/education": {
         parameters: {
             query?: never;
@@ -442,6 +502,140 @@ export interface components {
             role: "owner" | "member";
             isPublic: boolean;
             isDraft: boolean;
+        };
+        ProjectAttachment: {
+            id: string;
+            /** @enum {string} */
+            type: "image" | "video" | "pdf" | "link";
+            url: string;
+            title: string | null;
+            thumbnailUrl: string | null;
+            /** @description Videos on an allow-listed host only: the URL to put in an iframe. Never embed `url`. */
+            embedUrl: string | null;
+        };
+        ProjectDetail: {
+            id: string;
+            title: string;
+            /** @description The author’s own text. Plain text. */
+            summary: string | null;
+            /** @enum {string} */
+            category: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+            /** @enum {string} */
+            status: "ongoing" | "completed" | "archived";
+            heroImageUrl: string | null;
+            tags: string[];
+            /**
+             * @description Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only).
+             * @enum {string}
+             */
+            role: "owner";
+            technologies: string[];
+            isPublic: boolean;
+            /** @description A draft is readable by its owner only. */
+            isDraft: boolean;
+            /** @description The caller owns the project. */
+            isOwner: boolean;
+            ownerId: string;
+            metadata: components["schemas"]["ProjectMetadata"];
+            /** @description ISO 8601, UTC. */
+            createdAt: string;
+            /** @description ISO 8601, UTC. */
+            updatedAt: string;
+            /** @description Generated text (M8); null until then. */
+            aiSummary: string | null;
+            /** @description Sanitized HTML (allow-list in docs/m4-plan.md §4.1). Render it with a second sanitizer anyway. */
+            descriptionHtml: string | null;
+            liveDemoUrl: string | null;
+            repo: components["schemas"]["ProjectRepo"];
+            links: {
+                label: string;
+                url: string;
+            }[];
+            files: {
+                label: string;
+                url: string;
+            }[];
+            attachments: components["schemas"]["ProjectAttachment"][];
+            /** @description Accepted team members, read-only until M5. The owner is `owner`, not a member. */
+            team: components["schemas"]["ProjectTeamMember"][];
+            owner: components["schemas"]["ProjectOwner"];
+            /** @enum {string} */
+            source: "manual" | "github";
+        };
+        ProjectMetadata: {
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-10-08
+             */
+            startDate: string | null;
+            /**
+             * @description YYYY-MM-DD; null: ongoing.
+             * @example 2026-10-08
+             */
+            endDate: string | null;
+            course: string | null;
+            professor: string | null;
+        };
+        ProjectOwner: {
+            id: string;
+            name: string;
+            /** @description null when the owner’s profile is private. */
+            avatarUrl: string | null;
+        };
+        ProjectPage: {
+            items: components["schemas"]["ProjectSummary"][];
+            /** @description Pass as `cursor`; null on the last page. */
+            nextCursor: string | null;
+        };
+        /** @description Only `url` is writable. The rest is filled by the GitHub import (M7). */
+        ProjectRepo: {
+            url: string | null;
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-10-08
+             */
+            latestCommitDate: string | null;
+            readmeUrl: string | null;
+            stars: number | null;
+            forks: number | null;
+            language: string | null;
+        };
+        ProjectSummary: {
+            id: string;
+            title: string;
+            /** @description The author’s own text. Plain text. */
+            summary: string | null;
+            /** @enum {string} */
+            category: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+            /** @enum {string} */
+            status: "ongoing" | "completed" | "archived";
+            heroImageUrl: string | null;
+            tags: string[];
+            /**
+             * @description Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only).
+             * @enum {string}
+             */
+            role: "owner";
+            technologies: string[];
+            isPublic: boolean;
+            /** @description A draft is readable by its owner only. */
+            isDraft: boolean;
+            /** @description The caller owns the project. */
+            isOwner: boolean;
+            ownerId: string;
+            metadata: components["schemas"]["ProjectMetadata"];
+            /** @description ISO 8601, UTC. */
+            createdAt: string;
+            /** @description ISO 8601, UTC. */
+            updatedAt: string;
+        };
+        ProjectTeamMember: {
+            id: string;
+            name: string;
+            role: string | null;
+            avatarUrl: string | null;
+            /** @description The member’s account, for a profile link. null when the account is gone or its profile is not visible to the caller. */
+            userId: string | null;
         };
     };
     responses: never;
@@ -938,6 +1132,206 @@ export interface operations {
                 };
             };
             /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDetail"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project, or it is private/draft and the caller is not its owner */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listMyProjects: {
+        parameters: {
+            query?: {
+                sort?: "newest" | "oldest" | "updated" | "name_asc" | "name_desc";
+                category?: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+                status?: "ongoing" | "completed" | "archived";
+                tag?: string;
+                technology?: string;
+                q?: string;
+                limit?: number;
+                cursor?: string;
+                state?: "published" | "private" | "draft";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listUserProjects: {
+        parameters: {
+            query?: {
+                sort?: "newest" | "oldest" | "updated" | "name_asc" | "name_desc";
+                category?: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+                status?: "ongoing" | "completed" | "archived";
+                tag?: string;
+                technology?: string;
+                q?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such user, or their profile is private and the caller is not its owner */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
             503: {
                 headers: {
                     [name: string]: unknown;

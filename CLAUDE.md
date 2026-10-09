@@ -324,7 +324,9 @@ Next.js server only** through `src/lib/api/client.ts`. Types are generated (Q5):
 it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `src/lib/api/types.ts` names the shapes components import. To take a new contract:
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
-Still mock until their milestones: dashboard, projects, search, integrations.
+Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
+`src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
+Still mock until their milestones: dashboard, search, integrations, the new-project form.
 
 ## Environment variables
 
@@ -343,8 +345,10 @@ There is no `vercel.json`; Vercel builds with its Next.js preset.
 
 ## Remote images
 
-`next.config.ts` allows `i.pravatar.cc` and `images.unsplash.com` (mock data only).
-Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
+`next.config.ts` allows only the storage bucket's host
+(`gradfolio-files-1058577031182.storage.googleapis.com`, Q6). User media is rendered with
+`next/image` `unoptimized` (any https image is allowed), so no other host is listed; the
+mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` first.
 
 ## Pages
 
@@ -353,8 +357,8 @@ Uploaded images need the storage host once Q6 decides it (F5, tracker 4.9).
 | `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`     |
 | `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header        |
 | `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                       |
-| `/projects`                 | Your projects: search, category filter, sort (in the browser)                                            |
-| `/projects/[id]`            | Detail with `generateMetadata()`: header, description HTML (F1), attachments, metadata, tags, team       |
+| `/projects`                 | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)       |
+| `/projects/[id]`            | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team      |
 | `/projects/new`             | Form: title, AI summary, demo and repo URLs, attachments (URLs); save is mocked                          |
 | `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                                 |
 | `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                             |

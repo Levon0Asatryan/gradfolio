@@ -5,30 +5,13 @@ import { Alert, AlertTitle, Button, Link } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { messageKey } from "@/components/profile/ProfileError";
 
-/** Which message an API failure shows; the API's codes are its stable contract. */
-export function messageKey(
-  code: string,
-): "errorNotConfigured" | "errorUnreachable" | "errorSignInAgain" | "errorGeneric" {
-  switch (code) {
-    case "API_NOT_CONFIGURED":
-      return "errorNotConfigured";
-    case "API_UNREACHABLE":
-    case "AUTH_UNAVAILABLE":
-    case "DATABASE_UNAVAILABLE":
-    case "RATE_LIMITED":
-      return "errorUnreachable";
-    case "UNAUTHENTICATED":
-      return "errorSignInAgain";
-    default:
-      return "errorGeneric";
-  }
-}
-
-/** A failed load, shown as an error and never as an empty profile. */
-export const ProfileError: FC<{ code: string; returnTo?: string }> = ({
+/** A failed load of projects, shown as an error and never as "no projects yet". */
+export const ProjectsError: FC<{ code: string; returnTo: string; what?: "list" | "project" }> = ({
   code,
-  returnTo = "/profile",
+  returnTo,
+  what = "list",
 }) => {
   const { t } = useLanguage();
   const router = useRouter();
@@ -41,13 +24,15 @@ export const ProfileError: FC<{ code: string; returnTo?: string }> = ({
         action={
           signIn ? undefined : (
             <Button color="inherit" size="small" onClick={() => router.refresh()}>
-              {t.profile.tryAgain}
+              {t.projects.tryAgain}
             </Button>
           )
         }
       >
-        <AlertTitle>{t.profile.loadErrorTitle}</AlertTitle>
-        {t.profile[messageKey(code)] as string}
+        <AlertTitle>
+          {what === "list" ? t.projects.loadErrorTitle : t.projects.projectLoadErrorTitle}
+        </AlertTitle>
+        {t.projects[messageKey(code)]}
         {signIn && (
           <>
             {" "}

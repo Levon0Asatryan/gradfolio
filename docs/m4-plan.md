@@ -53,7 +53,7 @@ How it is used:
 - `StarterKit.configure`: headings H2–H4 only; keep bold, italic, underline, strike,
   code, code block, blockquote, bullet and ordered list, horizontal rule, link. **No
   image, no table, no link `target`/`rel` options** (the API sets them; API §10).
-  Link protocols `http`, `https`, `mailto`; no autolink.
+  Link protocols `http` and `https` only (the API drops `mailto:`); no autolink.
 - Loaded with `next/dynamic` (`ssr: false`) in the form and edit routes only. The list,
   detail and every other route do not download it. The 129 KB gzip is measured
   with the extension set above; the real figure is measured again in PR 4 (`next build`
@@ -110,8 +110,11 @@ Page structure (`ProjectForm`, one component for create and edit; `PageContainer
   `repo*` metadata (API §10). To clear a field the form sends `null`.
 - Create writes in this order from one server action: `POST /projects` (core fields),
   then each attachment `POST /projects/:id/attachments`. If an attachment fails the
-  project exists: the action returns the id plus which attachments failed, and the page
-  moves to the edit route with an error summary rather than losing the work.
+  project exists: the action returns the id plus the **values** of the attachments that
+  failed (type, URL, title; never a token), and the page moves to the edit route with
+  those values pre-filled in the Media section and an error summary, so nothing the user
+  typed is lost. The values travel in the action's result and client state (not the URL),
+  and a test fails if the edit page opens with the failed attachments missing.
 
 Labels: the field the mock calls "AI Summary" is the user's **Summary** (API §5.1).
 Every string is added to `en`, `ru` and `am` in the same commit; the attachment form's
@@ -188,9 +191,14 @@ the FE never stores or caches an image URL it was given.
   appears on the edit page, where a new project lands after the first save. Avatars
   upload from the account page in PR 5 (same component).
 - **Previews cannot upload** unless the preview origin is in the bucket CORS (API §3.1,
-  no `*.vercel.app` wildcard). The upload control checks `NEXT_PUBLIC_*`-free server
-  state: the server action returns `UPLOAD_UNAVAILABLE` on a failed signing, and the
-  control shows "Uploads are not available on this site" with the URL field still usable.
+  no `*.vercel.app` wildcard). A failed signing is
+  `UPLOAD_UNAVAILABLE`, but a missing CORS rule shows up only **at the browser `PUT`**
+  (the request fails with no status, an `XMLHttpRequest` `error` event with
+  `status === 0`, after signing succeeded). The control treats that as a distinct result:
+  it says "Uploads are not available on this site; paste a link instead" and keeps the
+  URL field usable, and does not retry. A test fires the `error` event with status 0
+  after a successful signing and expects that message; Playwright runs it on a preview
+  origin that is not in the CORS rule.
 - A dropped or interrupted PUT leaves an orphan object; the API's sweep removes it (API
   §3.5). Nothing for the FE to clean.
 - Keyboard: the picker is a real `<input type=file>` behind a button; drag-and-drop is an
@@ -201,7 +209,7 @@ the FE never stores or caches an image URL it was given.
 - `ProjectDescription` drops the regex `sanitize` (F1) and calls
   `sanitizeDescription(html)` in `src/lib/sanitize.ts`. The helper uses **DOMPurify with
   `ALLOWED_TAGS` equal to the API allow-list** and `ALLOWED_URI_REGEXP`
-  `^(?:https?|mailto):` (API §10), `ALLOWED_ATTR` `href`, `target`, `rel`, `class` on
+  `^https?:` (http and https only; the API dropped `mailto:` in its plan review, API #44/#46), `ALLOWED_ATTR` `href`, `target`, `rel`, `class` on
   `code`; links forced to `rel="noopener noreferrer nofollow" target="_blank"` in an
   `afterSanitizeAttributes` hook.
 - **DOMPurify needs a DOM.** Run: `require("dompurify")` in plain Node has no
@@ -284,8 +292,9 @@ logged-in checks (1–7 on `/projects*`) cannot run; the public parts can.
 **Proposal for Levon: add Playwright to the repo, as its own PR (PR 6), not stacked with
 a feature PR.** Scope: `@playwright/test` and `@axe-core/playwright` as devDependencies,
 `playwright.config.ts` (Chromium only, baseURL from env, `PLAYWRIGHT_BROWSERS_PATH`
-honoured), 3 smoke specs that need **no login**: the 404 page and the sign-in redirect
-render and pass axe in en/ru/am; the public profile page of a seeded public user passes
+honoured), 3 smoke specs that need **no login**: the 404 page renders and passes axe in en/ru/am; a protected page requested without a
+session is asserted **as an HTTP response** (302 to `/auth/login?returnTo=…` from a raw
+request that does not follow redirects), not only as the page a browser ends on; the public profile page of a seeded public user passes
 axe and has no console errors; the language switch changes `<html lang>`. A CI job runs
 them against `next build && next start` with fake Auth0 variables (pages render without
 them, `CLAUDE.md`). Browsers are downloaded in CI (cached), never committed. It is
@@ -293,18 +302,18 @@ groundwork for tracker 9.6; the logged-in journey stays in 9.6. Approved by Levo
 
 ## 9. Security properties and how each is proved
 
-| Property                                                                     | Proof                                                                                                                                                       |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Token never reaches the browser (Q11)                                        | Actions and `client.ts` are `server-only`; a test greps the client bundle output for the token env names; the browser `PUT` carries only the signed headers |
-| No project write trusts the UI                                               | Action tests: a non-owner id gives not-found; an action with no session fails; removing the session check fails the test                                    |
-| A private or draft project stays private (Q3)                                | Page tests with a mocked 404; Playwright with a second account; the list never renders a project the API did not return                                     |
-| Stored HTML is inert on render                                               | `sanitizeDescription` corpus tests (+ idempotence) and the Playwright paste check; remove the sanitizer and the tests fail                                  |
-| No unsanitized fallback                                                      | Test: with no DOM the helper throws                                                                                                                         |
-| User URLs reach `href`/`src` only as `https:` (or `mailto:` in descriptions) | `safeMediaUrl` tests with `javascript:`, `data:`, `//host`, `http:`, credentials in the URL                                                                 |
-| Form limits equal the API's                                                  | Table test over `limits.ts`; boundary values (N and N+1) for each field; the API's 400 field errors render on the field                                     |
-| An edit is not lost silently                                                 | Failed save keeps the form and shows the error; `useUnsavedGuard` while dirty (tests)                                                                       |
-| Every string exists in en/ru/am                                              | `Dictionary` type and `locales.test.ts`; the Playwright run in ru and am                                                                                    |
-| Upload cannot be abused from the UI                                          | Client checks are convenience; the signature and `accept()` enforce (API §3.5); an over-size file attempt is shown in the PR                                |
+| Property                                                                                                     | Proof                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token never reaches the browser (Q11)                                                                        | Actions and `client.ts` are `server-only`. The check inspects **what the server actually sends**: the HTML and the RSC payload of every changed page and the result of every action (create, edit, delete, sign upload) are searched for the session's access token and for `Authorization`/`Bearer`, in a logged-in Playwright run and in unit tests on the action results. A bundle grep is kept as a second, weaker check. The browser `PUT` carries only the signed headers |
+| No project write trusts the UI                                                                               | Action tests: a non-owner id gives not-found; an action with no session fails; removing the session check fails the test                                                                                                                                                                                                                                                                                                                                                        |
+| A private or draft project stays private (Q3)                                                                | Page tests with a mocked 404; Playwright with a second account; the list never renders a project the API did not return                                                                                                                                                                                                                                                                                                                                                         |
+| Stored HTML is inert on render                                                                               | `sanitizeDescription` corpus tests (+ idempotence) and the Playwright paste check; remove the sanitizer and the tests fail                                                                                                                                                                                                                                                                                                                                                      |
+| No unsanitized fallback                                                                                      | Test: with no DOM the helper throws                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| User URLs reach `href`/`src` only as `https:` (`http:`/`https:` in descriptions and for demo and repo links) | `safeMediaUrl` tests with `javascript:`, `data:`, `//host`, `http:`, credentials in the URL                                                                                                                                                                                                                                                                                                                                                                                     |
+| Form limits equal the API's                                                                                  | Table test over `limits.ts`; boundary values (N and N+1) for each field; the API's 400 field errors render on the field                                                                                                                                                                                                                                                                                                                                                         |
+| An edit is not lost silently                                                                                 | Failed save keeps the form and shows the error; `useUnsavedGuard` while dirty (tests)                                                                                                                                                                                                                                                                                                                                                                                           |
+| Every string exists in en/ru/am                                                                              | `Dictionary` type and `locales.test.ts`; the Playwright run in ru and am                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Upload cannot be abused from the UI                                                                          | Client checks are convenience; the signature and `accept()` enforce (API §3.5); an over-size file attempt is shown in the PR                                                                                                                                                                                                                                                                                                                                                    |
 
 Each guard is proved by removing it, as in every PR since M2.
 

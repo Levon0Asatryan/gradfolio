@@ -19,6 +19,8 @@ const {
   reorderEntries,
   replaceSkills,
   deleteMe,
+  getProject,
+  listMyProjects,
 } = await import("./client");
 
 const ME = {
@@ -277,5 +279,57 @@ describe("deleteMe", () => {
       vi.fn().mockResolvedValue(json(404, { code: "NOT_FOUND", message: "gone" })),
     );
     await expect(deleteMe()).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
+  });
+});
+
+describe("getProject", () => {
+  it("sends the token when there is a session", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await getProject(UID);
+    const [url, init] = call(fetchMock);
+    expect(url.pathname).toBe(`/v1/projects/${UID}`);
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("reads anonymously when there is no session", async () => {
+    sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await getProject(UID);
+    expect(call(fetchMock)[1].headers.Authorization).toBeUndefined();
+  });
+
+  it.each(["..", "ecoroute", `${UID}/attachments`, ""])(
+    "never sends %j to the API: NOT_FOUND",
+    async (id) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(getProject(id)).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("listMyProjects", () => {
+  it("requires a session and sends the filters, dropping empty ones", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { items: [], nextCursor: null }));
+    vi.stubGlobal("fetch", fetchMock);
+    await listMyProjects({ q: "C++ & Go", category: "course", sort: "name_asc", tag: "" });
+    const [url, init] = call(fetchMock);
+    expect(url.pathname).toBe("/v1/me/projects");
+    expect(url.searchParams.get("q")).toBe("C++ & Go");
+    expect(url.searchParams.get("category")).toBe("course");
+    expect(url.searchParams.get("sort")).toBe("name_asc");
+    expect(url.searchParams.has("tag")).toBe(false);
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+  });
+
+  it("does not read anonymously", async () => {
+    sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(listMyProjects()).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
