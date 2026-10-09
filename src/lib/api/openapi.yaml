@@ -13,7 +13,7 @@ tags:
   - name: profiles
     description: "Profiles: reading anyone’s, editing your own"
   - name: projects
-    description: "Projects: reading (writes arrive with M4 PRs b and c)"
+    description: "Projects: reading anyone’s public ones, managing your own"
 paths:
   /healthz:
     get:
@@ -536,6 +536,428 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProject
+      tags:
+        - projects
+      summary: Change project fields
+      description: Any non-empty subset of the create fields; `metadata` changes only the keys it names; `technologies`, `tags`, `links` and `files` are replaced as whole lists. The result is validated as a whole, so cross-field rules hold. Someone else’s project, a deleted one and an unknown id all answer 404. A change that alters nothing is a 200.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                descriptionHtml:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                category:
+                  type: string
+                  enum:
+                    - academic
+                    - personal
+                    - research
+                    - hackathon
+                    - course
+                    - other
+                status:
+                  type: string
+                  enum:
+                    - ongoing
+                    - completed
+                    - archived
+                isPublic:
+                  type: boolean
+                isDraft:
+                  type: boolean
+                liveDemoUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                repoUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                heroImageUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                technologies:
+                  maxItems: 30
+                  type: array
+                  items:
+                    type: string
+                tags:
+                  maxItems: 20
+                  type: array
+                  items:
+                    type: string
+                links:
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                      - label
+                      - url
+                    additionalProperties: false
+                files:
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                      - label
+                      - url
+                    additionalProperties: false
+                metadata:
+                  type: object
+                  properties:
+                    startDate:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                          pattern: ^\d{4}-\d{2}-\d{2}$
+                    endDate:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                          pattern: ^\d{4}-\d{2}-\d{2}$
+                    course:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                    professor:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                  additionalProperties: false
+              additionalProperties: false
+      responses:
+        "200":
+          description: The project after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteProject
+      tags:
+        - projects
+      summary: Delete a project
+      description: Removes the project with its attachments, tags, technologies and team rows.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects:
+    post:
+      operationId: createProject
+      tags:
+        - projects
+      summary: Create a project
+      description: "Only `title` is required. A new project is public and published unless `isPublic: false` or `isDraft: true`. `descriptionHtml` is sanitized with an allow-list on the way in (the response shows what was kept; the limit is measured after sanitizing). `technologies` and `tags` are normalized, de-duplicated case-insensitively and take the site-wide spelling. Unknown keys (`id`, `userId`, `source`, `repo…`, `aiSummary`) are rejected. Over the per-user cap: 409 `LIMIT_REACHED`."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                summary:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                descriptionHtml:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                category:
+                  default: other
+                  type: string
+                  enum:
+                    - academic
+                    - personal
+                    - research
+                    - hackathon
+                    - course
+                    - other
+                status:
+                  default: ongoing
+                  type: string
+                  enum:
+                    - ongoing
+                    - completed
+                    - archived
+                isPublic:
+                  default: true
+                  type: boolean
+                isDraft:
+                  default: false
+                  type: boolean
+                liveDemoUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                repoUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                heroImageUrl:
+                  anyOf:
+                    - type: string
+                      nullable: true
+                      enum:
+                        - null
+                    - type: string
+                technologies:
+                  maxItems: 30
+                  type: array
+                  items:
+                    type: string
+                tags:
+                  maxItems: 20
+                  type: array
+                  items:
+                    type: string
+                links:
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                      - label
+                      - url
+                    additionalProperties: false
+                files:
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                      - label
+                      - url
+                    additionalProperties: false
+                metadata:
+                  type: object
+                  properties:
+                    startDate:
+                      default: null
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                          pattern: ^\d{4}-\d{2}-\d{2}$
+                    endDate:
+                      default: null
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                          pattern: ^\d{4}-\d{2}-\d{2}$
+                    course:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                    professor:
+                      anyOf:
+                        - type: string
+                          nullable: true
+                          enum:
+                            - null
+                        - type: string
+                  additionalProperties: false
+              required:
+                - title
+              additionalProperties: false
+      responses:
+        "201":
+          description: The new project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "LIMIT_REACHED: the user holds the maximum number of projects"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
           content:
             application/json:
               schema:
