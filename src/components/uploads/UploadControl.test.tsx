@@ -57,6 +57,30 @@ describe("UploadControl", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Uploaded pic.png");
   });
 
+  it("reports busy from the pick until the PUT ends, and releases on failure and on unmount", async () => {
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const onBusyChange = vi.fn();
+    const { unmount } = renderInApp(
+      <UploadControl
+        kind="image"
+        sign={vi.fn().mockResolvedValue(SIGNED)}
+        onUploaded={vi.fn()}
+        onBusyChange={onBusyChange}
+      />,
+    );
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    choose(png());
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(true));
+    await act(async () => finish({ ok: false, reason: "rejected", status: 403 }));
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    put.putFile.mockImplementation(() => new Promise(() => {}));
+    choose(png());
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(true));
+    unmount();
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("shows determinate progress with a name, and Cancel stops the upload", async () => {
     let finish: (v: unknown) => void = () => {};
     put.putFile.mockImplementation(

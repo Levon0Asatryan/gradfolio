@@ -282,6 +282,7 @@ export const ru: Dictionary = {
       attachmentTitle: "Название (необязательно)",
       attachmentAdd: "Добавить",
       attachmentSave: "Сохранить",
+      uploadInProgress: "Файл ещё загружается. Дождитесь окончания или отмените загрузку.",
       attachmentEdit: "Изменить: {name}",
       attachmentMoveUp: "Переместить выше: {name}",
       attachmentMoveDown: "Переместить ниже: {name}",

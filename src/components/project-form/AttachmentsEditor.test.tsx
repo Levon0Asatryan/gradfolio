@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import type { ProjectAttachment } from "@/lib/api/types";
@@ -19,6 +19,8 @@ vi.mock("@/lib/projects/attachmentActions", () => ({
   deleteAttachmentAction: act_.del,
   reorderAttachmentsAction: act_.reorder,
 }));
+const put = vi.hoisted(() => ({ putFile: vi.fn() }));
+vi.mock("@/lib/uploads/putFile", () => ({ putFile: put.putFile }));
 vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: act_.sign }));
 
 const att = (id: string, over: Partial<ProjectAttachment> = {}): ProjectAttachment => ({
@@ -253,6 +255,36 @@ describe("AttachmentsEditor, draft (a new project)", () => {
     expect(onChange).toHaveBeenLastCalledWith([draft[0]]);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(act_.add).not.toHaveBeenCalled();
+  });
+
+  it("keeps Add disabled while a file uploads, so the address cannot change under it", async () => {
+    act_.sign.mockResolvedValue({
+      ok: true,
+      uploadUrl: "https://storage.googleapis.com/b/u/1/a.png?sig",
+      headers: {},
+      fileUrl: "https://storage.googleapis.com/b/u/1/a.png",
+    });
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const onChange = vi.fn();
+    renderInApp(<AttachmentsEditor draft={[]} onDraftChange={onChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Image" }));
+    fireEvent.change(within(dialog).getByTestId("upload-input"), {
+      target: { files: [new File([new Uint8Array(3)], "a.png", { type: "image/png" })] },
+    });
+    const add = within(dialog).getByRole("button", { name: "Add" });
+    await waitFor(() => expect(add).toBeDisabled());
+    await act(async () => finish({ ok: true }));
+    await waitFor(() => expect(add).toBeEnabled());
+    fireEvent.click(add);
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith([
+        expect.objectContaining({ url: "https://storage.googleapis.com/b/u/1/a.png" }),
+      ]),
+    );
   });
 
   it("offers the upload for an image or a PDF before the project exists, signed without a project id", async () => {

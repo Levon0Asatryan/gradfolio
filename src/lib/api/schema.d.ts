@@ -272,7 +272,7 @@ export interface paths {
         put?: never;
         /**
          * Get a signed URL to upload an avatar, hero image, image or PDF
-         * @description The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured.
+         * @description The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `projectId` is optional for `hero` and `attachment` (omit it while the project is being created); when given it must be the caller’s (404 otherwise), and an `avatar` with one is 400. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured.
          */
         post: operations["createUpload"];
         delete?: never;
@@ -460,6 +460,26 @@ export interface paths {
          * @description Removes the caller’s own accepted membership; the owner is notified (`team_left`). A pending invitee uses reject. Anyone else is 404.
          */
         delete: operations["leaveProjectTeam"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/activities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s activity feed, newest first
+         * @description The dashboard feed: project and profile events written in the same transaction as the event. Each item is a `translationKey` and `translationParams`; the frontend renders the text. Only the caller’s own feed exists, so there is no id to ask for. Keyset pagination: pass `nextCursor` back as `cursor`.
+         */
+        get: operations["listMyActivities"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -739,6 +759,24 @@ export interface components {
             message: string;
             /** @description Field-level detail, for VALIDATION_FAILED only. */
             details?: unknown;
+        };
+        Activity: {
+            id: string;
+            /** @enum {string} */
+            type: "project" | "profile";
+            /** @description What happened, e.g. `projectCreated`, `newSkill`, `teamJoined`. Render the text from your own strings for this key; an unknown key gets a generic line. */
+            translationKey: string;
+            /** @description Placeholders for the text: `projectName`, `skillName`, `memberName`, and `projectId` for a link. Only what the feed’s owner may see. */
+            translationParams: {
+                [key: string]: string | number;
+            } | null;
+            /** @description ISO 8601, UTC. */
+            timestamp: string;
+        };
+        ActivityPage: {
+            items: components["schemas"]["Activity"][];
+            /** @description Pass as `cursor`; null on the last page. */
+            nextCursor: string | null;
         };
         /** @description A teammate without an account: a name only. No invitation, no notification. */
         AddExternalMemberRequest: {
@@ -2208,7 +2246,7 @@ export interface operations {
                     contentType: "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "application/pdf";
                     /** @description Exact size in bytes; signed into the URL. */
                     size: number;
-                    /** @description Required for `hero` and `attachment`: a project of the caller’s. */
+                    /** @description Optional for `hero` and `attachment` (omit it while the project is being created); when given, a project of the caller’s. Not allowed for `avatar`. */
                     projectId?: string;
                 };
             };
@@ -2917,6 +2955,65 @@ export interface operations {
             };
             /** @description NOT_FOUND: no such project, or the caller is not an accepted member */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listMyActivities: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

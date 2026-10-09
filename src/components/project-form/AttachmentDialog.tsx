@@ -52,6 +52,7 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const typeLabel: Record<AttachmentType, string> = {
     image: text.typeImage,
@@ -70,7 +71,7 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
     // The dialog is portalled out of the page, but React still bubbles this event to the
     // project form that contains it: without this, adding an attachment saved the project.
     event.stopPropagation();
-    if (busy) return;
+    if (busy || uploading) return;
     const checked = parseAttachment(values);
     if (!checked.ok) {
       setErrors(checked.errors);
@@ -150,6 +151,7 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
                   })
                 }
                 onUploaded={(fileUrl) => setValues((v) => ({ ...v, url: fileUrl }))}
+                onBusyChange={setUploading}
               />
             )}
             <TextField
@@ -166,7 +168,7 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
           <Button onClick={onClose} disabled={busy}>
             {t.projects.form.cancel}
           </Button>
-          <Button type="submit" variant="contained" disabled={busy}>
+          <Button type="submit" variant="contained" disabled={busy || uploading}>
             {editing ? text.attachmentSave : text.attachmentAdd}
           </Button>
         </DialogActions>

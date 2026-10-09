@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
@@ -7,7 +7,9 @@ import { ProfileView } from "./ProfileView";
 
 const nav = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
-vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: vi.fn() }));
+const up = vi.hoisted(() => ({ sign: vi.fn(), putFile: vi.fn() }));
+vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: up.sign }));
+vi.mock("@/lib/uploads/putFile", () => ({ putFile: up.putFile }));
 const action = vi.hoisted(() => ({ updateProfileAction: vi.fn() }));
 vi.mock("@/lib/profile/actions", () => ({
   ...action,
@@ -140,6 +142,25 @@ describe("ProfileView", () => {
       }
       expect(attr(/^Name/, "autocomplete")).toBe("name");
       expect(screen.getByLabelText(/^Name/)).toBeRequired();
+    });
+
+    it("blocks Save while the avatar uploads, so the old photo URL is not saved over it", async () => {
+      up.sign.mockResolvedValue({
+        ok: true,
+        uploadUrl: "https://storage.googleapis.com/b/u/1/a.png?sig",
+        headers: {},
+        fileUrl: "https://storage.googleapis.com/b/u/1/a.png",
+      });
+      let finish: (v: unknown) => void = () => {};
+      up.putFile.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+      edit();
+      fireEvent.change(screen.getByTestId("upload-input"), {
+        target: { files: [new File([new Uint8Array(3)], "a.png", { type: "image/png" })] },
+      });
+      const save = screen.getByRole("button", { name: "Save" });
+      await waitFor(() => expect(save).toBeDisabled());
+      await act(async () => finish({ ok: true }));
+      await waitFor(() => expect(save).toBeEnabled());
     });
 
     it("counts the bio against the API's column, and refuses more", async () => {
