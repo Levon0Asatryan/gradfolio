@@ -230,7 +230,8 @@ describe("ProjectForm, create", () => {
     expect(unloads()).toBe(true);
     save("Create project");
     await waitFor(() => expect(nav.push).toHaveBeenCalled());
-    expect(unloads()).toBe(false);
+    // The push fires in the same tick as the state change: wait for the guard to be released.
+    await waitFor(() => expect(unloads()).toBe(false));
   });
 
   it("sends the new project's attachments with it, and hands failed ones to the edit page", async () => {
@@ -370,7 +371,7 @@ describe("ProjectForm, edit", () => {
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete project" }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects?flash=deleted"));
-    expect(unloads()).toBe(false);
+    await waitFor(() => expect(unloads()).toBe(false));
   });
 
   it("does not call a 404 a success: the dialog stays open and says the project is gone", async () => {
