@@ -10,8 +10,14 @@ export type SignResult =
 const PURPOSES = ["avatar", "hero", "attachment"] as const;
 type Purpose = (typeof PURPOSES)[number];
 
-/** Where a signed URL may point: Google Cloud Storage over https, never anything else. */
-const STORAGE_HOST = /\.storage\.googleapis\.com$/;
+/**
+ * Where a signed URL may point: Google Cloud Storage over https, never anything else. The
+ * API's signer (`@google-cloud/storage` v4 `getSignedUrl`) returns the path style,
+ * `https://storage.googleapis.com/<bucket>/<key>?...`; the virtual-host style
+ * (`<bucket>.storage.googleapis.com`) is accepted too. Only the first is what production
+ * sends, and matching only the second refused every upload (docs/fe-m4-verification.md).
+ */
+const STORAGE_HOST = /^(?:[a-z0-9._-]+\.)?storage\.googleapis\.com$/;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
