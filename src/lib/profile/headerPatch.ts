@@ -33,6 +33,7 @@ export type FieldError =
   | "invalid_month"
   | "invalid_range"
   | "too_long"
+  | "too_many"
   | "invalid";
 export type FieldErrors = Partial<Record<string, FieldError>>;
 

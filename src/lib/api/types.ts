@@ -32,5 +32,9 @@ export type ProjectDetail = components["schemas"]["ProjectDetail"];
 export type ProjectPage = components["schemas"]["ProjectPage"];
 export type ProjectAttachment = components["schemas"]["ProjectAttachment"];
 export type ProjectTeamMember = components["schemas"]["ProjectTeamMember"];
+/** The body of `POST /v1/projects`; `PATCH` takes any subset of it. */
+export type ProjectWriteBody = NonNullable<
+  paths["/v1/projects"]["post"]["requestBody"]
+>["content"]["application/json"];
 /** The query of `listMyProjects`: what the list page and "load more" send. */
 export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["parameters"]["query"]>;

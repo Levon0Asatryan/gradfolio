@@ -9,6 +9,7 @@ import type {
   ProfileHeaderPatch,
   ProjectDetail,
   ProjectListQuery,
+  ProjectWriteBody,
   ProjectPage,
 } from "./types";
 
@@ -32,6 +33,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** `VALIDATION_FAILED` only: which fields the API refused, `{ path, message }[]`. */
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -40,7 +43,7 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 10_000;
 
-function isEnvelope(value: unknown): value is { code: string; message: string } {
+function isEnvelope(value: unknown): value is { code: string; message: string; details?: unknown } {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -102,7 +105,8 @@ async function request<T>({ method, path, body, auth = "required" }: Call): Prom
 
   const parsed: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
-    if (isEnvelope(parsed)) throw new ApiError(response.status, parsed.code, parsed.message);
+    if (isEnvelope(parsed))
+      throw new ApiError(response.status, parsed.code, parsed.message, parsed.details);
     throw new ApiError(response.status, LOCAL_CODES.unknown, `HTTP ${response.status}`);
   }
   return parsed as T;
@@ -142,6 +146,25 @@ export function completeOnboarding(): Promise<{ onboarded: true }> {
 export async function getProject(id: string): Promise<ProjectDetail> {
   if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
   return request<ProjectDetail>({ method: "GET", path: `/v1/projects/${id}`, auth: "optional" });
+}
+
+/** A new project; the API sanitizes `descriptionHtml` and answers with what it kept. */
+export function createProject(body: ProjectWriteBody): Promise<ProjectDetail> {
+  return request<ProjectDetail>({ method: "POST", path: "/v1/projects", body });
+}
+
+/** Change fields of the caller's project. Someone else's project is the API's 404. */
+export async function updateProject(
+  id: string,
+  body: Partial<ProjectWriteBody>,
+): Promise<ProjectDetail> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return request<ProjectDetail>({ method: "PATCH", path: `/v1/projects/${id}`, body });
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  await request<undefined>({ method: "DELETE", path: `/v1/projects/${id}` });
 }
 
 /** The caller's own projects, every state; one page, keyset-paginated by `cursor`. */

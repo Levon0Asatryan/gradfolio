@@ -9,7 +9,8 @@ import AttachmentsGallery from "@/components/project/AttachmentsGallery";
 import ProjectMetadataCard from "@/components/project/ProjectMetadataCard";
 import TeamList from "@/components/project/TeamList";
 import TechTagsClient from "@/components/project/TechTagsClient";
-import { OwnerStateChips } from "@/components/project/OwnerStateChips";
+import { OwnerBar } from "@/components/project/OwnerBar";
+import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { ApiError, getProject } from "@/lib/api/client";
 import { requestDictionary } from "@/lib/requestDictionary";
@@ -57,8 +58,9 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   return (
     <PageContainer maxWidth={1100}>
       <BackButton />
-      {project.isOwner && (project.isDraft || !project.isPublic) && (
-        <OwnerStateChips isDraft={project.isDraft} />
+      <FlashToast />
+      {project.isOwner && (
+        <OwnerBar projectId={project.id} isDraft={project.isDraft} isPublic={project.isPublic} />
       )}
 
       <ProjectHeader

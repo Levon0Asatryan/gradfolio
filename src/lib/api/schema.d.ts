@@ -163,6 +163,34 @@ export interface paths {
         get: operations["getProject"];
         put?: never;
         post?: never;
+        /**
+         * Delete a project
+         * @description Removes the project with its attachments, tags, technologies and team rows.
+         */
+        delete: operations["deleteProject"];
+        options?: never;
+        head?: never;
+        /**
+         * Change project fields
+         * @description Any non-empty subset of the create fields; `metadata` changes only the keys it names; `technologies`, `tags`, `links` and `files` are replaced as whole lists. The result is validated as a whole, so cross-field rules hold. Someone else’s project, a deleted one and an unknown id all answer 404. A change that alters nothing is a 200.
+         */
+        patch: operations["updateProject"];
+        trace?: never;
+    };
+    "/v1/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a project
+         * @description Only `title` is required. A new project is public and published unless `isPublic: false` or `isDraft: true`. `descriptionHtml` is sanitized with an allow-list on the way in (the response shows what was kept; the limit is measured after sanitizing). `technologies` and `tags` are normalized, de-duplicated case-insensitively and take the site-wide spelling. Unknown keys (`id`, `userId`, `source`, `repo…`, `aiSummary`) are rejected. Over the per-user cap: 409 `LIMIT_REACHED`.
+         */
+        post: operations["createProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1190,6 +1218,270 @@ export interface operations {
                 };
             };
             /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    summary?: (null) | string;
+                    descriptionHtml?: (null) | string;
+                    /** @enum {string} */
+                    category?: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+                    /** @enum {string} */
+                    status?: "ongoing" | "completed" | "archived";
+                    isPublic?: boolean;
+                    isDraft?: boolean;
+                    liveDemoUrl?: (null) | string;
+                    repoUrl?: (null) | string;
+                    heroImageUrl?: (null) | string;
+                    technologies?: string[];
+                    tags?: string[];
+                    links?: {
+                        label: string;
+                        url: string;
+                    }[];
+                    files?: {
+                        label: string;
+                        url: string;
+                    }[];
+                    metadata?: {
+                        startDate?: (null) | string;
+                        endDate?: (null) | string;
+                        course?: (null) | string;
+                        professor?: (null) | string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The project after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDetail"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    summary?: (null) | string;
+                    descriptionHtml?: (null) | string;
+                    /**
+                     * @default other
+                     * @enum {string}
+                     */
+                    category?: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+                    /**
+                     * @default ongoing
+                     * @enum {string}
+                     */
+                    status?: "ongoing" | "completed" | "archived";
+                    /** @default true */
+                    isPublic?: boolean;
+                    /** @default false */
+                    isDraft?: boolean;
+                    liveDemoUrl?: (null) | string;
+                    repoUrl?: (null) | string;
+                    heroImageUrl?: (null) | string;
+                    technologies?: string[];
+                    tags?: string[];
+                    links?: {
+                        label: string;
+                        url: string;
+                    }[];
+                    files?: {
+                        label: string;
+                        url: string;
+                    }[];
+                    metadata?: {
+                        /** @default null */
+                        startDate?: (null) | string;
+                        /** @default null */
+                        endDate?: (null) | string;
+                        course?: (null) | string;
+                        professor?: (null) | string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The new project */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDetail"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LIMIT_REACHED: the user holds the maximum number of projects */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
             503: {
                 headers: {
                     [name: string]: unknown;

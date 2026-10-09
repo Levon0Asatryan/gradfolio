@@ -5,7 +5,11 @@ import { projectSummary } from "@/testing/fixtures";
 import ProjectsContent from "./ProjectsContent";
 
 const nav = vi.hoisted(() => ({ replace: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: nav.replace }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: nav.replace }),
+  usePathname: () => "/projects",
+  useSearchParams: () => new URLSearchParams(),
+}));
 const more = vi.hoisted(() => ({ action: vi.fn() }));
 vi.mock("@/lib/projects/actions", () => ({ loadMoreProjectsAction: more.action }));
 

@@ -77,13 +77,14 @@ describe("/projects/[id] (server)", () => {
     expect(header?.props).toMatchObject({ summary: "Generated.", category: "research" });
   });
 
-  it("marks a private or draft project for its owner only", async () => {
+  it("gives the owner an Edit bar, and nobody else", async () => {
     api.getProject.mockResolvedValue(projectDetail({ isOwner: true, isPublic: false }));
     const owner = await ProjectDetailPage({ params: Promise.resolve({ id: "p1" }) });
-    expect(find(owner, (e) => "isDraft" in (e.props as object))).toBeDefined();
-    api.getProject.mockResolvedValue(projectDetail({ isOwner: false, isPublic: false }));
+    const bar = find(owner, (e) => "projectId" in (e.props as object));
+    expect(bar?.props).toMatchObject({ isPublic: false, isDraft: false });
+    api.getProject.mockResolvedValue(projectDetail({ isOwner: false, isPublic: true }));
     const other = await ProjectDetailPage({ params: Promise.resolve({ id: "p2" }) });
-    expect(find(other, (e) => "isDraft" in (e.props as object))).toBeUndefined();
+    expect(find(other, (e) => "projectId" in (e.props as object))).toBeUndefined();
   });
 
   it("titles the tab with the project name, once per request, and survives a failed load", async () => {

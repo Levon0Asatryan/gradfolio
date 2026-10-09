@@ -21,6 +21,9 @@ const {
   deleteMe,
   getProject,
   listMyProjects,
+  createProject,
+  updateProject,
+  deleteProject,
 } = await import("./client");
 
 const ME = {
@@ -331,5 +334,56 @@ describe("listMyProjects", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(listMyProjects()).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("project writes", () => {
+  it("POSTs the body as JSON with the token and returns the project", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(201, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await createProject({ title: "T" });
+    const [url, init] = call(fetchMock);
+    expect(url.pathname).toBe("/v1/projects");
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer tok-123");
+    expect(JSON.parse(init.body as string)).toEqual({ title: "T" });
+  });
+
+  it("carries the API's field details on a refusal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        json(400, {
+          code: "VALIDATION_FAILED",
+          message: "bad",
+          details: [{ path: "title", message: "x" }],
+        }),
+      ),
+    );
+    await expect(createProject({ title: "" })).rejects.toMatchObject({
+      status: 400,
+      details: [{ path: "title", message: "x" }],
+    });
+  });
+
+  it("PATCHes by id, DELETE accepts the empty 204, and neither sends a non-UUID", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, { id: UID }));
+    vi.stubGlobal("fetch", fetchMock);
+    await updateProject(UID, { title: "T" });
+    expect(call(fetchMock)[1].method).toBe("PATCH");
+    expect(call(fetchMock)[0].pathname).toBe(`/v1/projects/${UID}`);
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(deleteProject(UID)).resolves.toBeUndefined();
+    const guard = vi.fn();
+    vi.stubGlobal("fetch", guard);
+    await expect(deleteProject("../me")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(updateProject("x", {})).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(guard).not.toHaveBeenCalled();
+  });
+
+  it("requires a session", async () => {
+    sdk.getAccessToken.mockRejectedValue(new AccessTokenError("missing_session", "no session"));
+    vi.stubGlobal("fetch", vi.fn());
+    await expect(createProject({ title: "T" })).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
   });
 });
