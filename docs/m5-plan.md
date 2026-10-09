@@ -119,7 +119,7 @@ renders controls):
 - **Leave (teammate).** An accepted teammate sees _Leave project_ on their own row (the server
   component compares the member's `userId` with `getMe().id`; no other row gets it). A
   confirm "Leave {project}? {owner} will be told." calls `DELETE /projects/{id}/team/me`; on
-  success redirect to `/projects?flash=left` ("You left {project}"), because a non-draft private
+  success redirect to `/projects?flash=left` with the generic message "You left the project" (the redirect carries only the fixed key, so no project name; the confirm dialog before it names the project), because a non-draft private
   project may no longer be readable.
 - After any success: `router.refresh()` so the server list is the truth.
 - **Non-owner.** No button, no row actions, no dialog code path rendered. The server action
@@ -195,7 +195,7 @@ Nothing in the browser calls gradfolio-api.
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Writes: invite, external, remove, accept, reject, mark read, mark all | Server actions in `src/lib/team/actions.ts` and `src/lib/notifications/actions.ts`. They take **no user id**; the session token tells the API who writes. Inputs validated before forwarding (id is a UUID, name/role trimmed and length-checked against `limits.ts`).                                                                                 |
 | Reads from client islands: user lookup, notification list, count      | Route handlers `GET /api/users/lookup`, `/api/notifications`, `/api/notifications/unread-count`, calling `src/lib/api/client.ts`. `Cache-Control: no-store`. No session: 401 with the `UNAUTHENTICATED` code, no API call. Server actions are not used for reads: they run one at a time per client and would queue behind each other for a typeahead. |
-| Page data: team with status                                           | Server component, `getProject` as today.                                                                                                                                                                                                                                                                                                               |
+| Page data: project; owner's team with status                          | Server component: `getProject` as today; **for the owner only** (`isOwner`) also `GET /v1/projects/{id}/team` (a second call; the public `team[]` is accepted-only). A failed team fetch shows an inline error with retry in the panel, never an empty team.                                                                                           |
 | Errors                                                                | `ApiError.code` passes through as `{ ok: false, code }`; messages are the FE's own, from the dictionary.                                                                                                                                                                                                                                               |
 
 Route handlers are same-origin and carry the session cookie; they add no CORS and no token
@@ -224,7 +224,7 @@ Vitest + Testing Library, beside the code. Each guard is proved by removing it.
 - `TeamSection`: owner sees controls; `isOwner=false` renders none (guard: remove the check,
   test fails); pending/declined chips; remove confirm names the person; Cancel is the default
   focus; failed invite keeps the form.
-- Search combobox: debounce, 2-char minimum, a late response for an older query is ignored.
+- Search combobox: debounce, 3-char minimum (no request at 1-2 characters), a late response for an older query is ignored.
 - Bell: badge hidden at 0/unknown, `99+` cap, aria-label plural forms in all three languages,
   panel focus trap and return, Escape, route change closes, list/empty/error/loading states,
   inline accept decrements the count, a second click during the call does nothing, answered
