@@ -10,78 +10,73 @@ merged project page and on the UI track's edit model; it duplicates neither.
   API-backed project page and list (gradfolio #61-#64). The tracker rows 4.6-4.10 still say
   `todo`; propose `done`.
 - M4 API (a), (b), (c) and the verification record are merged (api #46-#49).
-- The API M5 plan is not open yet. Every contract detail below marked **[API]** is an ask to
-  that plan, not a fact. Nothing here is built until the generated types contain it (Q5).
+- The API M5 plan is open (gradfolio-api PR #50, `docs/m5-plan.md`). §2 and §3 are reconciled
+  with it; it wins on any disagreement. Levon delegated Q4 and the delivery method to its
+  recommendations. Nothing here is built until the generated types contain the contract (Q5).
 - The approved prototype (`m3-ui-redesign-plan.md`) has **no** bell and **no** team UI. Layout
   below extends its components (cards, 44px targets, `dialog` modals, bottom toast, empty-state
   prompts, delete confirm naming the entry); it is not a reproduction of a mock.
 
 ## 1. Investigation
 
-| Question                        | Finding                                                                                                                                                                                                                                                        | Consequence                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| What exists on the project page | `TeamList` renders `project.team` (accepted members: `id,name,role,avatarUrl,userId`), read-only, hidden when empty. `project.isOwner` already gates `OwnerBar`.                                                                                               | Team section becomes `TeamSection`: `TeamList` for everyone, owner controls only if `isOwner`.   |
-| Edit model                      | `DeleteProjectDialog` (MUI Dialog, confirm naming the project, `useTransition`), `FlashToast` (`?flash=` after a redirect), `SectionEditor` (dialog, field errors from API codes, reload server list after success).                                           | Reuse the dialog and error-code pattern. In-page changes use a Snackbar, not `?flash=`.          |
-| Navigation                      | `AppNavigation` (full from `lg`, rail below, hidden below `sm`), `PhoneNavigation` (4 primary items + More sheet). Both get `NavUser`; signed-out gets no user.                                                                                                | Bell lives in both; see §5.                                                                      |
-| API access                      | `src/lib/api/client.ts` is `server-only`. The browser holds no token (Q11). `/auth/access-token` is off.                                                                                                                                                       | Browser code never calls the API. See §6.                                                        |
-| Contract                        | `openapi.yaml` has no team write, user search or notification endpoint. `ProjectTeamMember` has no status.                                                                                                                                                     | Wait for API (a)/(b); sync with `scripts/sync-api-contract.sh <sha>`.                            |
-| Playwright                      | M4 added `e2e/smoke.spec.ts`, `playwright.config.ts` (production build, throwaway Auth0 values, no login), `@axe-core/playwright`, a CI job.                                                                                                                   | Extend; do not add a second harness.                                                             |
-| Comparable apps                 | GitHub (collaborator invite: search, pending shown to the owner, invitee accepts from a notification or the repo page), Google Docs share (search, role, remove naming the person), LinkedIn (bell: popover with the latest items, "view all", mark-all-read). | Dialog with typeahead; pending/declined visible only to the owner; bell panel with the latest N. |
-| Hazards                         | Typeahead is an enumeration surface; notification text can contain another user's name; a notification link is data from the API; popover focus handling is the usual a11y regression.                                                                         | Min 2 chars, debounce, API rate limit [API]; link checked as a same-origin path; focus tests.    |
+| Question                        | Finding                                                                                                                                                                                                                                                        | Consequence                                                                                                               |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| What exists on the project page | `TeamList` renders `project.team` (accepted members: `id,name,role,avatarUrl,userId`), read-only, hidden when empty. `project.isOwner` already gates `OwnerBar`.                                                                                               | Team section becomes `TeamSection`: `TeamList` for everyone, owner controls only if `isOwner`.                            |
+| Edit model                      | `DeleteProjectDialog` (MUI Dialog, confirm naming the project, `useTransition`), `FlashToast` (`?flash=` after a redirect), `SectionEditor` (dialog, field errors from API codes, reload server list after success).                                           | Reuse the dialog and error-code pattern. In-page changes use a Snackbar, not `?flash=`.                                   |
+| Navigation                      | `AppNavigation` (full from `lg`, rail below, hidden below `sm`), `PhoneNavigation` (4 primary items + More sheet). Both get `NavUser`; signed-out gets no user.                                                                                                | Bell lives in both; see §5.                                                                                               |
+| API access                      | `src/lib/api/client.ts` is `server-only`. The browser holds no token (Q11). `/auth/access-token` is off.                                                                                                                                                       | Browser code never calls the API. See §6.                                                                                 |
+| Contract                        | `openapi.yaml` has no team write, user search or notification endpoint. `ProjectTeamMember` has no status.                                                                                                                                                     | Wait for API (a)/(b); sync with `scripts/sync-api-contract.sh <sha>`.                                                     |
+| Playwright                      | M4 added `e2e/smoke.spec.ts`, `playwright.config.ts` (production build, throwaway Auth0 values, no login), `@axe-core/playwright`, a CI job.                                                                                                                   | Extend; do not add a second harness.                                                                                      |
+| Comparable apps                 | GitHub (collaborator invite: search, pending shown to the owner, invitee accepts from a notification or the repo page), Google Docs share (search, role, remove naming the person), LinkedIn (bell: popover with the latest items, "view all", mark-all-read). | Dialog with typeahead; pending/declined visible only to the owner; bell panel with the latest N.                          |
+| Hazards                         | Typeahead is an enumeration surface; notification text can contain another user's name; a notification link is data from the API; popover focus handling is the usual a11y regression.                                                                         | 3 chars minimum, debounce, the API's own lookup budget and 429 handling; link checked as a same-origin path; focus tests. |
 
-## 2. Contract needed from the API [API]
+## 2. Contract from the API plan (gradfolio-api PR #50, `docs/m5-plan.md`)
 
-FE asks, to be reconciled with the API plan. Anything the API plan decides differently wins;
-this section then changes in the first FE implementation PR.
+Reconciled with that plan; where this plan and the API plan disagree, the API plan wins and
+the FE changes. Nothing is built before the generated types contain it (Q5).
 
-1. **Team read for the owner.** `GET /v1/projects/{id}` (or a sibling) returns members with
-   `status: pending | accepted | rejected`, `kind: user | external`, member `id` (the row id
-   used by remove). A non-owner sees accepted members only (today's shape). An owner needs to
-   tell pending from accepted from declined, so `team[]` for the owner carries `status`.
-2. **User search** for the picker: `GET /v1/users/search?q=` returning minimal fields
-   (`id, name, headline?, avatarUrl?`), public profiles only, excludes the owner and members
-   already on the project (or marks them `alreadyMember`), rate-limited.
-3. **Invite** (`userId`, optional `role`), **add external** (`name`, optional `role`),
-   **remove member** (row id), **accept** and **reject** (invitee only). Stable error codes
-   for: not found / not owner (404), duplicate, self-invite, limit reached, not pending.
-4. **Notifications.** `Notification` in `components["schemas"]` with: `id`, a `type`
-   discriminant (invite, accepted, rejected at least), `readAt | null`, `createdAt`, the
-   params the sentence needs (actor name, project title), and a **link computed by the API
-   from real ids** (S12). `list` (newest first, keyset cursor, as `GET /v1/me/projects`),
-   `unread-count`, `mark one read`, `mark all read`. For an invite notification, whether it
-   is still actionable (`pending`) so the FE can show Accept/Decline or the outcome.
-5. **Deleted targets.** A notification whose project or user is gone arrives with a null
-   name/title or a flag, never a 500 (tracker follow-up "notifications naming deleted users").
-6. **Responding marks the notification read** in the same transaction (preferred; saves a call
-   and a stale unread dot). If not, the FE calls mark-read after the response.
+| Need                    | API contract (PR #50)                                                                                                                                                                                                                                                                                                                                                                                                                     | FE use                                                                                                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Team read (owner)       | `GET /v1/projects/{id}/team`: all rows, every status, `{id,name,role,status,userId,avatarUrl,createdAt}`. Non-owner, a teammate included: 404. Public `team[]` on the project stays accepted-only.                                                                                                                                                                                                                                        | `TeamSection` fetches it server-side for the owner only. A teammate sees the public `team[]`, no controls.                                                                                                    |
+| User lookup             | `GET /v1/users/lookup?q=`: prefix match, `q` 3-50 chars after trim, at most 8 `{id,name,headline,avatarUrl}`, public profiles only, own `lookup` rate budget (30 per window, separate from M6 search).                                                                                                                                                                                                                                    | Combobox needs 3 characters, 300 ms debounce, 429 handled (see §4).                                                                                                                                           |
+| Invite / external       | `POST /v1/projects/{id}/team` `{userId, role?}` (201, pending, notifies). `POST .../team/external` `{name, role?}`: **201 accepted row with `userId` null**, no notification.                                                                                                                                                                                                                                                             | An external row is just an accepted row with no link; there is no "external" kind and no status for it.                                                                                                       |
+| Remove                  | `DELETE .../team/{memberId}` (owner, any status, 204).                                                                                                                                                                                                                                                                                                                                                                                    | Remove / cancel invitation.                                                                                                                                                                                   |
+| Invitee                 | `POST .../team/me/accept`, `POST .../team/me/reject` (200 member), addressed by project id; caller implied.                                                                                                                                                                                                                                                                                                                               | Bell buttons use `params.projectId`.                                                                                                                                                                          |
+| Leave                   | `DELETE /v1/projects/{id}/team/me` (accepted teammate, 204), notifies the owner with type `team_left`.                                                                                                                                                                                                                                                                                                                                    | "Leave project" on the teammate's own row (§4).                                                                                                                                                               |
+| Conflicts (409)         | `ALREADY_MEMBER`, `INVITE_NOT_PENDING`, `TEAM_FULL` (20 rows, any status), `PROJECT_IS_DRAFT`. Self-invite or inviting the owner: 400 `VALIDATION_FAILED`. Unknown or non-public `userId`: 404. Also 429 and 503.                                                                                                                                                                                                                         | One message per code, in en/ru/am. Draft: "Publish the project before inviting people."                                                                                                                       |
+| Notifications           | `Notification = {id, type, title, params, read, createdAt, link, invite}`. `type`: `team_invite \| team_accepted \| team_rejected \| team_left` (others arrive as `general`). `params`: `{actorId?, actorName, projectId, projectTitle, role?}` snapshots. `title` is an English fallback only. `link`: relative path or `null`, computed at read time. `invite` (invite type only): `{status: pending \| accepted \| rejected \| gone}`. | **The FE renders the sentence from `type` + `params` in the user's language**; `title` is used only for an unknown type. Buttons only when `invite.status === "pending"`; `gone` shows "no longer available". |
+| Endpoints               | `GET /v1/me/notifications?limit&cursor` (`{items,nextCursor}`, newest first), `GET .../unread-count` (`{count}`), `POST .../{id}/read` (204; other user's id 404), `POST .../read-all` (`{updated}`).                                                                                                                                                                                                                                     | List on bell open, count poll, mark one / all.                                                                                                                                                                |
+| Deleted project or user | The row survives; `link` and `invite` degrade (`null`, `gone`); `params` keep the snapshot names.                                                                                                                                                                                                                                                                                                                                         | Sentence from the snapshot; no link; no buttons.                                                                                                                                                              |
+
+Not in the contract, so the FE does not rely on it: whether accept/reject marks the
+notification read (the FE calls mark-read after a response unless the generated types or API
+docs say it is done in the transaction, and ignores a failure of that call). Read state is
+`read: boolean` there, not `readAt`.
 
 **`Notification` type (Q5).** `src/lib/api/types.ts` gains
 `export type Notification = components["schemas"]["Notification"]` (plus the list/count
 response aliases), exactly as `ProjectTeamMember` is named today. No hand-written copy of the
 shape, none in components. `schema.test.ts` already fails on drift. An unknown `type` renders
-the generic line ("You have a new notification") and a link, never crashes: the API may add a
-type before the FE learns it.
+the generic line using `title` and a link, never crashes: the API may add a type before the FE
+learns it.
 
-## 3. Delivery method: **awaiting Levon's decision**
+## 3. Delivery method: decided (API plan §6)
 
-The API sub-agent recommends one; this is the FE side of the tradeoff. Q11 shapes all three:
-the browser cannot call the API, so each option goes through a same-origin Next route handler
-that attaches the token.
+Levon delegated this decision to the API plan's recommendation, which this plan adopts:
 
-| Option                   | How                                                                                                              | Latency of a new invite       | Idle cost                                                                                                                      | FE complexity                                   | Verdict                                                               |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- |
-| **A. Refresh on events** | Fetch the count on mount, on route change, on tab focus/visibility, and after the user's own actions.            | Until the next click or focus | Zero while the tab is idle                                                                                                     | Low                                             | **FE preference.**                                                    |
-| **B. A + polling**       | A, plus a 60 s interval for the count only while `document.visibilityState === "visible"`; list fetched on open. | Up to 60 s                    | 1 request per open tab per minute (Vercel invocation + Cloud Run call). Tens of users: negligible; keeps the min instance busy | Low-medium (timer cleanup, back-off on error)   | Take it if Levon wants the demo to feel live. One constant to change. |
-| **C. SSE**               | Route handler streams from an API stream endpoint.                                                               | Seconds                       | One held connection per tab; Vercel function duration limits and Cloud Run request timeout force reconnect logic               | High (reconnect, auth expiry mid-stream, tests) | Not for v1 scale. Would need an API stream endpoint too.              |
+- the unread **count** is polled every **60 s only while `document.visibilityState === "visible"`**;
+- the count is also refreshed on **route change** and on **tab focus/visibility**, and after the
+  user's own accept, reject or mark-read;
+- the **list** loads when the bell opens (fresh each time), and "Load more" follows the cursor;
+- **no SSE, no websockets** in v1.
 
-**Preference: A, with B available behind one constant** (`POLL_MS`, 0 = off). Reason: the
-only moment a user needs to see an invite quickly is when someone just told them to look, and
-they are then clicking around, which A already covers. A never wakes the backend for an idle
-tab. B costs one line and a test if the demo needs it. The unread count is a hint, never the
-source of truth: the list is fetched fresh each time the panel opens.
-
-Both A and B need the same API surface (count + list), so this decision does not block the
-rest of the plan. **Levon decides A or B (or C).**
+Q11 shapes it: the browser cannot call the API, so the poll goes to a same-origin Next route
+handler that attaches the token. Cost: one tiny indexed `COUNT(*)` per open visible tab per
+minute, tens of users, well inside the API's default 120/min budget (one tab uses the poll plus
+its navigations). The poll interval is one constant (`POLL_MS = 60_000`). On a failed poll the
+badge keeps its last value, the next tick retries, and after three consecutive failures the
+interval doubles up to 5 min (reset on success or focus). The timer is cleared on unmount and
+on `visibilitychange` to hidden.
 
 ## 4. Project page: team section (tracker 5.6)
 
@@ -89,7 +84,7 @@ Replaces the `TeamList` panel in the right column of `src/app/projects/[id]/page
 
 **Everyone.** Panel "Team": avatar, name (linked to `/profile/<userId>` only when `userId`
 non-null, as today), role. Owner row not repeated (the header already shows the owner).
-External members have a name and role, no link, a neutral initial avatar. Hidden when empty
+External members are accepted rows with `userId` null: name and role, no link, a neutral initial avatar. Hidden when empty
 for non-owners, as today.
 
 **Owner only** (`project.isOwner`; the server component passes the flag, the client island
@@ -98,13 +93,15 @@ renders controls):
 - Panel header action "Add teammate" (44px, primary outlined). Empty team shows the prototype's
   dashed empty-state prompt ("Add the people who built this with you") with the same button.
 - **Rows** carry a status chip: _Pending_ (warning chip, "Waiting for {name} to answer"),
-  _Declined_ (neutral chip), accepted rows have none. Row actions: _Remove_ (icon button with
-  `aria-label` naming the person); declined rows also _Invite again_ (API re-invite by update, D6).
+  _Declined_ (neutral chip, the API's `rejected`), accepted rows have none. Row actions:
+  _Remove_ (icon button with `aria-label` naming the person); declined rows also _Invite
+  again_ (the same invite call; the API turns the row back to pending, D6).
 - **Add dialog** (MUI `Dialog`, `fullScreen` below `sm`): two tabs, `role=tablist`.
   1. _Find a user_: `Autocomplete`-style combobox (`role=combobox`, listbox, `aria-activedescendant`;
-     arrow keys, Enter, Escape). 2+ characters, 300 ms debounce, stale responses dropped by a
+     arrow keys, Enter, Escape). 3+ characters (API minimum), 300 ms debounce, stale responses dropped by a
      request counter. Result row: avatar, name, headline. Optional _Role_ field (API limit).
-     Submit "Send invitation". Already-a-member results disabled with the reason.
+     Submit "Send invitation". The lookup does not mark existing members, so a duplicate
+     comes back as 409 `ALREADY_MEMBER` and is shown in the dialog.
   2. _Add by name_: _Name_ and _Role_, with a hint "They don't have an account, so they won't
      be notified." Submit "Add".
 - **Remove confirm** (dialog, destructive button), naming the person and the project:
@@ -113,17 +110,25 @@ renders controls):
 - **Toasts** (Snackbar, bottom centre, above the phone bar): "Invitation sent to {name}",
   "{name} added", "{name} removed", "Invitation cancelled".
 - **Errors** shown in the dialog, keeping the form (as `SectionEditor`): duplicate, self,
-  limit reached, user no longer found, network, "sign in again". Map by `code`, never message.
+  `TEAM_FULL` (20 rows), `PROJECT_IS_DRAFT` ("Publish the project before inviting people":
+  the Add button is also disabled with that hint when `project.isDraft`), `INVITE_NOT_PENDING`,
+  user no longer found (404), 429 ("Too many searches, wait a moment"), network, "sign in
+  again". Map by `code`, never message.
   Mapping table is untested until each class has come through the real transport (CLAUDE.md),
-  so the real run provokes duplicate, 404 and limit once each.
+  so the real run provokes duplicate, 404, draft and (on local) limit once each.
+- **Leave (teammate).** An accepted teammate sees _Leave project_ on their own row (the server
+  component compares the member's `userId` with `getMe().id`; no other row gets it). A
+  confirm "Leave {project}? {owner} will be told." calls `DELETE /projects/{id}/team/me`; on
+  success redirect to `/projects?flash=left` with the generic message "You left the project" (the redirect carries only the fixed key, so no project name; the confirm dialog before it names the project), because a non-draft private
+  project may no longer be readable.
 - After any success: `router.refresh()` so the server list is the truth.
 - **Non-owner.** No button, no row actions, no dialog code path rendered. The server action
   also re-checks nothing client-side: the API's 404 is the guard, and the Playwright forced-call
   check (§9) proves it.
 
-**Invitee on the project page.** A pending invitee may only see the title (API, Q4), so the
-primary place to answer is the bell. If the API lets the invitee open the project, the team
-panel shows _Accept / Decline_ on their own pending row too (same action, same component).
+**Invitee on the project page.** A pending invitee sees the title and owner name only inside
+their notification, and the notification has no link while pending (API §5.1). The bell is
+the only place to answer; the project page shows no invitee controls.
 
 ## 5. Notifications bell (tracker 5.7)
 
@@ -139,10 +144,12 @@ panel shows _Accept / Decline_ on their own pending row too (same action, same c
   Click or Enter on the item marks it read and follows `link` (checked: starts with `/`, not
   `//`, no scheme; otherwise the item is not a link). A separate _Mark as read_ icon button per
   unread item gives keyboard and screen-reader users the action without navigating.
-- **Invite items** show _Accept_ and _Decline_ inline while actionable. During the call both
+- **Invite items** (`type: team_invite`) show _Accept_ and _Decline_ inline while
+  `invite.status === "pending"` (calls `POST /projects/{params.projectId}/team/me/accept|reject`). During the call both
   disable and show progress. Afterwards the row shows the outcome ("You joined {project}" /
   "You declined") instead of the buttons, goes read, and the badge decrements at once.
-  If the API says the invite is gone or already answered (404 / not pending), the row shows
+  `invite.status` `accepted`/`rejected` shows the outcome; `gone`, a 404, or 409
+  `INVITE_NOT_PENDING` on click shows
   "This invitation is no longer available" and the list reloads.
 - Accept also calls `router.refresh()` so pages already showing "my projects" update.
 - **States:** loading (skeleton rows, `aria-busy`); empty ("You're all caught up", no illustration
@@ -151,7 +158,11 @@ panel shows _Accept / Decline_ on their own pending row too (same action, same c
   hidden, no noise); action error (row-level message, buttons re-enabled); "Load more" for the
   keyset cursor (first page 15).
 - **Optimistic** mark-read with rollback and a row message if the call fails.
-- **Deleted targets** (null title/name): "a project that no longer exists" fallbacks, no link.
+- **Sentences** come from `type` + `params` in the user's language (the API sends no message):
+  `team_invite` "{actorName} invited you to {projectTitle}" (+ role), `team_accepted`
+  "{actorName} joined {projectTitle}", `team_rejected` "{actorName} declined to join
+  {projectTitle}", `team_left` "{actorName} left {projectTitle}". `params` are snapshots, so a
+  deleted project or user still reads correctly; `link: null` means no link, no buttons.
 
 **Placement, every variant** (signed-in only; nothing for visitors):
 
@@ -183,8 +194,8 @@ Nothing in the browser calls gradfolio-api.
 | Need                                                                  | Mechanism                                                                                                                                                                                                                                                                                                                                              |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Writes: invite, external, remove, accept, reject, mark read, mark all | Server actions in `src/lib/team/actions.ts` and `src/lib/notifications/actions.ts`. They take **no user id**; the session token tells the API who writes. Inputs validated before forwarding (id is a UUID, name/role trimmed and length-checked against `limits.ts`).                                                                                 |
-| Reads from client islands: user search, notification list, count      | Route handlers `GET /api/users/search`, `/api/notifications`, `/api/notifications/unread-count`, calling `src/lib/api/client.ts`. `Cache-Control: no-store`. No session: 401 with the `UNAUTHENTICATED` code, no API call. Server actions are not used for reads: they run one at a time per client and would queue behind each other for a typeahead. |
-| Page data: team with status                                           | Server component, `getProject` as today.                                                                                                                                                                                                                                                                                                               |
+| Reads from client islands: user lookup, notification list, count      | Route handlers `GET /api/users/lookup`, `/api/notifications`, `/api/notifications/unread-count`, calling `src/lib/api/client.ts`. `Cache-Control: no-store`. No session: 401 with the `UNAUTHENTICATED` code, no API call. Server actions are not used for reads: they run one at a time per client and would queue behind each other for a typeahead. |
+| Page data: project; owner's team with status                          | Server component: `getProject` as today; **for the owner only** (`isOwner`) also `GET /v1/projects/{id}/team` (a second call; the public `team[]` is accepted-only). A failed team fetch shows an inline error with retry in the panel, never an empty team.                                                                                           |
 | Errors                                                                | `ApiError.code` passes through as `{ ok: false, code }`; messages are the FE's own, from the dictionary.                                                                                                                                                                                                                                               |
 
 Route handlers are same-origin and carry the session cookie; they add no CORS and no token
@@ -213,7 +224,7 @@ Vitest + Testing Library, beside the code. Each guard is proved by removing it.
 - `TeamSection`: owner sees controls; `isOwner=false` renders none (guard: remove the check,
   test fails); pending/declined chips; remove confirm names the person; Cancel is the default
   focus; failed invite keeps the form.
-- Search combobox: debounce, 2-char minimum, a late response for an older query is ignored.
+- Search combobox: debounce, 3-char minimum (no request at 1-2 characters), a late response for an older query is ignored.
 - Bell: badge hidden at 0/unknown, `99+` cap, aria-label plural forms in all three languages,
   panel focus trap and return, Escape, route change closes, list/empty/error/loading states,
   inline accept decrements the count, a second click during the call does nothing, answered
@@ -222,6 +233,11 @@ Vitest + Testing Library, beside the code. Each guard is proved by removing it.
 - Provider: refresh on focus and route change; with `POLL_MS > 0` the timer runs only while
   visible and is cleared on unmount.
 - Route handlers: 401 without session and no API call; `no-store`; code passthrough.
+- Leave: only the viewer's own accepted row shows it; the flash key `left` is added to
+  `FlashToast` (a fixed word, never user text) and to all three languages.
+- Poll: 60 s tick only while visible, paused on hidden, back-off after three failures, and
+  the badge keeps its last value on a failed tick.
+- Draft project: Add is disabled with the hint; a forced 409 `PROJECT_IS_DRAFT` shows its message.
 - `locales.test.ts` extended by the new keys; coverage stays at or above the floor.
 
 ## 9. Playwright verification plan
@@ -231,7 +247,7 @@ Browsers in the sandbox: `export PLAYWRIGHT_BROWSERS_PATH=/Users/levon/Dev/unive
 `playwright.config.ts`; reuse its `setLanguage`/`watchConsole` helpers.
 
 **In CI (no login, existing job).** Signed-out: no bell in any nav variant; `/api/notifications`,
-`/api/notifications/unread-count` and `/api/users/search` answer 401 without redirecting;
+`/api/notifications/unread-count` and `/api/users/lookup` answer 401 without redirecting;
 a public project page shows no team controls; axe and console checks on those pages.
 
 **Local and preview, logged in (not in CI).**
@@ -283,7 +299,8 @@ is the first commit of PRs 2 and 3.
 4. **Two-account journey on the local API** (the `gradfolio-m5` stack, API on 3007; FE dev
    server on 3011): A invites B; B sees the badge, opens the bell, accepts; the project shows on
    both profiles; A invites B again after a decline; A adds an external name; A removes B and
-   the external; B's count and list update; the other party's notifications are unreachable.
+   the external; B accepts a third invite and leaves (A gets the `team_left` notification);
+   an invite on a draft project shows the 409 message; B's count and list update; the other party's notifications are unreachable.
 5. The same journey **once on production** after merge, with Levon's two accounts.
 6. Non-owner sees no team controls; a forced API call still answers 404.
 7. Light and dark, en / ru / am, 390 and 1440.
@@ -292,8 +309,8 @@ is the first commit of PRs 2 and 3.
 
 ## 12. Not decided here / proposed tracker changes
 
-- **Delivery method A / B / C: Levon.** Q4 (leave, private-project view, account deletion) is
-  decided in the API plan and changes §4 only at the margin (invitee view, remove-self).
+- Q4 and the delivery method are decided by the API plan (PR #50), adopted in §2-§3. If that
+  plan changes in review, this one follows.
 - A second test account is needed from Levon before any logged-in run.
 - Propose: mark 4.6-4.10 done (merged #61-#64); add a follow-up for a `/notifications` full
   page if the panel's "load more" proves too small; add a follow-up for a notification link
