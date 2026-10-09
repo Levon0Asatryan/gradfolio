@@ -258,6 +258,18 @@ describe("ProjectForm, create", () => {
     ]);
   });
 
+  it("adding an attachment in the dialog does not submit the project form", async () => {
+    renderInApp(<ProjectForm mode="create" />);
+    type(title(), "EcoRoute");
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    type(within(dialog).getByLabelText("Address (https://)"), "https://a.test");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(act_.create).not.toHaveBeenCalled();
+    expect(nav.push).not.toHaveBeenCalled();
+  });
+
   it("counts a draft attachment as an unsaved change", async () => {
     renderInApp(<ProjectForm mode="create" />);
     const unloads = () => {

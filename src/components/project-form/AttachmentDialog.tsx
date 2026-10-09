@@ -67,6 +67,9 @@ export const AttachmentDialog: FC<AttachmentDialogProps> = ({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    // The dialog is portalled out of the page, but React still bubbles this event to the
+    // project form that contains it: without this, adding an attachment saved the project.
+    event.stopPropagation();
     if (busy) return;
     const checked = parseAttachment(values);
     if (!checked.ok) {
