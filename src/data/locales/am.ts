@@ -282,6 +282,7 @@ export const am: Dictionary = {
       attachmentTitle: "Վերնագիր (ըստ ցանկության)",
       attachmentAdd: "Ավելացնել",
       attachmentSave: "Պահպանել",
+      uploadInProgress: "Ֆայլը դեռ վերբեռնվում է։ Սպասեք ավարտին կամ չեղարկեք վերբեռնումը։",
       attachmentEdit: "Խմբագրել՝ {name}",
       attachmentMoveUp: "Տեղափոխել վերև՝ {name}",
       attachmentMoveDown: "Տեղափոխել ներքև՝ {name}",

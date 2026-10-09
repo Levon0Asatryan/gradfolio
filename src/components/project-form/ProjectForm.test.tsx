@@ -18,6 +18,8 @@ vi.mock("@/lib/projects/actions", () => ({
   updateProjectAction: act_.update,
   deleteProjectAction: act_.del,
 }));
+const put = vi.hoisted(() => ({ putFile: vi.fn() }));
+vi.mock("@/lib/uploads/putFile", () => ({ putFile: put.putFile }));
 vi.mock("@/lib/uploads/actions", () => ({ signUploadAction: act_.sign }));
 vi.mock("@/lib/projects/attachmentActions", () => ({
   addAttachmentAction: vi.fn(),
@@ -317,6 +319,35 @@ describe("ProjectForm, create", () => {
       size: 3,
       purpose: "hero",
       projectId: "p-9",
+    });
+  });
+
+  it("blocks Create while the cover is uploading, then sends the uploaded URL", async () => {
+    act_.create.mockResolvedValue({ ok: true, id: "p-1" });
+    act_.sign.mockResolvedValue({
+      ok: true,
+      uploadUrl: "https://storage.googleapis.com/b/u/1/c.png?sig",
+      headers: {},
+      fileUrl: "https://storage.googleapis.com/b/u/1/c.png",
+    });
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    renderInApp(<ProjectForm mode="create" />);
+    type(title(), "T");
+    fireEvent.change(screen.getAllByTestId("upload-input")[0] as HTMLElement, {
+      target: { files: [new File([new Uint8Array(3)], "c.png", { type: "image/png" })] },
+    });
+    const create = await screen.findByRole("button", { name: "Create project" });
+    await waitFor(() => expect(create).toBeDisabled());
+    expect(screen.getByText(/A file is still uploading/)).toBeVisible();
+    fireEvent.submit(create.closest("form") as HTMLFormElement);
+    expect(act_.create).not.toHaveBeenCalled();
+    await act(async () => finish({ ok: true }));
+    await waitFor(() => expect(create).toBeEnabled());
+    fireEvent.click(create);
+    await waitFor(() => expect(act_.create).toHaveBeenCalled());
+    expect(act_.create.mock.calls[0]?.[0]).toMatchObject({
+      heroImageUrl: "https://storage.googleapis.com/b/u/1/c.png",
     });
   });
 

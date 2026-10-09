@@ -18,6 +18,8 @@ tags:
     description: "Project teams: invitations, answers, the owner’s view"
   - name: notifications
     description: The caller’s own notifications
+  - name: activities
+    description: The caller’s own activity feed
 paths:
   /healthz:
     get:
@@ -1264,7 +1266,7 @@ paths:
       tags:
         - projects
       summary: Get a signed URL to upload an avatar, hero image, image or PDF
-      description: "The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured."
+      description: "The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `projectId` is optional for `hero` and `attachment` (omit it while the project is being created); when given it must be the caller’s (404 otherwise), and an `avatar` with one is 400. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured."
       security:
         - bearerAuth: []
       requestBody:
@@ -1294,7 +1296,7 @@ paths:
                   maximum: 9007199254740991
                   description: Exact size in bytes; signed into the URL.
                 projectId:
-                  description: "Required for `hero` and `attachment`: a project of the caller’s."
+                  description: Optional for `hero` and `attachment` (omit it while the project is being created); when given, a project of the caller’s. Not allowed for `avatar`.
                   type: string
                   maxLength: 36
               required:
@@ -1987,6 +1989,63 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: "NOT_FOUND: no such project, or the caller is not an accepted member"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/activities:
+    get:
+      operationId: listMyActivities
+      tags:
+        - activities
+      summary: The caller’s activity feed, newest first
+      description: "The dashboard feed: project and profile events written in the same transaction as the event. Each item is a `translationKey` and `translationParams`; the frontend renders the text. Only the caller’s own feed exists, so there is no id to ask for. Keyset pagination: pass `nextCursor` back as `cursor`."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most ACTIVITIES_PAGE_MAX (50); 20 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: The `nextCursor` of the previous page. Anything else is 400.
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
           content:
             application/json:
               schema:
@@ -3034,6 +3093,52 @@ components:
       required:
         - code
         - message
+      additionalProperties: false
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - project
+            - profile
+        translationKey:
+          type: string
+          description: What happened, e.g. `projectCreated`, `newSkill`, `teamJoined`. Render the text from your own strings for this key; an unknown key gets a generic line.
+        translationParams:
+          nullable: true
+          description: "Placeholders for the text: `projectName`, `skillName`, `memberName`, and `projectId` for a link. Only what the feed’s owner may see."
+          type: object
+          additionalProperties:
+            anyOf:
+              - type: string
+              - type: number
+        timestamp:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - id
+        - type
+        - translationKey
+        - translationParams
+        - timestamp
+      additionalProperties: false
+    ActivityPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+      required:
+        - items
+        - nextCursor
       additionalProperties: false
     AddExternalMemberRequest:
       type: object

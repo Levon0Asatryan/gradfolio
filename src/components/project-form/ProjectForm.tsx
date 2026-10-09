@@ -98,6 +98,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
   const descLabelId = useId();
   const descErrorId = useId();
@@ -120,7 +121,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || coverUploading) return;
     setFailure(null);
     const checked = parseProjectForm(values);
     if (!checked.ok) {
@@ -380,6 +381,7 @@ export const ProjectForm: FC<ProjectFormProps> = ({
                   })
                 }
                 onUploaded={(fileUrl) => set("heroImageUrl", fileUrl)}
+                onBusyChange={setCoverUploading}
               />
               <Typography variant="subtitle2" component="h3">
                 {text.links}
@@ -517,9 +519,14 @@ export const ProjectForm: FC<ProjectFormProps> = ({
               zIndex: 2,
             })}
           >
-            <Button type="submit" variant="contained" disabled={saving}>
+            <Button type="submit" variant="contained" disabled={saving || coverUploading}>
               {saving ? text.saving : mode === "create" ? text.create : text.save}
             </Button>
+            {coverUploading && (
+              <Typography variant="caption" role="status" sx={{ alignSelf: "center" }}>
+                {t.projects.upload.uploadInProgress}
+              </Typography>
+            )}
             <Button
               type="button"
               disabled={saving}

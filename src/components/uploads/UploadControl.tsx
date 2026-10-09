@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useId, useRef, useState } from "react";
+import { FC, useEffect, useId, useRef, useState } from "react";
 import { Alert, Box, Button, LinearProgress, Stack, Typography } from "@mui/material";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -20,6 +20,11 @@ export interface UploadControlProps {
   sign: (request: { contentType: string; size: number }) => Promise<SignResult>;
   /** The file is in the bucket: `fileUrl` goes into the form field, and the normal write registers it. */
   onUploaded: (fileUrl: string, file: { name: string; type: string }) => void;
+  /**
+   * True from the pick until the PUT ends (done, failed or cancelled). The form blocks its own
+   * save meanwhile: a save sent now would carry the old value and the upload would land on nothing.
+   */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 type State =
@@ -34,7 +39,7 @@ type State =
  * the URL field usable. Checks the type and size first so the common failures never leave
  * the browser (the signature enforces them anyway).
  */
-export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }) => {
+export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded, onBusyChange }) => {
   const { t } = useLanguage();
   const text = t.projects.upload;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +90,7 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }
       signal: controller.signal,
       onProgress: (progress) => setState({ name: "uploading", file, progress }),
     });
+    if (result.ok && controller.signal.aborted) return; // left meanwhile: nothing to hand over
     if (result.ok) {
       setState({ name: "done", file });
       onUploaded(signed.fileUrl, { name: file.name, type: file.type });
@@ -106,6 +112,15 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded }
   };
 
   const busy = state.name === "uploading";
+  // Leaving (the type changed, the dialog closed): stop the PUT and drop its late result.
+  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => {
+    onBusyChange?.(busy);
+    // Leaving mid-upload (the dialog closes, the type changes) releases the form.
+    return () => {
+      if (busy) onBusyChange?.(false);
+    };
+  }, [busy, onBusyChange]);
   const picked =
     state.name === "uploading" || state.name === "done" || state.name === "failed" ? state : null;
   const fileName = picked && picked.file ? picked.file.name : "";

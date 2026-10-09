@@ -270,6 +270,7 @@ export interface Dictionary {
       attachmentTitle: string;
       attachmentAdd: string;
       attachmentSave: string;
+      uploadInProgress: string;
       attachmentEdit: string;
       attachmentMoveUp: string;
       attachmentMoveDown: string;

@@ -282,6 +282,7 @@ export const en: Dictionary = {
       attachmentTitle: "Title (optional)",
       attachmentAdd: "Add",
       attachmentSave: "Save",
+      uploadInProgress: "A file is still uploading. Wait for it to finish, or cancel the upload.",
       attachmentEdit: "Edit {name}",
       attachmentMoveUp: "Move {name} up",
       attachmentMoveDown: "Move {name} down",

@@ -66,6 +66,7 @@ export const ProfileHeaderForm: FC<{
   const [errors, setErrors] = useState<Partial<Record<string, FieldError>>>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const dirty = JSON.stringify(values) !== JSON.stringify(start);
   useUnsavedGuard(dirty, text.leavePrompt);
@@ -82,7 +83,7 @@ export const ProfileHeaderForm: FC<{
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || uploading) return;
     setFailure(null);
     const checked = parseHeaderPatch(values);
     if (!checked.ok) {
@@ -155,6 +156,7 @@ export const ProfileHeaderForm: FC<{
           kind="image"
           sign={(req) => signUploadAction({ ...req, purpose: "avatar" })}
           onUploaded={(fileUrl) => set("avatarUrl")(fileUrl)}
+          onBusyChange={setUploading}
         />
         {LINK_KEYS.map((key) => (
           <TextField
@@ -177,7 +179,7 @@ export const ProfileHeaderForm: FC<{
           </Typography>
         )}
         <Stack direction="row" spacing={1}>
-          <Button type="submit" variant="contained" disabled={saving}>
+          <Button type="submit" variant="contained" disabled={saving || uploading}>
             {saving ? text.saving : text.save}
           </Button>
           <Button type="button" onClick={onCancel} disabled={saving}>

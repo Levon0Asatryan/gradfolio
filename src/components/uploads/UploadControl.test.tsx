@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { UploadControl, type SignResult } from "./UploadControl";
@@ -55,6 +55,46 @@ describe("UploadControl", () => {
       type: "image/png",
     });
     expect(screen.getByRole("status")).toHaveTextContent("Uploaded pic.png");
+  });
+
+  it("reports busy from the pick until the PUT ends, and releases on failure and on unmount", async () => {
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    const onBusyChange = vi.fn();
+    const { unmount } = renderInApp(
+      <UploadControl
+        kind="image"
+        sign={vi.fn().mockResolvedValue(SIGNED)}
+        onUploaded={vi.fn()}
+        onBusyChange={onBusyChange}
+      />,
+    );
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    choose(png());
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(true));
+    await act(async () => finish({ ok: false, reason: "rejected", status: 403 }));
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    put.putFile.mockImplementation(() => new Promise(() => {}));
+    choose(png());
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(true));
+    unmount();
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("aborts the PUT and ignores its late result when the control unmounts mid-upload", async () => {
+    let signal: AbortSignal | undefined;
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation((o: { signal: AbortSignal }) => {
+      signal = o.signal;
+      return new Promise((resolve) => (finish = resolve));
+    });
+    const { onUploaded } = show();
+    choose(png());
+    await waitFor(() => expect(put.putFile).toHaveBeenCalled());
+    cleanup();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => finish({ ok: true })); // even a PUT that finished in the same tick
+    expect(onUploaded).not.toHaveBeenCalled();
   });
 
   it("shows determinate progress with a name, and Cancel stops the upload", async () => {
