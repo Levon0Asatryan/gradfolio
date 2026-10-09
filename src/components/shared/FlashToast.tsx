@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Alert, Snackbar } from "@mui/material";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
-const KEYS = { created: "created", saved: "saved", deleted: "deleted" } as const;
+const KEYS = { created: "created", saved: "saved", deleted: "deleted", left: "left" } as const;
 
 /**
  * A one-time confirmation after a redirect: `?flash=created|saved|deleted`. The
@@ -42,7 +42,7 @@ export const FlashToast: FC = () => {
         onClose={() => setShown(null)}
         closeText={t.projects.form.closeToast}
       >
-        {shown ? t.projects.form[shown] : ""}
+        {shown === "left" ? t.team.left : shown ? t.projects.form[shown] : ""}
       </Alert>
     </Snackbar>
   );
