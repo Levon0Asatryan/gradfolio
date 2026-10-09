@@ -56,6 +56,8 @@ const seriousAxe = async (page: Page) =>
     .filter((v) => v.impact === "serious" || v.impact === "critical")
     .map((v) => `${v.id} (${v.nodes.length})`);
 
+const CANCEL = { en: "Cancel", ru: "Отмена", am: "Չեղարկել" } as const;
+
 test.describe("owner (account A)", () => {
   test.skip(!stateA || !projectId, "set E2E_STORAGE_STATE_A and E2E_PROJECT_ID");
   test.use({ storageState: stateA });
@@ -63,7 +65,7 @@ test.describe("owner (account A)", () => {
   for (const language of LANGUAGES)
     for (const theme of THEMES)
       for (const size of SIZES) {
-        test(`${language} ${theme} ${size.name}: team, add dialog, and the remove confirm when a row exists`, async ({
+        test(`${language} ${theme} ${size.name}: team, add dialog, and the remove confirm`, async ({
           page,
         }, testInfo) => {
           await page.context().addCookies([
@@ -97,23 +99,29 @@ test.describe("owner (account A)", () => {
           expect(await seriousAxe(page)).toEqual([]);
           await page.keyboard.press("Escape");
           await expect(dialog).toBeHidden();
-          // The remove (or cancel-invitation) confirmation, when the project has a team row.
+          // The remove (or cancel-invitation) confirmation. The project must have a team row:
+          // an empty team would silently skip this step, so it fails loudly instead.
           const removers = page.getByRole("button", {
-            name: /^(Remove|Cancel the invitation|Убрать|Отозвать|Հեռացնել|Չեղարկել)/,
+            name: /^(Remove|Cancel the invitation|Убрать|Отозвать|Հեռացնել|Չեղարկել հրավերը)/,
           });
-          if ((await removers.count()) > 0) {
-            await removers.first().click();
-            const confirm = page.getByRole("dialog");
-            await expect(confirm).toBeVisible();
-            await expect(confirm.getByRole("button").first()).toBeFocused(); // Cancel has the focus
-            await testInfo.attach("confirm", {
-              body: await page.screenshot(),
-              contentType: "image/png",
-            });
-            expect(await seriousAxe(page)).toEqual([]);
-            await page.keyboard.press("Escape");
-            await expect(confirm).toBeHidden();
-          }
+          expect(
+            await removers.count(),
+            "E2E_PROJECT_ID needs at least one team row (invite or add a name first)",
+          ).toBeGreaterThan(0);
+          await removers.first().click();
+          const confirm = page.getByRole("dialog");
+          await expect(confirm).toBeVisible();
+          // Cancel itself has the focus, so Enter cannot remove by accident.
+          await expect(
+            confirm.getByRole("button", { name: CANCEL[language], exact: true }),
+          ).toBeFocused();
+          await testInfo.attach("confirm", {
+            body: await page.screenshot(),
+            contentType: "image/png",
+          });
+          expect(await seriousAxe(page)).toEqual([]);
+          await page.keyboard.press("Escape");
+          await expect(confirm).toBeHidden();
           expect(found).toEqual([]);
         });
       }
