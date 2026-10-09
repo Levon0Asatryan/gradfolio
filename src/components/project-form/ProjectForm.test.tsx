@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { projectDetail } from "@/testing/fixtures";
-import { toFormValues } from "@/lib/projects/form";
+import { EMPTY_PROJECT, toFormValues } from "@/lib/projects/form";
 import { ProjectForm } from "./ProjectForm";
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
@@ -150,7 +150,14 @@ describe("ProjectForm, create", () => {
     type(screen.getByLabelText("Address 1"), "https://docs.test");
     fireEvent.click(screen.getByRole("button", { name: "Remove link 1" }));
     expect(screen.queryByLabelText("Label 1")).toBeNull();
-    for (let i = 0; i < 10; i++) add();
+  });
+
+  it("disables Add link at ten links", () => {
+    const initial = {
+      ...EMPTY_PROJECT,
+      links: Array.from({ length: 10 }, (_, i) => ({ label: `l${i}`, url: "https://x.test" })),
+    };
+    renderInApp(<ProjectForm mode="create" initial={initial} />);
     expect(screen.getByRole("button", { name: "Add link" })).toBeDisabled();
   });
 
@@ -171,13 +178,13 @@ describe("ProjectForm, create", () => {
   });
 
   it("says how many items are allowed when there are too many, not how long one may be", async () => {
-    renderInApp(<ProjectForm mode="create" />);
-    type(title(), "EcoRoute");
-    const box = screen.getByRole("combobox", { name: "Technologies" });
-    for (let i = 0; i < 31; i++) {
-      type(box, `tech${i}`);
-      fireEvent.keyDown(box, { key: "Enter" });
-    }
+    // Seeded, not typed: 31 typed chips make this test slow on a CI runner and prove nothing more.
+    const initial = {
+      ...EMPTY_PROJECT,
+      title: "EcoRoute",
+      technologies: Array.from({ length: 31 }, (_, i) => `tech${i}`),
+    };
+    renderInApp(<ProjectForm mode="create" initial={initial} />);
     save("Create project");
     expect((await screen.findAllByText("At most 30 items.")).length).toBeGreaterThan(0);
     expect(screen.queryByText(/255/)).toBeNull();
