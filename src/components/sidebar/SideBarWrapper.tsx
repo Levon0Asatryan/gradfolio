@@ -6,6 +6,7 @@ import { AppNavigation, type NavUser } from "@/components/navigation/AppNavigati
 import { PHONE_BAR_HEIGHT, PhoneNavigation } from "@/components/navigation/PhoneNavigation";
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
 import type { NavMode } from "@/components/navigation/navMode";
+import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 import { MAIN_ID } from "@/components/layout/SkipLink";
 
 interface SideBarWrapperProps {
@@ -24,7 +25,7 @@ interface SideBarWrapperProps {
 export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null, initialNav }) => {
   const { hidden } = useSidebarVisibility();
 
-  return (
+  const frame = (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {!hidden && <AppNavigation user={user} initialMode={initialNav} />}
       <Box
@@ -45,4 +46,7 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null,
       {!hidden && <PhoneNavigation user={user} />}
     </Box>
   );
+
+  // The bell's data exists for a signed-in user only; a visitor makes no request.
+  return user ? <NotificationsProvider>{frame}</NotificationsProvider> : frame;
 };

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { SidebarVisibilityProvider } from "@/components/layout/SidebarVisibilityContext";
@@ -13,6 +13,11 @@ vi.stubGlobal(
     disconnect() {}
   },
 );
+vi.mock("@/lib/notifications/actions", () => ({
+  markNotificationReadAction: vi.fn(),
+  markAllNotificationsReadAction: vi.fn(),
+  respondToInviteAction: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ usePathname: () => "/search", useRouter: () => ({}) }));
 
 describe("SideBarWrapper", () => {
@@ -121,5 +126,34 @@ describe("stored sidebar choice", () => {
       "aria-expanded",
       "false",
     );
+  });
+});
+
+describe("notifications data", () => {
+  it("is read for a signed-in user and never for a visitor", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ count: 1 }), { status: 200 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const frame = (user: { name: string } | null) => (
+      <ThemeWrapper>
+        <LanguageProvider>
+          <SidebarVisibilityProvider>
+            <SideBarWrapper user={user}>
+              <h1>Page</h1>
+            </SideBarWrapper>
+          </SidebarVisibilityProvider>
+        </LanguageProvider>
+      </ThemeWrapper>
+    );
+    const visitor = render(frame(null));
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalled();
+    visitor.unmount();
+    render(frame({ name: "Ani" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/notifications/unread-count", expect.anything()),
+    );
+    vi.unstubAllGlobals();
   });
 });

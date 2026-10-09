@@ -1,6 +1,6 @@
 "use client";
 
-import { type FC, useEffect, useMemo, useState } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Drawer from "@mui/material/Drawer";
@@ -11,6 +11,13 @@ import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { NavUser } from "./AppNavigation";
+import Badge from "@mui/material/Badge";
+import {
+  BellIcon,
+  NotificationsSheet,
+  useBellLabel,
+} from "@/components/notifications/NotificationsBell";
+import { useNotifications } from "@/components/notifications/NotificationsProvider";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
 
@@ -38,6 +45,10 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
   const { t } = useLanguage();
   const pathname = usePathname();
   const [more, setMore] = useState(false);
+  const [bell, setBell] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
+  const { count } = useNotifications();
+  const bellLabel = useBellLabel();
   const items = useMemo(() => navItems(t, user !== null), [t, user]);
   const active = activeHref(pathname, items);
   const primary = items.filter((i) => i.primary);
@@ -45,7 +56,10 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
   const moreActive = rest.some((i) => isActive(i.href, active));
 
   // Navigating closes the sheet.
-  useEffect(() => setMore(false), [pathname]);
+  useEffect(() => {
+    setMore(false);
+    setBell(false);
+  }, [pathname]);
 
   const labelSx = {
     fontSize: "0.6875rem",
@@ -110,9 +124,11 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
           );
         })}
         <ButtonBase
+          ref={moreButton}
           onClick={() => setMore(true)}
           aria-haspopup="dialog"
           aria-expanded={more}
+          aria-label={user && count ? `${t.common.more}, ${bellLabel}` : undefined}
           sx={{
             flexDirection: "column",
             gap: 0.375,
@@ -126,7 +142,15 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
           }}
         >
           <Box component="span" sx={pill(moreActive)}>
-            <MoreHorizOutlined />
+            <Badge
+              color="error"
+              variant="dot"
+              invisible={!user || !count}
+              overlap="circular"
+              slotProps={{ badge: { "data-testid": "more-dot" } as object }}
+            >
+              <MoreHorizOutlined />
+            </Badge>
           </Box>
           <Box component="span" sx={labelSx}>
             {t.common.more}
@@ -159,6 +183,32 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
         >
           {t.common.more}
         </Typography>
+        {user && (
+          <ButtonBase
+            onClick={() => {
+              setMore(false);
+              setBell(true);
+            }}
+            aria-label={bellLabel}
+            aria-haspopup="dialog"
+            data-testid="bell-button-phone"
+            sx={(theme) => ({
+              display: "flex",
+              width: "100%",
+              justifyContent: "flex-start",
+              gap: 1.5,
+              minHeight: 52,
+              px: 1.75,
+              borderRadius: "14px",
+              fontWeight: 700,
+              color: theme.palette.text.primary,
+              "& svg": { fontSize: 22 },
+            })}
+          >
+            <BellIcon />
+            <span>{t.notifications.title}</span>
+          </ButtonBase>
+        )}
         {rest.map((item) => {
           const current = isActive(item.href, active);
           return (
@@ -206,6 +256,16 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
           </NavLink>
         )}
       </Drawer>
+      {user && (
+        <NotificationsSheet
+          open={bell}
+          onClose={() => {
+            setBell(false);
+            // The row that opened the sheet is gone with the More sheet: focus goes to More.
+            moreButton.current?.focus();
+          }}
+        />
+      )}
     </>
   );
 };
