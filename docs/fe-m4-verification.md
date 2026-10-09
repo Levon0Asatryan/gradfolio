@@ -75,7 +75,7 @@ changed; the layers are deliberate (the API sanitizes on write with a different 
 ## 4. Production round trip (logged in, deployed site)
 
 **PENDING. Not run.** Levon deferred the logged-in runs; a small follow-up PR fills this
-section and section 5.
+section and section 5b.
 
 What: on `https://gradfolio-navy.vercel.app` as the test account, create a project with
 every field and a link attachment, upload a cover and an image attachment on the new-project
@@ -105,25 +105,62 @@ earlier manual run of the deployed site (section 6).
 
 ## 5. Pages and looks
 
-**PENDING. Not run**, for the same reason as section 4 (list, new, edit and both dialogs
-need a login). It runs inside `roundtrip.mjs` step 7: list, detail, new, edit, the delete
-dialog and the add-attachment dialog, in en / ru / am, light / dark, 390 / 1440 px (72
-views). Each gets a screenshot and is judged on: no horizontal overflow, axe 0
-serious/critical, `<html lang>` right, layout shift under 0.1 (list, detail), and no
-console error or warning over the whole run. Also the keyboard check on the delete dialog.
+### 5a. Anonymous, on production (run 2026-10-10, no login, no session, no token; the only cookies are the app's own `language` and `theme` preference cookies, set by the script for the ru/am and dark views)
 
-Already covered without a login: `/search`, `/settings` (light and dark) and the 404
-page in en / ru / am for axe and console (section 1).
+`https://gradfolio-navy.vercel.app` as a visitor, headless Chromium 156 (Playwright 1.64,
+axe-core 4.13). Pages: the 404 (`/no-such-page`), `/settings`, `/search`, and the not-found
+state of a project and of a profile with an unknown id (no public project or profile with a
+known id exists to open anonymously). Each page in en / ru / am, light / dark, 390 / 1440 px:
+60 views, a full-page screenshot of each (kept locally, not committed).
+
+| Check                                                               | Result                                                                                                     |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| One h1, `<html lang>` right (hy for am)                             | 60 of 60                                                                                                   |
+| Horizontal overflow                                                 | none                                                                                                       |
+| axe serious or critical                                             | 0 in 60 views                                                                                              |
+| Any 5xx response, uncaught page error                               | none                                                                                                       |
+| Console error (excluding the item below)                            | none                                                                                                       |
+| Console error from the prefetch of a protected link                 | **59 of 60 views**: finding F3                                                                             |
+| Layout shift under 0.1                                              | 42 of 60. **18 fail at 1440 on the three not-found pages (0.172)**: F4                                     |
+| Protected pages without a session, raw request                      | `/projects`, `/projects/new`, `/account`, `/`, `/projects/<id>/edit`: 307 to `/auth/login?returnTo=<path>` |
+| Keyboard: 15 Tab stops on `/settings` and `/search`, light and dark | every stop has a visible `:focus-visible` indicator (0 of 60 stops without)                                |
+
+The local production build on current main: build passes and `npm run e2e` passes (20
+specs; section 1 listed 14 at the earlier gate).
+
+### 5b. Logged in: PENDING, not run
+
+The list, detail, new, edit, delete dialog and add-attachment dialog need a login, which
+only Levon can do by hand (no credential is typed or stored by a script). Exact steps
+(`manual-testing.md` T3):
+
+```sh
+cd <scratchpad>/m4run
+export PLAYWRIGHT_BROWSERS_PATH=/Users/levon/Dev/university/.sandbox/ms-playwright
+node login.mjs       # Levon: headed Chromium, log in as the test account by hand, wait for it to close
+node roundtrip.mjs   # agent: headless; step 7 is the look matrix below; writes out/result.json
+rm state.json
+```
+
+Step 7 of `roundtrip.mjs`: list, detail, new, edit, delete dialog, add-attachment dialog in
+en / ru / am, light / dark, 390 / 1440 px (72 views). Each is judged on: screenshot, no
+overflow, axe 0 serious or critical, `<html lang>`, layout shift under 0.1 on list and
+detail, no console error over the whole run. Plus the keyboard check on the delete dialog
+(Tab stays inside; focus returns to its button on Escape). Everything created is named
+`E2E-M4-<timestamp>` and deleted; the bucket prefix `u/<userId>/` is then checked empty
+with the sandboxed gcloud. If Levon skips it, this stays "not run by decision".
 
 ## 6. Findings
 
-Both were found by running the real thing, not by the unit tests or CI at the time.
+The first two were found by running the real thing, not by the unit tests or CI at the time; F3 and F4 by the anonymous run on 2026-10-10. Also found by use and fixed: every upload was refused because the host check only matched the virtual-host URL style and the signer returns the path style (#70), and Create or Save could fire while an upload was still running (#73 review, fixed in #74).
 
-| Finding                                                                                                                                                                                                   | Severity       | Fixed                                                                         |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------- |
-| Every project page answered 500 in production. `isomorphic-dompurify` pulled jsdom 30, which needs `require(esm)`; Vercel's Node runtime does not provide it. Local dev and CI ran a Node where it works. | P1             | #64 (jsdom 26 pinned; `sanitize.load.test.ts`)                                |
-| Clicking Add in the attachment dialog submitted the project form: the dialog is a portal, but React bubbles its submit event through the portal to the form around it.                                    | P2             | #64 (`AttachmentDialog.tsx` stops the bubble; test in `ProjectForm.test.tsx`) |
-| `ProjectForm` "warns before the tab closes" test was flaky on CI: it asserted before React released the listener.                                                                                         | P3 (test only) | #65                                                                           |
+| Finding                                                                                                                                                                                                                                                                                                                                                 | Severity       | Fixed                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------ |
+| Every project page answered 500 in production. `isomorphic-dompurify` pulled jsdom 30, which needs `require(esm)`; Vercel's Node runtime does not provide it. Local dev and CI ran a Node where it works.                                                                                                                                               | P1             | #64 (jsdom 26 pinned; `sanitize.load.test.ts`)                                 |
+| Clicking Add in the attachment dialog submitted the project form: the dialog is a portal, but React bubbles its submit event through the portal to the form around it.                                                                                                                                                                                  | P2             | #64 (`AttachmentDialog.tsx` stops the bubble; test in `ProjectForm.test.tsx`)  |
+| `ProjectForm` "warns before the tab closes" test was flaky on CI: it asserted before React released the listener.                                                                                                                                                                                                                                       | P3 (test only) | #65                                                                            |
+| F3. Public pages log a CORS error (59 of 60 views) to the console for an anonymous visitor. The sidebar's `<Link>` to a protected page (`/`, `/projects`) is prefetched, the proxy redirects it to Auth0, and the browser blocks the cross-origin redirect. Nothing visible breaks. The smoke suite hides it (`ALLOWED_FAILURES` allows `/auth/login`). | P3             | open: follow-up (`prefetch={false}` on links to protected pages for a visitor) |
+| F4. On the not-found pages at 1440 px the sidebar is drawn on the server and hidden after hydration, so the content jumps left by the sidebar width: layout shift 0.172 (limit 0.1). Seen on the 404, an unknown project and an unknown profile.                                                                                                        | P3             | open: follow-up (render not-found without the sidebar from the first paint)    |
 
 Why CI missed the first: no check loaded a project page on a runtime without `require(esm)`.
 #65 adds one (the e2e server runs with `--no-experimental-require-module` and loads a
@@ -138,7 +175,7 @@ project page).
 - Empty, loading and error states of the live API cannot be forced on demand.
 - Reduced-motion and forced-colors modes.
 - `STORAGE_UNAVAILABLE` against production (the bucket is configured).
-- Sections 4 and 5: the whole logged-in production run, the look matrix (screenshots at 390/1440, light/dark, en/ru/am), layout shift and the console on the project pages.
+- Section 4 and 5b: the whole logged-in production run, and the look matrix for the logged-in pages (screenshots at 390/1440, light/dark, en/ru/am), layout shift and the console on the project pages.
 - Keyboard walk (part of that run) covers the delete dialog only; the form's full tab order and the
   add-attachment dialog's focus return were not walked in a browser (unit tests only).
 - Screenshots are kept locally in the run output; they are not committed.
