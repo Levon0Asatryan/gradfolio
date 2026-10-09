@@ -90,6 +90,7 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded, 
       signal: controller.signal,
       onProgress: (progress) => setState({ name: "uploading", file, progress }),
     });
+    if (result.ok && controller.signal.aborted) return; // left meanwhile: nothing to hand over
     if (result.ok) {
       setState({ name: "done", file });
       onUploaded(signed.fileUrl, { name: file.name, type: file.type });
@@ -111,6 +112,8 @@ export const UploadControl: FC<UploadControlProps> = ({ kind, sign, onUploaded, 
   };
 
   const busy = state.name === "uploading";
+  // Leaving (the type changed, the dialog closed): stop the PUT and drop its late result.
+  useEffect(() => () => abortRef.current?.abort(), []);
   useEffect(() => {
     onBusyChange?.(busy);
     // Leaving mid-upload (the dialog closes, the type changes) releases the form.

@@ -287,6 +287,36 @@ describe("AttachmentsEditor, draft (a new project)", () => {
     );
   });
 
+  it("switching the type mid-upload cancels the upload, so its URL never lands in the new type", async () => {
+    act_.sign.mockResolvedValue({
+      ok: true,
+      uploadUrl: "https://storage.googleapis.com/b/u/1/a.png?sig",
+      headers: {},
+      fileUrl: "https://storage.googleapis.com/b/u/1/a.png",
+    });
+    let signal: AbortSignal | undefined;
+    let finish: (v: unknown) => void = () => {};
+    put.putFile.mockImplementation((o: { signal: AbortSignal }) => {
+      signal = o.signal;
+      return new Promise((resolve) => (finish = resolve));
+    });
+    renderInApp(<AttachmentsEditor draft={[]} onDraftChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Image" }));
+    fireEvent.change(within(dialog).getByTestId("upload-input"), {
+      target: { files: [new File([new Uint8Array(3)], "a.png", { type: "image/png" })] },
+    });
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Add" })).toBeDisabled());
+    fireEvent.mouseDown(within(dialog).getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Link" }));
+    expect(signal?.aborted).toBe(true);
+    expect(within(dialog).getByRole("button", { name: "Add" })).toBeEnabled();
+    await act(async () => finish({ ok: true }));
+    expect(within(dialog).getByLabelText("Address (https://)")).toHaveValue("");
+  });
+
   it("offers the upload for an image or a PDF before the project exists, signed without a project id", async () => {
     act_.sign.mockResolvedValue({ ok: false, code: "STORAGE_UNAVAILABLE" });
     renderInApp(<AttachmentsEditor draft={[]} onDraftChange={vi.fn()} />);
