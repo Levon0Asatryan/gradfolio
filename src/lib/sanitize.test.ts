@@ -104,6 +104,19 @@ describe("sanitizeDescription", () => {
     );
   });
 
+  it.each([
+    ['<p class="MuiBackdrop-root">x</p>', "<p>x</p>"],
+    ['<a class="MuiBackdrop-root" href="https://e.test/">x</a>', null],
+    [
+      '<pre class="language-ts"><code class="language-ts">x</code></pre>',
+      '<pre><code class="language-ts">x</code></pre>',
+    ],
+  ])("keeps class on code[language-*] only: %s", (input, expected) => {
+    const out = sanitizeDescription(input);
+    if (expected !== null) expect(out).toBe(expected);
+    else expect(out).not.toContain("class");
+  });
+
   it("drops a class that is not a language class", () => {
     expect(sanitizeDescription('<code class="language-ts bad">x</code>')).toBe("<code>x</code>");
   });

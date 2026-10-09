@@ -56,8 +56,11 @@ function install(): void {
         node.removeAttribute("target");
       }
     }
-    if (node.tagName === "CODE" && node.hasAttribute("class")) {
-      if (!CODE_CLASS.test(node.getAttribute("class") ?? "")) node.removeAttribute("class");
+    // `class` is allowed on `code` only, and only as `language-*` (the API's rule): a class
+    // elsewhere could borrow the app's own styles (a full-screen backdrop, say).
+    if (node.hasAttribute("class")) {
+      const ok = node.tagName === "CODE" && CODE_CLASS.test(node.getAttribute("class") ?? "");
+      if (!ok) node.removeAttribute("class");
     }
   });
 }

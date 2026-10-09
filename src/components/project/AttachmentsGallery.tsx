@@ -18,7 +18,7 @@ import { Panel } from "@/components/layout/Panel";
 import CloseIcon from "@mui/icons-material/Close";
 import Image from "next/image";
 import type { ProjectAttachment } from "@/lib/api/types";
-import { safeHttpUrl, safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
+import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 
 export interface AttachmentsGalleryProps {
   items?: ProjectAttachment[];
@@ -101,7 +101,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                 <Card variant="outlined" sx={{ width: "100%" }}>
                   <CardActionArea
                     component="a"
-                    href={safeHttpUrl(att.url)}
+                    href={safeHttpsUrl(att.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={att.title || t.common.openVideo}
@@ -131,7 +131,7 @@ const AttachmentsGallery: FC<AttachmentsGalleryProps> = ({ items = [] }) => {
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       {att.title || att.url}
                     </Typography>
-                    <Link href={safeHttpUrl(att.url)} target="_blank" rel="noopener noreferrer">
+                    <Link href={safeHttpsUrl(att.url)} target="_blank" rel="noopener noreferrer">
                       {att.type === "pdf" ? t.common.openPDF : t.common.link}
                     </Link>
                   </CardContent>

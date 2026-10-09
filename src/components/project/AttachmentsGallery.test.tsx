@@ -38,6 +38,16 @@ describe("AttachmentsGallery", () => {
     );
   });
 
+  it.each([
+    ["video", "http://youtu.be/dQw4w9WgXcQ"],
+    ["pdf", "http://x.test/r.pdf"],
+    ["link", "http://x.test/page"],
+  ] as const)("renders no link for an http %s attachment", (type, url) => {
+    renderInApp(<AttachmentsGallery items={[att({ type, url, embedUrl: null })]} />);
+    expect(document.querySelector('a[href^="http:"]')).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   it("does not offer a javascript: video link", () => {
     renderInApp(
       <AttachmentsGallery items={[att({ url: "javascript:alert(1)", embedUrl: null })]} />,
