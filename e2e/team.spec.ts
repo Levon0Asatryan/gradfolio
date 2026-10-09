@@ -39,12 +39,22 @@ const stateA = process.env.E2E_STORAGE_STATE_A;
 const stateB = process.env.E2E_STORAGE_STATE_B;
 const projectId = process.env.E2E_PROJECT_ID;
 
+/** Waits for CSS transitions (MUI fades dialogs in): axe and screenshots of a half-faded dialog lie. */
+const settled = (page: Page) =>
+  page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
+  );
+
+/** Next's dev-only hint about the brand logo; the production build never prints it. */
+const DEV_ONLY = /was detected as the Largest Contentful Paint/;
+
 const consoleProblems = (page: Page): string[] => {
   const found: string[] = [];
   page.on("console", (m) => {
     if (
       (m.type() === "error" || m.type() === "warning") &&
-      !m.text().startsWith("Failed to load resource")
+      !m.text().startsWith("Failed to load resource") &&
+      !DEV_ONLY.test(m.text())
     )
       found.push(m.text());
   });
@@ -86,12 +96,14 @@ test.describe("owner (account A)", () => {
             .click();
           const dialog = page.getByRole("dialog");
           await expect(dialog).toBeVisible();
+          await settled(page);
           await testInfo.attach("add-find", {
             body: await page.screenshot(),
             contentType: "image/png",
           });
           expect(await seriousAxe(page)).toEqual([]);
           await dialog.getByRole("tab").nth(1).click();
+          await settled(page);
           await testInfo.attach("add-external", {
             body: await page.screenshot(),
             contentType: "image/png",
@@ -111,6 +123,7 @@ test.describe("owner (account A)", () => {
           await removers.first().click();
           const confirm = page.getByRole("dialog");
           await expect(confirm).toBeVisible();
+          await settled(page);
           // Cancel itself has the focus, so Enter cannot remove by accident.
           await expect(
             confirm.getByRole("button", { name: CANCEL[language], exact: true }),
