@@ -34,6 +34,12 @@ const {
   markNotificationRead,
   markAllNotificationsRead,
   respondToInvitation,
+  listProjectTeam,
+  inviteTeamMember,
+  addExternalTeamMember,
+  removeTeamMember,
+  leaveProjectTeam,
+  lookupUsers,
 } = await import("./client");
 
 const ME = {
@@ -499,5 +505,52 @@ describe("notifications", () => {
       code: "NOT_FOUND",
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("team", () => {
+  const PID = "0b6f2c1e-1111-4222-8333-444455556601";
+  const MID = "0b6f2c1e-1111-4222-8333-444455556602";
+
+  it("calls the team endpoints with the right method and path", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(200, { items: [{ id: MID }] }))
+      .mockResolvedValueOnce(json(201, { id: MID }))
+      .mockResolvedValueOnce(json(201, { id: MID }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(json(200, { items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(listProjectTeam(PID)).resolves.toEqual([{ id: MID }]);
+    await inviteTeamMember(PID, { userId: MID, role: null });
+    await addExternalTeamMember(PID, { name: "Ani" });
+    await removeTeamMember(PID, MID);
+    await leaveProjectTeam(PID);
+    await lookupUsers("Ан и");
+    const calls = fetchMock.mock.calls.map(
+      (c) => `${(c[1] as RequestInit).method} ${(c[0] as URL).pathname}${(c[0] as URL).search}`,
+    );
+    expect(calls).toEqual([
+      `GET /v1/projects/${PID}/team`,
+      `POST /v1/projects/${PID}/team`,
+      `POST /v1/projects/${PID}/team/external`,
+      `DELETE /v1/projects/${PID}/team/${MID}`,
+      `DELETE /v1/projects/${PID}/team/me`,
+      "GET /v1/users/lookup?q=%D0%90%D0%BD%20%D0%B8",
+    ]);
+    expect(JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string)).toEqual({
+      userId: MID,
+      role: null,
+    });
+  });
+
+  it("never sends a non-UUID id", async () => {
+    const guard = vi.fn();
+    vi.stubGlobal("fetch", guard);
+    await expect(listProjectTeam("..")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(removeTeamMember(PID, "../x")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(leaveProjectTeam("x")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(guard).not.toHaveBeenCalled();
   });
 });

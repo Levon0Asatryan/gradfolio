@@ -20,6 +20,7 @@ describe("FlashToast", () => {
     ["created", "Project created"],
     ["saved", "Changes saved"],
     ["deleted", "Project deleted"],
+    ["left", "You left the project"],
   ])("?flash=%s shows its message and clears the flag", async (flash, message) => {
     nav.query = `flash=${flash}&x=1`;
     renderInApp(<FlashToast />);

@@ -18,6 +18,8 @@ import type {
   ProjectPage,
   NotificationPage,
   UnreadCount,
+  TeamMember,
+  LookupUser,
 } from "./types";
 
 /**
@@ -304,4 +306,48 @@ export async function respondToInvitation(
 ): Promise<void> {
   if (!UUID.test(projectId)) throw new ApiError(404, "NOT_FOUND", "no such invitation");
   await request({ method: "POST", path: `/v1/projects/${projectId}/team/me/${decision}` });
+}
+
+const teamPath = (projectId: string, tail = ""): string => {
+  if (!UUID.test(projectId)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return `/v1/projects/${projectId}/team${tail}`;
+};
+
+/** The owner's view of the team: every status. Anyone else gets the API's 404. */
+export async function listProjectTeam(projectId: string): Promise<TeamMember[]> {
+  const page = await request<{ items: TeamMember[] }>({ method: "GET", path: teamPath(projectId) });
+  return page.items;
+}
+
+export function inviteTeamMember(
+  projectId: string,
+  body: { userId: string; role?: string | null },
+): Promise<TeamMember> {
+  return request<TeamMember>({ method: "POST", path: teamPath(projectId), body });
+}
+
+export function addExternalTeamMember(
+  projectId: string,
+  body: { name: string; role?: string | null },
+): Promise<TeamMember> {
+  return request<TeamMember>({ method: "POST", path: teamPath(projectId, "/external"), body });
+}
+
+export async function removeTeamMember(projectId: string, memberId: string): Promise<void> {
+  if (!UUID.test(memberId)) throw new ApiError(404, "NOT_FOUND", "no such member");
+  await request<undefined>({ method: "DELETE", path: teamPath(projectId, `/${memberId}`) });
+}
+
+/** An accepted teammate leaves; the owner is told. */
+export async function leaveProjectTeam(projectId: string): Promise<void> {
+  await request<undefined>({ method: "DELETE", path: teamPath(projectId, "/me") });
+}
+
+/** People to invite: public profiles by name prefix (3 to 50 characters). */
+export async function lookupUsers(q: string): Promise<LookupUser[]> {
+  const page = await request<{ items: LookupUser[] }>({
+    method: "GET",
+    path: `/v1/users/lookup?q=${encodeURIComponent(q)}`,
+  });
+  return page.items;
 }

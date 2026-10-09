@@ -7,12 +7,13 @@ import ProjectHeader from "@/components/project/ProjectHeader";
 import ProjectDescription from "@/components/project/ProjectDescription";
 import AttachmentsGallery from "@/components/project/AttachmentsGallery";
 import ProjectMetadataCard from "@/components/project/ProjectMetadataCard";
-import TeamList from "@/components/project/TeamList";
+import { TeamSection } from "@/components/team/TeamSection";
 import TechTagsClient from "@/components/project/TechTagsClient";
 import { OwnerBar } from "@/components/project/OwnerBar";
 import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
-import { ApiError, getProject } from "@/lib/api/client";
+import { ApiError, getMe, getProject, listProjectTeam } from "@/lib/api/client";
+import { auth0 } from "@/lib/auth0";
 import { requestDictionary } from "@/lib/requestDictionary";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,33 @@ export async function generateMetadata({ params }: ProjectPageProps) {
 }
 
 /**
+ * The owner's team with every status (`GET /v1/projects/{id}/team`; the public `team[]` is
+ * accepted-only). A failure is reported, never shown as an empty team.
+ */
+async function loadManagedTeam(id: string) {
+  try {
+    return { managed: await listProjectTeam(id), managedFailed: false };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return { managed: null, managedFailed: true };
+  }
+}
+
+/**
+ * The viewer's own account id, only for a signed-in non-owner, to offer "Leave" on their own
+ * accepted row. Anything that goes wrong simply offers no Leave: the API still refuses a
+ * stranger's call.
+ */
+async function loadViewerId(): Promise<string | null> {
+  try {
+    if (!(await auth0.getSession())) return null;
+    return (await getMe()).id;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A project (`GET /v1/projects/{id}`). A private or draft project of someone else
  * is the API's 404, the same as an unknown id (Q3). Any other failure is an error
  * screen, never a blank page.
@@ -54,6 +82,10 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   }
   if (!project) return notFound();
   const t = await requestDictionary();
+  const { managed, managedFailed } = project.isOwner
+    ? await loadManagedTeam(id)
+    : { managed: null, managedFailed: false };
+  const viewerUserId = project.isOwner ? null : await loadViewerId();
 
   return (
     <PageContainer maxWidth={1100}>
@@ -87,7 +119,16 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
           <ProjectMetadataCard metadata={project.metadata} category={project.category} />
           <TechTagsClient items={project.technologies} />
-          <TeamList members={project.team} />
+          <TeamSection
+            projectId={project.id}
+            projectTitle={project.title}
+            isOwner={project.isOwner}
+            isDraft={project.isDraft}
+            members={project.team}
+            managed={managed}
+            managedFailed={managedFailed}
+            viewerUserId={viewerUserId}
+          />
         </Box>
       </Box>
     </PageContainer>
