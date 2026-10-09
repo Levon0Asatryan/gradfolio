@@ -26,7 +26,15 @@ const show = (user: NavUser | null, initialMode?: NavMode) =>
   );
 
 const PATH = vi.hoisted(() => ({ current: "/" }));
-vi.mock("next/navigation", () => ({ usePathname: () => PATH.current }));
+vi.mock("@/lib/notifications/actions", () => ({
+  markNotificationReadAction: vi.fn(),
+  markAllNotificationsReadAction: vi.fn(),
+  respondToInviteAction: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({
+  usePathname: () => PATH.current,
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 const current = () => screen.getByRole("link", { current: "page" });
 
 const hrefs = () => screen.getAllByRole("link").map((a) => a.getAttribute("href"));
@@ -202,5 +210,24 @@ describe("sidebar toggle", () => {
       "aria-expanded",
       "false",
     );
+  });
+});
+
+describe("AppNavigation: notifications", () => {
+  it("has the bell above the user card for a signed-in user, in both modes", () => {
+    for (const mode of ["full", "rail"] as const) {
+      const view = show({ name: "Ani" }, mode);
+      const bell = screen.getByTestId("bell-button");
+      expect(bell).toHaveAttribute("aria-haspopup", "dialog");
+      expect(bell.compareDocumentPosition(screen.getByTestId("nav-user"))).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      view.unmount();
+    }
+  });
+
+  it("has no bell for a visitor", () => {
+    show(null);
+    expect(screen.queryByTestId("bell-button")).toBeNull();
   });
 });

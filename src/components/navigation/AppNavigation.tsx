@@ -16,6 +16,7 @@ import KeyboardDoubleArrowLeft from "@mui/icons-material/KeyboardDoubleArrowLeft
 import KeyboardDoubleArrowRight from "@mui/icons-material/KeyboardDoubleArrowRight";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
+import { NotificationsPopoverButton } from "@/components/notifications/NotificationsBell";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
 import { type NavMode, pickByMode, writeNavMode } from "./navMode";
@@ -149,6 +150,32 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
       })}
 
       <Box sx={{ flex: 1, minHeight: 12 }} />
+
+      {user && (
+        <NotificationsPopoverButton
+          sx={(theme) => ({
+            display: "flex",
+            flexDirection: pick("column", "row"),
+            alignItems: "center",
+            justifyContent: pick("center", "flex-start"),
+            gap: pick(0.5, 1.5),
+            width: "100%",
+            minHeight: 44,
+            px: pick(0.25, 1.75),
+            py: pick(1, 1.25),
+            borderRadius: "14px",
+            textAlign: pick("center", "left"),
+            fontWeight: 700,
+            fontSize: pick("0.75rem", "0.9375rem"),
+            lineHeight: 1.25,
+            color: theme.palette.text.primary,
+            "&:hover": { bgcolor: theme.palette.surface.soft },
+            "& svg": { fontSize: 22, flex: "none" },
+            "& .nav-label": { minWidth: 0, overflowWrap: "break-word" },
+            "html[lang='hy'] & .nav-label": { fontSize: pick("0.6875rem", "0.9375rem") },
+          })}
+        />
+      )}
 
       {user && (
         <Stack

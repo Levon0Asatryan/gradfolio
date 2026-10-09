@@ -1,11 +1,20 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { PhoneNavigation } from "./PhoneNavigation";
 
 const PATH = vi.hoisted(() => ({ current: "/" }));
-vi.mock("next/navigation", () => ({ usePathname: () => PATH.current }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => PATH.current,
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+vi.mock("@/lib/notifications/actions", () => ({
+  markNotificationReadAction: vi.fn(),
+  markAllNotificationsReadAction: vi.fn(),
+  respondToInviteAction: vi.fn(),
+}));
 
 const show = (user: { name: string } | null) =>
   render(
@@ -52,5 +61,65 @@ describe("PhoneNavigation", () => {
       "/auth/login",
     );
     expect(within(sheet).queryByRole("link", { name: "Log out" })).toBeNull();
+  });
+});
+
+describe("PhoneNavigation: notifications", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify(
+            String(url).endsWith("/unread-count") ? { count: 2 } : { items: [], nextCursor: null },
+          ),
+        ),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
+  });
+
+  const showWithBell = (user: { name: string } | null) =>
+    render(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider>
+          <NotificationsProvider pollMs={0}>
+            <PhoneNavigation user={user} />
+          </NotificationsProvider>
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+
+  it("puts the bell first under More, and a dot on More while something is unread", async () => {
+    showWithBell({ name: "Ani" });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /More, Notifications, unread: 2/ }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("more-dot")).not.toHaveClass("MuiBadge-invisible");
+    fireEvent.click(screen.getByRole("button", { name: /^More/ }));
+    const sheet = screen.getByRole("dialog", { name: "More" });
+    const rows = within(sheet).getAllByRole("button");
+    expect(rows[0]).toHaveAccessibleName("Notifications, unread: 2");
+  });
+
+  it("opens the notifications sheet from that row and closes More", async () => {
+    showWithBell({ name: "Ani" });
+    fireEvent.click(screen.getByRole("button", { name: /^More/ }));
+    fireEvent.click(screen.getByTestId("bell-button-phone"));
+    expect(await screen.findByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "More" })).toBeNull());
+  });
+
+  it("shows no bell and makes no request for a visitor", () => {
+    showWithBell(null);
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    expect(screen.queryByTestId("bell-button-phone")).toBeNull();
+    expect(screen.getByTestId("more-dot")).toHaveClass("MuiBadge-invisible");
   });
 });

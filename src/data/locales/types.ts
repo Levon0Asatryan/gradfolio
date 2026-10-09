@@ -605,4 +605,39 @@ export interface Dictionary {
     confirm: string;
     error: string;
   };
+  notifications: {
+    title: string;
+    bellLabel: string;
+    bellLabelUnread: string;
+    markAllRead: string;
+    markReadItem: string;
+    unread: string;
+    close: string;
+    loading: string;
+    empty: string;
+    emptyHint: string;
+    error: string;
+    retry: string;
+    signIn: string;
+    rateLimited: string;
+    loadMore: string;
+    actionFailed: string;
+    text: {
+      teamInvite: string;
+      teamInviteRole: string;
+      teamAccepted: string;
+      teamRejected: string;
+      teamLeft: string;
+    };
+    accept: string;
+    decline: string;
+    acceptLabel: string;
+    declineLabel: string;
+    invite: {
+      pending: string;
+      accepted: string;
+      rejected: string;
+      gone: string;
+    };
+  };
 }

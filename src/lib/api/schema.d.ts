@@ -158,7 +158,7 @@ export interface paths {
         };
         /**
          * A project with its attachments, tags, technologies and team
-         * @description Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
+         * @description Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. An accepted team member also reads a private project (never a draft). A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
          */
         get: operations["getProject"];
         put?: never;
@@ -272,7 +272,7 @@ export interface paths {
         put?: never;
         /**
          * Get a signed URL to upload an avatar, hero image, image or PDF
-         * @description The browser then PUTs the file straight to storage with the returned `headers` (exactly: type and size are signed), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured.
+         * @description The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured.
          */
         post: operations["createUpload"];
         delete?: never;
@@ -315,6 +315,227 @@ export interface paths {
         get: operations["listUserProjects"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every membership of the caller’s project
+         * @description The owner’s management view: pending, accepted and rejected rows. Accepted members also appear on `ProjectDetail.team`. Owner only: anyone else, an accepted teammate included, gets the 404 of an unknown project.
+         */
+        get: operations["listProjectTeam"];
+        put?: never;
+        /**
+         * Invites a user to the project
+         * @description Owner only. The invitee is notified in the same transaction. A user who rejected earlier is invited again (their row goes back to `pending`). Inviting yourself is 400; a private profile and an unknown id are the same 404.
+         */
+        post: operations["inviteTeamMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People to invite: public profiles by the start of a name
+         * @description Prefix match on the name, at least 3 characters, at most 8 results, never the caller, never a private profile, never an email or other private field. Own rate budget (`RATE_LIMIT_LOOKUP`) against enumeration.
+         */
+        get: operations["lookupUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team/external": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adds a teammate who has no account
+         * @description Owner only. A name (and role) only: accepted at once, no invitation, no notification.
+         */
+        post: operations["addExternalTeamMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes a membership of the project
+         * @description Owner only. Any status, linked or external. Removing a pending invitation makes the invitee’s notification read `invite.status: gone`.
+         */
+        delete: operations["removeTeamMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team/me/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The invitee accepts
+         * @description Only the invited user, only while `pending`. The owner is notified in the same transaction. No invitation for the caller (or an unknown project) is 404.
+         */
+        post: operations["acceptTeamInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team/me/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The invitee declines
+         * @description As accept. The owner may invite the user again afterwards.
+         */
+        post: operations["rejectTeamInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/team/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * An accepted teammate leaves
+         * @description Removes the caller’s own accepted membership; the owner is notified (`team_left`). A pending invitee uses reject. Anyone else is 404.
+         */
+        delete: operations["leaveProjectTeam"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s notifications, newest first
+         * @description Keyset pagination: pass `nextCursor` back as `cursor`. Render the text from `type` and `params` in the reader’s language; `link` and `invite` are computed at read time.
+         */
+        get: operations["listMyNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many of the caller’s notifications are unread
+         * @description Cheap enough to poll (the frontend polls it about once a minute).
+         */
+        get: operations["getUnreadNotificationCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marks all of the caller’s notifications read */
+        post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Marks one notification read
+         * @description Idempotent. Someone else’s notification answers 404, as an unknown id does.
+         */
+        post: operations["markNotificationRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -519,6 +740,11 @@ export interface components {
             /** @description Field-level detail, for VALIDATION_FAILED only. */
             details?: unknown;
         };
+        /** @description A teammate without an account: a name only. No invitation, no notification. */
+        AddExternalMemberRequest: {
+            name: string;
+            role?: (null) | string;
+        };
         Certification: {
             id: string;
             name: string;
@@ -555,6 +781,49 @@ export interface components {
             summary: string;
             achievements: string[];
             skills: string[];
+        };
+        InviteMemberRequest: {
+            /** @description The account to invite (a public profile). */
+            userId: string;
+            /** @description Shown on the team list; optional. */
+            role?: (null) | string;
+        };
+        Notification: {
+            id: string;
+            /** @enum {string} */
+            type: "team_invite" | "team_accepted" | "team_rejected" | "team_left" | "general";
+            /** @description English fallback text. Prefer rendering `type` + `params`. */
+            title: string;
+            /** @description null on a notification written before params existed: show `title`. */
+            params: components["schemas"]["NotificationParams"] | null;
+            read: boolean;
+            /** @description ISO 8601, UTC. */
+            createdAt: string;
+            /** @description App path computed when read: `/projects/<id>` while the project exists and the reader may open it, else null. Never stored. */
+            link: string | null;
+            /** @description Only on `team_invite`. */
+            invite: components["schemas"]["NotificationInvite"] | null;
+        };
+        NotificationInvite: {
+            /**
+             * @description The reader’s membership now. Offer accept/reject only while `pending`; `gone`: the invitation or the project no longer exists.
+             * @enum {string}
+             */
+            status: "pending" | "accepted" | "rejected" | "gone";
+        };
+        NotificationPage: {
+            items: components["schemas"]["Notification"][];
+            /** @description Pass as `cursor`; null on the last page. */
+            nextCursor: string | null;
+        };
+        /** @description Names saved when the notification was written, so it still reads after the project or the person is gone. Render the text from `type` and these. */
+        NotificationParams: {
+            /** @description The person who caused it, for a profile link. null when their account is gone or their profile is not visible to the reader. */
+            actorId: string | null;
+            actorName: string;
+            projectId: string;
+            projectTitle: string;
+            role: string | null;
         };
         Profile: {
             id: string;
@@ -637,10 +906,10 @@ export interface components {
             heroImageUrl: string | null;
             tags: string[];
             /**
-             * @description Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only).
+             * @description Same field as on ProfileProject: the listed user’s role. `member`: an accepted team member of someone else’s project (Q4). On a detail it is always owner.
              * @enum {string}
              */
-            role: "owner";
+            role: "owner" | "member";
             technologies: string[];
             isPublic: boolean;
             /** @description A draft is readable by its owner only. */
@@ -668,7 +937,7 @@ export interface components {
                 url: string;
             }[];
             attachments: components["schemas"]["ProjectAttachment"][];
-            /** @description Accepted team members, read-only until M5. The owner is `owner`, not a member. */
+            /** @description Accepted team members. The owner is `owner`, not a member. */
             team: components["schemas"]["ProjectTeamMember"][];
             owner: components["schemas"]["ProjectOwner"];
             /** @enum {string} */
@@ -724,10 +993,10 @@ export interface components {
             heroImageUrl: string | null;
             tags: string[];
             /**
-             * @description Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only).
+             * @description Same field as on ProfileProject: the listed user’s role. `member`: an accepted team member of someone else’s project (Q4). On a detail it is always owner.
              * @enum {string}
              */
-            role: "owner";
+            role: "owner" | "member";
             technologies: string[];
             isPublic: boolean;
             /** @description A draft is readable by its owner only. */
@@ -749,6 +1018,31 @@ export interface components {
             /** @description The member’s account, for a profile link. null when the account is gone or its profile is not visible to the caller. */
             userId: string | null;
         };
+        ReadAllResult: {
+            updated: number;
+        };
+        TeamList: {
+            items: components["schemas"]["TeamMember"][];
+        };
+        TeamMember: {
+            /** @description The membership id, for removing it. */
+            id: string;
+            name: string;
+            role: string | null;
+            /**
+             * @description pending: invited, no answer yet. accepted: on the team (every external name is accepted). rejected: declined; the owner may invite again.
+             * @enum {string}
+             */
+            status: "pending" | "accepted" | "rejected";
+            /** @description The member’s account, for a profile link. null for a name without an account, or when the account is gone or its profile is private. */
+            userId: string | null;
+            avatarUrl: string | null;
+            /** @description ISO 8601, UTC. Reset when an invitation is renewed. */
+            createdAt: string;
+        };
+        UnreadCount: {
+            count: number;
+        };
         UploadTicket: {
             /** @description PUT the file here. Valid for `expiresAt`. */
             uploadUrl: string;
@@ -762,6 +1056,14 @@ export interface components {
             fileUrl: string;
             /** @description ISO 8601, UTC. */
             expiresAt: string;
+        };
+        UserLookupResult: {
+            items: {
+                id: string;
+                name: string;
+                headline: string | null;
+                avatarUrl: string | null;
+            }[];
         };
     };
     responses: never;
@@ -1297,7 +1599,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description NOT_FOUND: no such project, or it is private/draft and the caller is not its owner */
+            /** @description NOT_FOUND: no such project, or it is private/draft and the caller is neither its owner nor (private only) an accepted team member */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2109,6 +2411,738 @@ export interface operations {
                 };
             };
             /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listProjectTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The team */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamList"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    inviteTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description The pending membership */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller’s, or no such public user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description ALREADY_MEMBER: already pending or accepted; TEAM_FULL: PROJECT_MAX_TEAM rows; PROJECT_IS_DRAFT: a draft takes no invitations */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    lookupUsers: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 8 people */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLookupResult"];
+                };
+            };
+            /** @description VALIDATION_FAILED: `q` is missing or shorter than 3 characters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    addExternalTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddExternalMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description The accepted membership */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description TEAM_FULL: PROJECT_MAX_TEAM rows */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    removeTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller’s, or no such member of it */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    acceptTeamInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accepted membership */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project, or no invitation for the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INVITE_NOT_PENDING: already answered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rejectTeamInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rejected membership */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamMember"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project, or no invitation for the caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INVITE_NOT_PENDING: already answered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leaveProjectTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Left */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project, or the caller is not an accepted member */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listMyNotifications: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getUnreadNotificationCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    markAllNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many were unread */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadAllResult"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked (or already read) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such notification of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
             503: {
                 headers: {
                     [name: string]: unknown;
