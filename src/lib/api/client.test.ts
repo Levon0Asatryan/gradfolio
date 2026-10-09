@@ -29,6 +29,11 @@ const {
   deleteAttachment,
   reorderAttachments,
   createUpload,
+  listNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  respondToInvitation,
 } = await import("./client");
 
 const ME = {
@@ -448,5 +453,51 @@ describe("attachments and uploads", () => {
     ).rejects.toMatchObject({ status: 503, code: "STORAGE_UNAVAILABLE" });
     expect(call(fetchMock)[0].pathname).toBe("/v1/me/uploads");
     expect(call(fetchMock)[1].method).toBe("POST");
+  });
+});
+
+describe("notifications", () => {
+  const NID = "0b6f2c1e-1111-4222-8333-444455556666";
+
+  it("lists with limit and cursor, reads the count, marks one and all", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(200, { items: [], nextCursor: null }))
+      .mockResolvedValueOnce(json(200, { count: 4 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(json(200, { updated: 4 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await listNotifications({ limit: 15, cursor: "a b" });
+    await expect(getUnreadNotificationCount()).resolves.toEqual({ count: 4 });
+    await expect(markNotificationRead(NID)).resolves.toBeUndefined();
+    await expect(markAllNotificationsRead()).resolves.toEqual({ updated: 4 });
+    const urls = fetchMock.mock.calls.map(
+      (c) => `${(c[1] as RequestInit).method} ${(c[0] as URL).pathname}${(c[0] as URL).search}`,
+    );
+    expect(urls).toEqual([
+      "GET /v1/me/notifications?limit=15&cursor=a+b",
+      "GET /v1/me/notifications/unread-count",
+      `POST /v1/me/notifications/${NID}/read`,
+      "POST /v1/me/notifications/read-all",
+    ]);
+  });
+
+  it("never sends a non-UUID id", async () => {
+    const guard = vi.fn();
+    vi.stubGlobal("fetch", guard);
+    await expect(markNotificationRead("../x")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(guard).not.toHaveBeenCalled();
+  });
+
+  it("answers an invitation by project id, and never sends a non-UUID", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(200, {}));
+    vi.stubGlobal("fetch", fetchMock);
+    await respondToInvitation(NID, "reject");
+    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect([init.method, url.pathname]).toEqual(["POST", `/v1/projects/${NID}/team/me/reject`]);
+    await expect(respondToInvitation("../x", "accept")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

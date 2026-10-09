@@ -51,3 +51,8 @@ export type UploadRequest = NonNullable<
 export type UploadTicket = components["schemas"]["UploadTicket"];
 /** The query of `listMyProjects`: what the list page and "load more" send. */
 export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["parameters"]["query"]>;
+
+/** One notification, `GET /v1/me/notifications`. Render the text from `type` + `params`. */
+export type Notification = components["schemas"]["Notification"];
+export type NotificationPage = components["schemas"]["NotificationPage"];
+export type UnreadCount = components["schemas"]["UnreadCount"];

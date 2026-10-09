@@ -16,6 +16,8 @@ import type {
   UploadTicket,
   ProjectWriteBody,
   ProjectPage,
+  NotificationPage,
+  UnreadCount,
 } from "./types";
 
 /**
@@ -265,4 +267,41 @@ export function replaceSkills(skills: string[]): Promise<{ skills: string[] }> {
 /** Deletes the caller's account and all its data (`deleteMe`). The login itself stays: sign out afterwards. */
 export async function deleteMe(): Promise<void> {
   await request({ method: "DELETE", path: "/v1/me" });
+}
+
+/** The caller's notifications, newest first; one keyset page. */
+export function listNotifications(
+  query: { limit?: number; cursor?: string } = {},
+): Promise<NotificationPage> {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) params.set("limit", String(query.limit));
+  if (query.cursor) params.set("cursor", query.cursor);
+  const qs = params.toString();
+  return request<NotificationPage>({
+    method: "GET",
+    path: `/v1/me/notifications${qs ? `?${qs}` : ""}`,
+  });
+}
+
+export function getUnreadNotificationCount(): Promise<UnreadCount> {
+  return request<UnreadCount>({ method: "GET", path: "/v1/me/notifications/unread-count" });
+}
+
+/** Someone else's notification is the API's 404, as an unknown id is. */
+export async function markNotificationRead(id: string): Promise<void> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such notification");
+  await request<undefined>({ method: "POST", path: `/v1/me/notifications/${id}/read` });
+}
+
+export function markAllNotificationsRead(): Promise<{ updated: number }> {
+  return request<{ updated: number }>({ method: "POST", path: "/v1/me/notifications/read-all" });
+}
+
+/** The invitee answers an invitation. Addressed by project id; the caller is the session's user. */
+export async function respondToInvitation(
+  projectId: string,
+  decision: "accept" | "reject",
+): Promise<void> {
+  if (!UUID.test(projectId)) throw new ApiError(404, "NOT_FOUND", "no such invitation");
+  await request({ method: "POST", path: `/v1/projects/${projectId}/team/me/${decision}` });
 }

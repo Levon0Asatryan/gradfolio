@@ -14,6 +14,10 @@ tags:
     description: "Profiles: reading anyone’s, editing your own"
   - name: projects
     description: "Projects: reading anyone’s public ones, managing your own"
+  - name: team
+    description: "Project teams: invitations, answers, the owner’s view"
+  - name: notifications
+    description: The caller’s own notifications
 paths:
   /healthz:
     get:
@@ -500,7 +504,7 @@ paths:
       tags:
         - projects
       summary: A project with its attachments, tags, technologies and team
-      description: Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
+      description: Needs no token when the project is public and published; a token, when sent, identifies the owner (`isOwner`), who also reads their private and draft projects. An accepted team member also reads a private project (never a draft). A project the caller may not read answers 404, exactly as an unknown id does. A token that is sent but invalid is a 401, not an anonymous read. `descriptionHtml` is sanitized on write; video attachments carry an `embedUrl` to use in an iframe.
       parameters:
         - name: id
           in: path
@@ -523,7 +527,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: "NOT_FOUND: no such project, or it is private/draft and the caller is not its owner"
+          description: "NOT_FOUND: no such project, or it is private/draft and the caller is neither its owner nor (private only) an accepted team member"
           content:
             application/json:
               schema:
@@ -1260,7 +1264,7 @@ paths:
       tags:
         - projects
       summary: Get a signed URL to upload an avatar, hero image, image or PDF
-      description: "The browser then PUTs the file straight to storage with the returned `headers` (exactly: type and size are signed), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured."
+      description: "The browser then PUTs the file straight to storage with the returned `headers` (exactly: type, size and a create-only precondition are signed; the URL writes its key once and a replay is refused), and the app sends `fileUrl` in the matching write. The URL lives `expiresAt`; the token never reaches the browser. Images: png, jpeg, webp, gif; PDFs only as an attachment. `hero` and `attachment` need a `projectId` of the caller’s. Rate-limited with its own budget. 409 at the per-user file cap; 503 `STORAGE_UNAVAILABLE` when the server has no bucket configured."
       security:
         - bearerAuth: []
       requestBody:
@@ -1572,6 +1576,596 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team:
+    get:
+      operationId: listProjectTeam
+      tags:
+        - team
+      summary: Every membership of the caller’s project
+      description: "The owner’s management view: pending, accepted and rejected rows. Accepted members also appear on `ProjectDetail.team`. Owner only: anyone else, an accepted teammate included, gets the 404 of an unknown project."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      responses:
+        "200":
+          description: The team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamList"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: inviteTeamMember
+      tags:
+        - team
+      summary: Invites a user to the project
+      description: Owner only. The invitee is notified in the same transaction. A user who rejected earlier is invited again (their row goes back to `pending`). Inviting yourself is 400; a private profile and an unknown id are the same 404.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+      responses:
+        "201":
+          description: The pending membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller’s, or no such public user"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "ALREADY_MEMBER: already pending or accepted; TEAM_FULL: PROJECT_MAX_TEAM rows; PROJECT_IS_DRAFT: a draft takes no invitations"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/users/lookup:
+    get:
+      operationId: lookupUsers
+      tags:
+        - team
+      summary: "People to invite: public profiles by the start of a name"
+      description: Prefix match on the name, at least 3 characters, at most 8 results, never the caller, never a private profile, never an email or other private field. Own rate budget (`RATE_LIMIT_LOOKUP`) against enumeration.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 50
+            description: The start of a name; at least 3 characters.
+      responses:
+        "200":
+          description: Up to 8 people
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLookupResult"
+        "400":
+          description: "VALIDATION_FAILED: `q` is missing or shorter than 3 characters"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team/external:
+    post:
+      operationId: addExternalTeamMember
+      tags:
+        - team
+      summary: Adds a teammate who has no account
+      description: "Owner only. A name (and role) only: accepted at once, no invitation, no notification."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddExternalMemberRequest"
+      responses:
+        "201":
+          description: The accepted membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "TEAM_FULL: PROJECT_MAX_TEAM rows"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team/{memberId}:
+    delete:
+      operationId: removeTeamMember
+      tags:
+        - team
+      summary: Removes a membership of the project
+      description: "Owner only. Any status, linked or external. Removing a pending invitation makes the invitee’s notification read `invite.status: gone`."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The membership id (UUID)
+      responses:
+        "204":
+          description: Removed
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller’s, or no such member of it"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team/me/accept:
+    post:
+      operationId: acceptTeamInvitation
+      tags:
+        - team
+      summary: The invitee accepts
+      description: Only the invited user, only while `pending`. The owner is notified in the same transaction. No invitation for the caller (or an unknown project) is 404.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      responses:
+        "200":
+          description: The accepted membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project, or no invitation for the caller"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "INVITE_NOT_PENDING: already answered"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team/me/reject:
+    post:
+      operationId: rejectTeamInvitation
+      tags:
+        - team
+      summary: The invitee declines
+      description: As accept. The owner may invite the user again afterwards.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      responses:
+        "200":
+          description: The rejected membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project, or no invitation for the caller"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "INVITE_NOT_PENDING: already answered"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/projects/{id}/team/me:
+    delete:
+      operationId: leaveProjectTeam
+      tags:
+        - team
+      summary: An accepted teammate leaves
+      description: Removes the caller’s own accepted membership; the owner is notified (`team_left`). A pending invitee uses reject. Anyone else is 404.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+      responses:
+        "204":
+          description: Left
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project, or the caller is not an accepted member"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/notifications:
+    get:
+      operationId: listMyNotifications
+      tags:
+        - notifications
+      summary: The caller’s notifications, newest first
+      description: "Keyset pagination: pass `nextCursor` back as `cursor`. Render the text from `type` and `params` in the reader’s language; `link` and `invite` are computed at read time."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most NOTIFICATIONS_PAGE_MAX (50); 20 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: The `nextCursor` of the previous page. Anything else is 400.
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/notifications/unread-count:
+    get:
+      operationId: getUnreadNotificationCount
+      tags:
+        - notifications
+      summary: How many of the caller’s notifications are unread
+      description: Cheap enough to poll (the frontend polls it about once a minute).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags:
+        - notifications
+      summary: Marks all of the caller’s notifications read
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: How many were unread
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadAllResult"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags:
+        - notifications
+      summary: Marks one notification read
+      description: Idempotent. Someone else’s notification answers 404, as an unknown id does.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The notification id (UUID)
+      responses:
+        "204":
+          description: Marked (or already read)
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such notification of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
           content:
             application/json:
               schema:
@@ -2441,6 +3035,22 @@ components:
         - code
         - message
       additionalProperties: false
+    AddExternalMemberRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          anyOf:
+            - type: string
+              nullable: true
+              enum:
+                - null
+            - type: string
+      required:
+        - name
+      additionalProperties: false
+      description: "A teammate without an account: a name only. No invitation, no notification."
     Certification:
       type: object
       properties:
@@ -2539,6 +3149,123 @@ components:
         - achievements
         - skills
       additionalProperties: false
+    InviteMemberRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          minLength: 1
+          maxLength: 36
+          description: The account to invite (a public profile).
+        role:
+          description: Shown on the team list; optional.
+          anyOf:
+            - type: string
+              nullable: true
+              enum:
+                - null
+            - type: string
+      required:
+        - userId
+      additionalProperties: false
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - team_invite
+            - team_accepted
+            - team_rejected
+            - team_left
+            - general
+        title:
+          type: string
+          description: English fallback text. Prefer rendering `type` + `params`.
+        params:
+          nullable: true
+          description: "null on a notification written before params existed: show `title`."
+          allOf:
+            - $ref: "#/components/schemas/NotificationParams"
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          description: ISO 8601, UTC.
+        link:
+          nullable: true
+          description: "App path computed when read: `/projects/<id>` while the project exists and the reader may open it, else null. Never stored."
+          type: string
+        invite:
+          nullable: true
+          description: Only on `team_invite`.
+          allOf:
+            - $ref: "#/components/schemas/NotificationInvite"
+      required:
+        - id
+        - type
+        - title
+        - params
+        - read
+        - createdAt
+        - link
+        - invite
+      additionalProperties: false
+    NotificationInvite:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - rejected
+            - gone
+          description: "The reader’s membership now. Offer accept/reject only while `pending`; `gone`: the invitation or the project no longer exists."
+      required:
+        - status
+      additionalProperties: false
+    NotificationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+      required:
+        - items
+        - nextCursor
+      additionalProperties: false
+    NotificationParams:
+      type: object
+      properties:
+        actorId:
+          nullable: true
+          description: The person who caused it, for a profile link. null when their account is gone or their profile is not visible to the reader.
+          type: string
+        actorName:
+          type: string
+        projectId:
+          type: string
+        projectTitle:
+          type: string
+        role:
+          nullable: true
+          type: string
+      required:
+        - actorId
+        - actorName
+        - projectId
+        - projectTitle
+        - role
+      additionalProperties: false
+      description: Names saved when the notification was written, so it still reads after the project or the person is gone. Render the text from `type` and these.
     Profile:
       type: object
       properties:
@@ -2792,7 +3519,8 @@ components:
           type: string
           enum:
             - owner
-          description: "Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only)."
+            - member
+          description: "Same field as on ProfileProject: the listed user’s role. `member`: an accepted team member of someone else’s project (Q4). On a detail it is always owner."
         technologies:
           type: array
           items:
@@ -2862,7 +3590,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProjectTeamMember"
-          description: Accepted team members, read-only until M5. The owner is `owner`, not a member.
+          description: Accepted team members. The owner is `owner`, not a member.
         owner:
           $ref: "#/components/schemas/ProjectOwner"
         source:
@@ -3027,7 +3755,8 @@ components:
           type: string
           enum:
             - owner
-          description: "Same field as on ProfileProject. Always owner here: these lists hold the user’s own projects (team projects appear on profiles only)."
+            - member
+          description: "Same field as on ProfileProject: the listed user’s role. `member`: an accepted team member of someone else’s project (Q4). On a detail it is always owner."
         technologies:
           type: array
           items:
@@ -3092,6 +3821,73 @@ components:
         - avatarUrl
         - userId
       additionalProperties: false
+    ReadAllResult:
+      type: object
+      properties:
+        updated:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - updated
+      additionalProperties: false
+    TeamList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+      required:
+        - items
+      additionalProperties: false
+    TeamMember:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The membership id, for removing it.
+        name:
+          type: string
+        role:
+          nullable: true
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - rejected
+          description: "pending: invited, no answer yet. accepted: on the team (every external name is accepted). rejected: declined; the owner may invite again."
+        userId:
+          nullable: true
+          description: The member’s account, for a profile link. null for a name without an account, or when the account is gone or its profile is private.
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+        createdAt:
+          type: string
+          description: ISO 8601, UTC. Reset when an invitation is renewed.
+      required:
+        - id
+        - name
+        - role
+        - status
+        - userId
+        - avatarUrl
+        - createdAt
+      additionalProperties: false
+    UnreadCount:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - count
+      additionalProperties: false
     UploadTicket:
       type: object
       properties:
@@ -3119,6 +3915,33 @@ components:
         - headers
         - fileUrl
         - expiresAt
+      additionalProperties: false
+    UserLookupResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              headline:
+                nullable: true
+                type: string
+              avatarUrl:
+                nullable: true
+                type: string
+            required:
+              - id
+              - name
+              - headline
+              - avatarUrl
+            additionalProperties: false
+      required:
+        - items
       additionalProperties: false
   securitySchemes:
     bearerAuth:
