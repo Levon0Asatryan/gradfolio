@@ -108,10 +108,10 @@ describe("parseProjectForm", () => {
       "Type Script",
     ]);
     const thirtyOne = Array.from({ length: 31 }, (_, i) => `t${i}`);
-    expect(errors({ technologies: thirtyOne }).technologies).toBe("too_long");
+    expect(errors({ technologies: thirtyOne }).technologies).toBe("too_many");
     expect(ok({ technologies: thirtyOne.slice(0, 30) }).ok).toBe(true);
     const twentyOne = Array.from({ length: 21 }, (_, i) => `g${i}`);
-    expect(errors({ tags: twentyOne }).tags).toBe("too_long");
+    expect(errors({ tags: twentyOne }).tags).toBe("too_many");
     expect(errors({ tags: ["x".repeat(256)] }).tags).toBe("too_long");
   });
 
@@ -129,7 +129,7 @@ describe("parseProjectForm", () => {
       label: `l${i}`,
       url: "https://x.test",
     }));
-    expect(errors({ links: eleven }).links).toBe("too_long");
+    expect(errors({ links: eleven }).links).toBe("too_many");
   });
 
   it("refuses unknown keys, wrong types and bad enums, so a crafted action call fails", () => {

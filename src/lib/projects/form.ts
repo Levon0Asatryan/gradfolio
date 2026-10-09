@@ -176,9 +176,9 @@ export function parseProjectForm(input: unknown): ProjectFormResult {
       return [];
     }
     const terms = normalizeTerms(v as string[]);
-    if (terms.length > max || terms.some((t) => !fits(t, PROJECT_LIMITS.term))) {
-      errors[key] = "too_long";
-    }
+    // Two different limits, two different messages: how many, and how long each is.
+    if (terms.some((t) => !fits(t, PROJECT_LIMITS.term))) errors[key] = "too_long";
+    else if (terms.length > max) errors[key] = "too_many";
     return terms;
   };
 
@@ -232,7 +232,7 @@ export function parseProjectForm(input: unknown): ProjectFormResult {
         } else if (!urlOk(link, ["http:", "https:"])) errors[`links.${i}`] = "invalid_url";
         else links.push({ label, url: link });
       });
-      if (rawLinks.length > PROJECT_LIMITS.links) errors.links = "too_long";
+      if (rawLinks.length > PROJECT_LIMITS.links) errors.links = "too_many";
     }
   }
 

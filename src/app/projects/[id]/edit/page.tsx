@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ProjectForm } from "@/components/project-form/ProjectForm";
 import { ProjectsError } from "@/components/projects/ProjectsError";
@@ -11,9 +12,26 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata() {
+/** One API call per request, shared by the metadata and the page. */
+const loadProject = cache(async (id: string) => {
+  try {
+    return { project: await getProject(id) };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return { error };
+  }
+});
+
+export async function generateMetadata({ params }: PageProps) {
+  const { id } = await params;
   const t = await requestDictionary();
-  return { title: t.projects.form.editTitle };
+  const { project } = await loadProject(id);
+  // Only for the owner: the title of someone else's project is not for the tab.
+  return {
+    title: project?.isOwner
+      ? `${t.projects.form.editTitle}: ${project.title}`
+      : t.projects.form.editTitle,
+  };
 }
 
 /**
@@ -24,14 +42,12 @@ export async function generateMetadata() {
  */
 export default async function EditProjectPage({ params }: PageProps) {
   const { id } = await params;
-  let project;
-  try {
-    project = await getProject(id);
-  } catch (error) {
-    if (!(error instanceof ApiError)) throw error;
+  const { project, error } = await loadProject(id);
+  if (error) {
     if (error.code === "NOT_FOUND") notFound();
     return <ProjectsError what="project" code={error.code} returnTo={`/projects/${id}/edit`} />;
   }
+  if (!project) notFound();
   if (!project.isOwner) notFound();
   return <ProjectForm mode="edit" projectId={project.id} initial={toFormValues(project)} />;
 }

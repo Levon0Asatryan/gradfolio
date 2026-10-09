@@ -1,6 +1,13 @@
 import type { Dictionary } from "@/data/locales/types";
 import type { FieldError } from "@/lib/profile/headerPatch";
+import { PROJECT_LIMITS } from "@/lib/projects/limits";
 import type { Limit } from "@/lib/profile/limits";
+
+const MAX_ITEMS: Record<string, number> = {
+  technologies: PROJECT_LIMITS.technologies,
+  tags: PROJECT_LIMITS.tags,
+  links: PROJECT_LIMITS.links,
+};
 
 /** The message for one failed field, in the UI language. */
 export function projectFieldError(
@@ -17,6 +24,10 @@ export function projectFieldError(
       return key === "heroImageUrl" ? form.errorHttps : t.profileEdit.errorUrl;
     case "invalid_range":
       return t.sectionEdit.errorRange;
+    case "too_many": {
+      const max = MAX_ITEMS[key];
+      return max ? form.errorTooMany.replace("{max}", String(max)) : t.profileEdit.errorInvalid;
+    }
     case "too_long":
       return limit
         ? form.errorTooLong

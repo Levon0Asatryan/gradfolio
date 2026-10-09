@@ -320,6 +320,7 @@ export const ru: Dictionary = {
       errorLimit: "Вы достигли предела числа проектов.",
       errorNotFound: "Этот проект больше не существует или он не ваш.",
       errorRateLimited: "Слишком много запросов. Подождите и повторите.",
+      errorTooMany: "Не более {max} элементов.",
       errorTooLong: "Слишком длинно: не более {max} {unit}.",
       errorDate: "Введите настоящую дату, например 2025-09-01.",
       errorHttps: "Введите полный адрес https://.",

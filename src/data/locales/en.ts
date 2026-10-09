@@ -319,6 +319,7 @@ export const en: Dictionary = {
       errorLimit: "You have reached the limit of projects.",
       errorNotFound: "This project no longer exists, or it is not yours.",
       errorRateLimited: "Too many requests. Wait a moment and try again.",
+      errorTooMany: "At most {max} items.",
       errorTooLong: "Too long: at most {max} {unit}.",
       errorDate: "Enter a real date, like 2025-09-01.",
       errorHttps: "Enter a full https:// address.",

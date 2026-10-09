@@ -481,7 +481,12 @@ export const ProjectForm: FC<ProjectFormProps> = ({ mode, projectId, initial = E
             <Button
               type="button"
               disabled={saving}
-              onClick={() => router.push(mode === "edit" ? `/projects/${projectId}` : "/projects")}
+              onClick={() => {
+                // A button's client-side navigation bypasses the link guard: ask here.
+                if (dirty && !window.confirm(t.profileEdit.leavePrompt)) return;
+                setLeaving(true);
+                router.push(mode === "edit" ? `/projects/${projectId}` : "/projects");
+              }}
             >
               {text.cancel}
             </Button>

@@ -162,6 +162,45 @@ describe("ProjectForm, create", () => {
     expect(screen.queryByText("React")).toBeNull();
   });
 
+  it("says how many items are allowed when there are too many, not how long one may be", async () => {
+    renderInApp(<ProjectForm mode="create" />);
+    type(title(), "EcoRoute");
+    const box = screen.getByRole("combobox", { name: "Technologies" });
+    for (let i = 0; i < 31; i++) {
+      type(box, `tech${i}`);
+      fireEvent.keyDown(box, { key: "Enter" });
+    }
+    save("Create project");
+    expect((await screen.findAllByText("At most 30 items.")).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/255/)).toBeNull();
+    expect(act_.create).not.toHaveBeenCalled();
+  });
+
+  it("leaves at once on Cancel when nothing changed", () => {
+    const confirm = vi.spyOn(window, "confirm");
+    renderInApp(<ProjectForm mode="create" />);
+    save("Cancel");
+    expect(confirm).not.toHaveBeenCalled();
+    expect(nav.push).toHaveBeenCalledWith("/projects");
+    confirm.mockRestore();
+  });
+
+  it("asks before Cancel throws away edits: staying keeps them, confirming leaves", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderInApp(<ProjectForm mode="create" />);
+    type(title(), "x");
+    save("Cancel");
+    expect(confirm).toHaveBeenCalledWith(
+      "You have unsaved changes. Leave this page and discard them?",
+    );
+    expect(nav.push).not.toHaveBeenCalled();
+    expect(title()).toHaveValue("x");
+    confirm.mockReturnValue(true);
+    save("Cancel");
+    expect(nav.push).toHaveBeenCalledWith("/projects");
+    confirm.mockRestore();
+  });
+
   it("warns before the tab closes with unsaved changes, and not after a save", async () => {
     act_.create.mockResolvedValue({ ok: true, id: "p-1" });
     renderInApp(<ProjectForm mode="create" />);
@@ -249,6 +288,18 @@ describe("ProjectForm, edit", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete project" }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects?flash=deleted"));
     expect(unloads()).toBe(false);
+  });
+
+  it("does not call a 404 a success: the dialog stays open and says the project is gone", async () => {
+    act_.del.mockResolvedValue({ ok: false, code: "NOT_FOUND" });
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete project" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "no longer exists, or it is not yours",
+    );
+    expect(nav.push).not.toHaveBeenCalled();
   });
 
   it("keeps the dialog open with an error when the delete fails", async () => {

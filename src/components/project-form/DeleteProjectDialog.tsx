@@ -25,22 +25,23 @@ export const DeleteProjectDialog: FC<{
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   async function confirm() {
     if (busy) return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       const result = await deleteProjectAction(projectId);
-      if (result.ok || result.code === "NOT_FOUND") {
+      if (result.ok) {
         onDeleted();
         router.push("/projects?flash=deleted");
         return;
       }
-      setFailed(true);
+      // A 404 is not success: the project may be someone else's, or already gone in another tab.
+      setFailed(result.code);
     } catch {
-      setFailed(true);
+      setFailed("ERROR");
     } finally {
       setBusy(false);
     }
@@ -64,7 +65,7 @@ export const DeleteProjectDialog: FC<{
           <DialogContentText id="delete-project-body">{text.deleteBody}</DialogContentText>
           {failed && (
             <Alert severity="error" role="alert" sx={{ mt: 2 }}>
-              {text.deleteFailed}
+              {failed === "NOT_FOUND" ? text.errorNotFound : text.deleteFailed}
             </Alert>
           )}
         </DialogContent>

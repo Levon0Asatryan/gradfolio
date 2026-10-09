@@ -24,7 +24,7 @@ vi.mock("@/lib/api/client", () => {
   return { ApiError, getProject: api.getProject };
 });
 
-const { default: EditPage } = await import("./page");
+const { default: EditPage, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 const page = () => EditPage({ params: Promise.resolve({ id: "p1" }) });
 
@@ -39,6 +39,21 @@ describe("/projects/[id]/edit", () => {
       projectId: "p1",
       initial: { title: "EcoRoute" },
     });
+  });
+
+  it("titles the tab with the project's name for its owner only", async () => {
+    api.getProject.mockResolvedValue(projectDetail({ title: "EcoRoute", isOwner: true }));
+    expect((await generateMetadata({ params: Promise.resolve({ id: "p1" }) })).title).toBe(
+      "Edit project: EcoRoute",
+    );
+    api.getProject.mockResolvedValue(projectDetail({ title: "Secret", isOwner: false }));
+    expect((await generateMetadata({ params: Promise.resolve({ id: "p2" }) })).title).toBe(
+      "Edit project",
+    );
+    api.getProject.mockRejectedValue(new ApiError(404, "NOT_FOUND", "no"));
+    expect((await generateMetadata({ params: Promise.resolve({ id: "p3" }) })).title).toBe(
+      "Edit project",
+    );
   });
 
   it("answers not-found when the API says 404 (unknown, or someone else's private project)", async () => {

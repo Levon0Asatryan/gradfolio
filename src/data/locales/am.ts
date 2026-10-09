@@ -320,6 +320,7 @@ export const am: Dictionary = {
       errorLimit: "Դուք հասել եք նախագծերի սահմանաչափին։",
       errorNotFound: "Այս նախագիծն այլևս չկա կամ ձերը չէ։",
       errorRateLimited: "Չափազանց շատ հարցումներ։ Սպասեք և փորձեք կրկին։",
+      errorTooMany: "Առավելագույնը {max} տարր։",
       errorTooLong: "Չափազանց երկար է՝ առավելագույնը {max} {unit}։",
       errorDate: "Մուտքագրեք իրական ամսաթիվ, օրինակ՝ 2025-09-01։",
       errorHttps: "Մուտքագրեք ամբողջական https:// հասցե։",

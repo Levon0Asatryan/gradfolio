@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import RichTextEditor from "./RichTextEditor";
@@ -51,12 +51,20 @@ describe("RichTextEditor", () => {
     expect(first!.tabIndex).toBe(-1);
   });
 
-  it("reports HTML that is empty text as an empty string, and edits as HTML", async () => {
+  it("reports the edited document as HTML", async () => {
     const onChange = show("<p>Hello</p>");
-    const box = await screen.findByRole("textbox", { name: "Description" });
-    expect(box).toHaveTextContent("Hello");
-    fireEvent.click(screen.getByRole("button", { name: "Bold" }));
-    expect(onChange).not.toHaveBeenCalledWith(expect.stringContaining("<script"));
+    await screen.findByRole("textbox", { name: "Description" });
+    fireEvent.click(screen.getByRole("button", { name: "Heading 2" }));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange).toHaveBeenLastCalledWith("<h2>Hello</h2>");
+  });
+
+  it("reports an empty document as an empty string, not as an empty paragraph", async () => {
+    const onChange = show("");
+    await screen.findByRole("textbox", { name: "Description" });
+    fireEvent.click(screen.getByRole("button", { name: "Heading 2" }));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange).toHaveBeenLastCalledWith("");
   });
 
   it("refuses a javascript: link in the link dialog", async () => {

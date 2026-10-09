@@ -309,6 +309,7 @@ export interface Dictionary {
       errorLimit: string;
       errorNotFound: string;
       errorRateLimited: string;
+      errorTooMany: string;
       errorTooLong: string;
       errorDate: string;
       errorHttps: string;

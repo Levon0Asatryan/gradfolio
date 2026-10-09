@@ -84,7 +84,9 @@ const RichTextEditor: FC<RichTextEditorProps> = ({
         ...(invalid ? { "aria-invalid": "true" } : {}),
       },
     },
-    onUpdate: ({ editor: e }) => onChange(e.isEmpty ? "" : e.getHTML()),
+    onUpdate: ({ editor: e }) =>
+      // The editor keeps an empty paragraph after a block at the end: it is not content.
+      onChange(e.isEmpty ? "" : e.getHTML().replace(/(<p><\/p>)+$/, "")),
   });
 
   if (!editor) return null;
