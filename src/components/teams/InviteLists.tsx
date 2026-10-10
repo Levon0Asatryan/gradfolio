@@ -27,14 +27,32 @@ import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 
-/** Fixed locale and UTC: the server and the browser must print the same text (hydration). */
+/** Fixed locale and UTC, so the text does not depend on the machine's locale or time zone. */
 const DATE_OPTIONS = {
   en: { locale: "en-US", timeZone: "UTC" },
   ru: { locale: "ru-RU", timeZone: "UTC" },
   am: { locale: "hy-AM", timeZone: "UTC" },
 } as const;
 
-const metaLine = (parts: Array<string | null | undefined>) => parts.filter(Boolean).join(" · ");
+/**
+ * "Role · date". The date is a `<time>` that opts out of the hydration text check: the server's Node
+ * and the browser can ship different ICU data (a browser without Armenian data prints the English
+ * month), and the server's text, formatted for the app language, is the one to keep.
+ */
+const MetaLine: FC<{ role: string | null | undefined; invitedAt: string }> = ({
+  role,
+  invitedAt,
+}) => {
+  const { language } = useLanguage();
+  return (
+    <>
+      {role ? `${role} · ` : ""}
+      <time dateTime={invitedAt} suppressHydrationWarning>
+        {formatDate(invitedAt, DATE_OPTIONS[language])}
+      </time>
+    </>
+  );
+};
 
 const rowSx = (theme: import("@mui/material/styles").Theme) => ({
   display: "flex",
@@ -79,7 +97,7 @@ export const IncomingRow: FC<{ invite: IncomingInvite; onDone: (message: string)
   invite,
   onDone,
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -125,10 +143,7 @@ export const IncomingRow: FC<{ invite: IncomingInvite; onDone: (message: string)
           />
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {metaLine([
-            roleText(invite.role, t),
-            formatDate(invite.invitedAt, DATE_OPTIONS[language]),
-          ])}
+          <MetaLine role={roleText(invite.role, t)} invitedAt={invite.invitedAt} />
         </Typography>
         {problem && (
           <Alert severity="error" role="alert" sx={{ mt: 1 }}>
@@ -167,7 +182,7 @@ export const OutgoingRow: FC<{ invite: OutgoingInvite; onDone: (message: string)
   invite,
   onDone,
 }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -212,10 +227,7 @@ export const OutgoingRow: FC<{ invite: OutgoingInvite; onDone: (message: string)
             {invite.project.title}
           </Link>
           {" · "}
-          {metaLine([
-            roleText(invite.role, t),
-            formatDate(invite.invitedAt, DATE_OPTIONS[language]),
-          ])}
+          <MetaLine role={roleText(invite.role, t)} invitedAt={invite.invitedAt} />
         </Typography>
       </Box>
       <Button
