@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [".claude/workflows/*.js", "e2e/**/*.spec.ts"],
+  "entry": [".claude/workflows/*.js", "e2e/**/*.spec.ts", "e2e/fixtures/api-stub.ts"],
   "ignoreExportsUsedInFile": {
     "interface": true,
     "type": true

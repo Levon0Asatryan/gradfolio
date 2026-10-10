@@ -256,7 +256,7 @@ Active route = the longest matching `href` prefix.
   protected page without a session redirects to `/auth/login?returnTo=…`. It **fails
   closed**: if the session cannot be checked, a protected page answers 503; public
   pages still render (tracker 2.10, 2.11).
-- Public pages: `/profile/<id>`, `/projects/<id>`, `/search`, `/settings`. Everything
+- Public pages: `/profile/<id>`, `/projects/<id>`, `/search`, `/tags/<name>`, `/settings`. Everything
   showing or changing the user's own data needs a login, `/` (the dashboard) included.
 - **Links to `/auth/*` are plain `<a>`, never `<Link>`** (`navLinkComponent`): a
   client-side fetch of `/auth/login` follows Auth0's redirect as a cross-origin
@@ -329,20 +329,21 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Still mock until their milestones: dashboard, search, integrations.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; their types are provisional in `src/lib/api/discoveryTypes.ts` until the contract is pinned). Still mock until their milestones: dashboard, integrations.
 
 ## Environment variables
 
 `.env.example` lists them. Auth0 v4 names:
 
-| Variable                                 | Purpose                                                          |
-| ---------------------------------------- | ---------------------------------------------------------------- |
-| `AUTH0_DOMAIN`                           | Tenant domain, e.g. `dev-….us.auth0.com`                         |
-| `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` | The application's credentials                                    |
-| `AUTH0_SECRET`                           | Session cookie encryption (`openssl rand -hex 32`)               |
-| `APP_BASE_URL`                           | This app's URL (`http://localhost:3000` locally)                 |
-| `AUTH0_SCOPE`, `AUTH0_AUDIENCE`          | Passed explicitly in `src/lib/auth0.ts`; the audience is the API |
-| `API_BASE_URL`                           | gradfolio-api's base URL, server only (`src/lib/api/client.ts`)  |
+| Variable                                 | Purpose                                                                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH0_DOMAIN`                           | Tenant domain, e.g. `dev-….us.auth0.com`                                                                                                          |
+| `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` | The application's credentials                                                                                                                     |
+| `AUTH0_SECRET`                           | Session cookie encryption (`openssl rand -hex 32`)                                                                                                |
+| `APP_BASE_URL`                           | This app's URL (`http://localhost:3000` locally)                                                                                                  |
+| `AUTH0_SCOPE`, `AUTH0_AUDIENCE`          | Passed explicitly in `src/lib/auth0.ts`; the audience is the API                                                                                  |
+| `API_BASE_URL`                           | gradfolio-api's base URL, server only (`src/lib/api/client.ts`)                                                                                   |
+| `API_PROXY_SECRET`                       | Server only, optional: with it public calls forward the visitor's address (`X-Client-IP`) so the API rate-limits per visitor; unset sends nothing |
 
 There is no `vercel.json`; Vercel builds with its Next.js preset.
 
@@ -355,21 +356,22 @@ mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` firs
 
 ## Pages
 
-| Route                       | What it does                                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`     |
-| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header        |
-| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                       |
-| `/projects`                 | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)       |
-| `/projects/[id]`            | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team      |
-| `/projects/new`             | `ProjectForm` (create): sections, Tiptap description, terms, links, visibility; login required           |
-| `/projects/[id]/edit`       | `ProjectForm` (edit) for the owner (404 otherwise) and delete with a confirmation naming the project     |
-| `/search`                   | Explore portfolios: name, headline, skills, projects; category heuristic                                 |
-| `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                             |
-| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                          |
-| `/settings`                 | Language and theme                                                                                       |
-| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required |
-| 404                         | Hides the sidebar, Noise effect                                                                          |
+| Route                       | What it does                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`         |
+| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header            |
+| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                           |
+| `/projects`                 | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)           |
+| `/projects/[id]`            | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team          |
+| `/projects/new`             | `ProjectForm` (create): sections, Tiptap description, terms, links, visibility; login required               |
+| `/projects/[id]/edit`       | `ProjectForm` (edit) for the owner (404 otherwise) and delete with a confirmation naming the project         |
+| `/search`                   | Global search on the API (6.8): `q`/`type`/`cursor` in the URL; People and Projects groups; public, no token |
+| `/tags/[name]`              | A tag's projects and people (`GET /v1/tags`); unknown tag is a 404; chips on project and profile link here   |
+| `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                                 |
+| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                              |
+| `/settings`                 | Language and theme                                                                                           |
+| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required     |
+| 404                         | Hides the sidebar, Noise effect                                                                              |
 
 ## What is not built yet
 
