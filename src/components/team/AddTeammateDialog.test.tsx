@@ -39,8 +39,11 @@ const show = (props: { isDraft?: boolean } = {}) =>
     />,
   );
 
-const type = (label: RegExp | string, value: string) =>
-  fireEvent.change(screen.getByRole("combobox", { name: label }), { target: { value } });
+const type = (label: RegExp | string, value: string) => {
+  const box = screen.getByRole("combobox", { name: label });
+  box.focus(); // a person clicks into the field before typing; the list opens on focus
+  fireEvent.change(box, { target: { value } });
+};
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -54,6 +57,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("finding a user", () => {
+  it("puts the cursor in the search field once the dialog is visible", async () => {
+    show();
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: /Search by name/ })).toHaveFocus(),
+    );
+  });
+
   it("asks nothing below 3 characters, then once, after the pause", async () => {
     show();
     type(/Search by name/, "An");

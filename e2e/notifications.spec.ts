@@ -56,6 +56,15 @@ test.describe("without a session", () => {
   });
 });
 
+/** Waits for CSS transitions (MUI fades dialogs in): axe and screenshots of a half-faded dialog lie. */
+const settled = (page: Page) =>
+  page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
+  );
+
+/** Next's dev-only hint about the brand logo; the production build never prints it. */
+const DEV_ONLY = /was detected as the Largest Contentful Paint/;
+
 const stateA = process.env.E2E_STORAGE_STATE_A;
 
 test.describe("signed in (account A)", () => {
@@ -66,7 +75,7 @@ test.describe("signed in (account A)", () => {
     const found: string[] = [];
     page.on("console", (m) => {
       if (m.type() === "error" || m.type() === "warning") {
-        if (!m.text().startsWith("Failed to load resource")) found.push(m.text());
+        if (!DEV_ONLY.test(m.text())) found.push(m.text());
       }
     });
     page.on("pageerror", (e) => found.push(`pageerror: ${e.message}`));
@@ -81,7 +90,7 @@ test.describe("signed in (account A)", () => {
   /** The visible bell for this width: the sidebar's, or the phone's inside More. */
   async function openBell(page: Page, phone: boolean) {
     if (phone) {
-      await page.getByRole("button", { name: /^More/ }).click();
+      await page.getByRole("button", { name: /^(More|Ещё|Ավելին)/ }).click();
       await page.getByTestId("bell-button-phone").click();
     } else {
       await page.getByTestId("bell-button").and(page.locator(":visible")).click();
@@ -101,12 +110,13 @@ test.describe("signed in (account A)", () => {
           ]);
           await page.setViewportSize({ width: size.width, height: size.height });
           const found = problems(page);
-          await page.goto("/projects");
+          await page.goto("/account");
           const closed = await page.screenshot();
           await testInfo.attach("closed", { body: closed, contentType: "image/png" });
           const dialog = await openBell(page, size.name === "phone");
           await expect(dialog).toBeVisible();
           await page.waitForLoadState("networkidle");
+          await settled(page);
           await testInfo.attach("open", {
             body: await page.screenshot(),
             contentType: "image/png",
@@ -120,7 +130,7 @@ test.describe("signed in (account A)", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/projects");
+    await page.goto("/account");
     const bell = page.getByTestId("bell-button").and(page.locator(":visible"));
     await bell.focus();
     await page.keyboard.press("Enter");
@@ -139,7 +149,7 @@ test.describe("signed in (account A)", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/projects");
+    await page.goto("/account");
     const bell = page.getByTestId("bell-button").and(page.locator(":visible"));
     const api = async () =>
       (
