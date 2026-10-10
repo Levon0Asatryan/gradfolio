@@ -88,11 +88,50 @@ now). Answering one leaves the other stale until the list reloads; a click on th
 - Review receipts were written by hand (`method: manual`): the `/gradfolio-web-review` skill was not
   invocable from the sub-agent.
 
-## 5. 5.9 Teams page
+## 5. 5.9 Teams page (#78)
 
-PENDING: planned after API 5.8 (`GET /v1/me/teams`) is merged and deployed. Section to be filled with the
-same matrix (390/1440, light/dark, en/ru/am, keyboard walkthrough, axe, console) and the leave / invite /
-cancel journey.
+`/teams`: invites in and out, the team of each owned project (the project page's `TeamSection`, one
+implementation), and the projects I joined (leave with a confirm naming the project). Data: `GET /v1/me/teams`,
+server side only, contract pinned to gradfolio-api f7003fc. A signed-out request gets a 307 to login that keeps
+`returnTo=/teams` (e2e, and 307 on production after the merge).
+
+Run: accounts A and B (disposable), dev server, production API, before the sessions expired.
+
+| Check                                                                                                                                      | Result                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Journey: A invites B; A sees the outgoing invite, the owned team (Pending chip, a no-account name)                                         | pass                                      |
+| B sees the incoming invite (title only, no project link), accepts on `/teams`: toast, project under "Projects I'm on" with Owner and Leave | pass                                      |
+| B keyboard: Tab reaches Leave, Enter opens the confirm, Cancel is focused, Escape returns focus to Leave                                   | pass (with #75's focus fix applied)       |
+| B leaves: stays on `/teams`, "You left the project" toast, project gone from the list                                                      | pass                                      |
+| B declines an invite: toast; A cancels a sent invite (confirm names B, Cancel focused); B's incoming list empty                            | pass                                      |
+| Matrices (owner/outgoing, incoming, member views): en/ru/am x light/dark x 390/1440 = 12 each, 36 combinations                             | pass: axe 0 serious or critical in all 36 |
+| `e2e/teams.spec.ts` matrix (account's own data, empty states included): 12 combinations, console, axe                                      | pass: 12/12                               |
+| Nav: labelled Teams item in the sidebar, the rail, and under More on a phone                                                               | pass                                      |
+| Test data (projects, invites) deleted afterwards: 0 left                                                                                   | pass                                      |
+
+Found and fixed by this run: the in-text "Open project" link failed axe `link-in-text-block` (serious) with
+hover-only underline; it is now underlined.
+
+Review fixes on the head (cb0f3ef), each with a test that fails without it:
+
+- Dates in the invite rows use the app language's locale and UTC, so server and browser print the same text
+  (`formatDate` takes optional `locale` and `timeZone`; other callers unchanged).
+- A next-page link carries only the cursor of the list being advanced, and the page keeps one cursor from a
+  hand-edited URL, as the `MyTeams` contract says; the other lists restart from page one.
+- The tab title is generated from the request language (Teams, Команды, Թիմեր; checked in a browser).
+
+Hydration: `/teams` showed 0 hydration errors in en/ru/am; `/projects` in Armenian still does (pre-existing,
+section 4).
+
+Not verified here:
+
+- The matrices ran before the review fixes (dates, cursor, title); only the title and hydration were re-checked
+  in a browser after them. A logged-in re-run on the merged build is pending the sessions' refresh.
+- The local-API two-account journey (section 4) was not run; production API only.
+- A project with more than 10 team rows or a list past its first page (cursor links) was covered by unit tests,
+  not by a real two-page list.
+- The Auth0 refresh-token log (section 4 and the proposed tracker rows) shows on `/teams` as on every page.
+- ru and am strings are machine-drafted.
 
 ## 6. Proposed tracker changes
 
