@@ -586,6 +586,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s dashboard
+         * @description Counts of the caller’s projects by state, the sum of stored GitHub stars (null until an import stores any), the three most recently changed projects (own, plus non-draft ones they are an accepted member of), the number of feed entries in the last 30 days and the five newest feed entries, in one call. Only the caller’s own data. Render the feed from `translationKey` and `translationParams`.
+         */
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -1017,6 +1037,50 @@ export interface components {
              */
             date: string;
             credentialUrl: string | null;
+        };
+        /** @description Everything the caller’s dashboard shows, in one call. Only the caller’s own data; a second user’s token gets their own. */
+        Dashboard: {
+            stats: components["schemas"]["DashboardStats"];
+            /** @description The caller’s most recently changed projects: their own, and non-draft ones they are an accepted member of. */
+            recentProjects: components["schemas"]["DashboardProject"][];
+            /** @description The newest entries of the caller’s own feed (the `/v1/me/activities` shape). */
+            activities: components["schemas"]["Activity"][];
+        };
+        DashboardProject: {
+            id: string;
+            title: string;
+            /** @description The author’s own text. Plain text. */
+            summary: string | null;
+            /** @enum {string} */
+            category: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+            /** @enum {string} */
+            status: "ongoing" | "completed" | "archived";
+            technologies: string[];
+            /**
+             * @description owner: the caller created it; member: the caller is an accepted team member (never a draft).
+             * @enum {string}
+             */
+            role: "owner" | "member";
+            isPublic: boolean;
+            isDraft: boolean;
+            /** @description ISO 8601, UTC. */
+            updatedAt: string;
+        };
+        /** @description The caller’s own projects, by state (team projects of others are not counted). */
+        DashboardProjectCounts: {
+            total: number;
+            /** @description Public and not a draft. */
+            published: number;
+            /** @description Not public and not a draft. */
+            private: number;
+            draft: number;
+        };
+        DashboardStats: {
+            projects: components["schemas"]["DashboardProjectCounts"];
+            /** @description Sum of the stars stored on the caller’s non-draft projects; null until an import has stored any (M7). */
+            githubStars: number | null;
+            /** @description Entries in the caller’s feed from the last DASHBOARD_ACTIVITY_DAYS (30) days. */
+            recentActivities: number;
         };
         DiscoveryProjectPage: {
             items: components["schemas"]["ProjectCard"][];
@@ -3774,6 +3838,53 @@ export interface operations {
             };
             /** @description NOT_FOUND: no such notification of the caller's (someone else's id answers the same) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

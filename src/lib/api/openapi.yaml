@@ -2393,6 +2393,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/dashboard:
+    get:
+      operationId: getDashboard
+      tags:
+        - me
+      summary: The caller’s dashboard
+      description: Counts of the caller’s projects by state, the sum of stored GitHub stars (null until an import stores any), the three most recently changed projects (own, plus non-draft ones they are an accepted member of), the number of feed entries in the last 30 days and the five newest feed entries, in one call. Only the caller’s own data. Render the feed from `translationKey` and `translationParams`.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/search:
     get:
       operationId: search
@@ -3899,6 +3933,131 @@ components:
         - issuer
         - date
         - credentialUrl
+      additionalProperties: false
+    Dashboard:
+      type: object
+      properties:
+        stats:
+          $ref: "#/components/schemas/DashboardStats"
+        recentProjects:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardProject"
+          description: "The caller’s most recently changed projects: their own, and non-draft ones they are an accepted member of."
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+          description: The newest entries of the caller’s own feed (the `/v1/me/activities` shape).
+      required:
+        - stats
+        - recentProjects
+        - activities
+      additionalProperties: false
+      description: Everything the caller’s dashboard shows, in one call. Only the caller’s own data; a second user’s token gets their own.
+    DashboardProject:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          nullable: true
+          description: The author’s own text. Plain text.
+          type: string
+        category:
+          type: string
+          enum:
+            - academic
+            - personal
+            - research
+            - hackathon
+            - course
+            - other
+        status:
+          type: string
+          enum:
+            - ongoing
+            - completed
+            - archived
+        technologies:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+          enum:
+            - owner
+            - member
+          description: "owner: the caller created it; member: the caller is an accepted team member (never a draft)."
+        isPublic:
+          type: boolean
+        isDraft:
+          type: boolean
+        updatedAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - id
+        - title
+        - summary
+        - category
+        - status
+        - technologies
+        - role
+        - isPublic
+        - isDraft
+        - updatedAt
+      additionalProperties: false
+    DashboardProjectCounts:
+      type: object
+      properties:
+        total:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        published:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Public and not a draft.
+        private:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Not public and not a draft.
+        draft:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - total
+        - published
+        - private
+        - draft
+      additionalProperties: false
+      description: The caller’s own projects, by state (team projects of others are not counted).
+    DashboardStats:
+      type: object
+      properties:
+        projects:
+          $ref: "#/components/schemas/DashboardProjectCounts"
+        githubStars:
+          nullable: true
+          description: Sum of the stars stored on the caller’s non-draft projects; null until an import has stored any (M7).
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        recentActivities:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Entries in the caller’s feed from the last DASHBOARD_ACTIVITY_DAYS (30) days.
+      required:
+        - projects
+        - githubStars
+        - recentActivities
       additionalProperties: false
     DiscoveryProjectPage:
       type: object
