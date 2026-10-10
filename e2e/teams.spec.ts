@@ -34,11 +34,7 @@ const DEV_ONLY = /was detected as the Largest Contentful Paint/;
 const consoleProblems = (page: Page): string[] => {
   const found: string[] = [];
   page.on("console", (m) => {
-    if (
-      (m.type() === "error" || m.type() === "warning") &&
-      !m.text().startsWith("Failed to load resource") &&
-      !DEV_ONLY.test(m.text())
-    )
+    if ((m.type() === "error" || m.type() === "warning") && !DEV_ONLY.test(m.text()))
       found.push(m.text());
   });
   page.on("pageerror", (e) => found.push(`pageerror: ${e.message}`));

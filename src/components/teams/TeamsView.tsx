@@ -201,7 +201,7 @@ export const TeamsView: FC<TeamsViewProps> = ({ teams, viewerUserId, more, first
                   {fill(text.ownerLabel, { name: project.owner.name })}
                   {project.role ? ` · ${fill(text.yourRole, { role: project.role })}` : ""}
                   {" · "}
-                  <Link component={NextLink} href={`/projects/${project.id}`} underline="hover">
+                  <Link component={NextLink} href={`/projects/${project.id}`} underline="always">
                     {text.openProject}
                   </Link>
                 </Typography>
