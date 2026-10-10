@@ -606,6 +606,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Typeahead: a few people, projects and terms that start with the text
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Matches the start of the text or of any word in it, so a single letter works; at most 5 of each. Tags are skills, technologies and tags that a public project or profile uses, in the site-wide spelling. Has its own, larger rate budget for debounced bursts. Use `/v1/search` for results.
+         */
+        get: operations["searchSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search/people": {
         parameters: {
             query?: never;
@@ -1419,6 +1439,22 @@ export interface components {
             query: string;
             people: components["schemas"]["PersonGroup"];
             projects: components["schemas"]["ProjectGroup"];
+        };
+        Suggestion: {
+            /** @description The person’s or project’s id, for a link. */
+            id: string;
+            /** @description The name or title to show. */
+            label: string;
+            /** @description People only; null for projects. */
+            avatarUrl: string | null;
+        };
+        Suggestions: {
+            /** @description The text as normalized. */
+            query: string;
+            people: components["schemas"]["Suggestion"][];
+            projects: components["schemas"]["Suggestion"][];
+            /** @description Skills, technologies and tags in the site-wide spelling that a public project or profile uses. */
+            tags: string[];
         };
         TagCloud: {
             items: components["schemas"]["TagCloudItem"][];
@@ -3783,6 +3819,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    searchSuggestions: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The suggestions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
                 };
             };
             /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */

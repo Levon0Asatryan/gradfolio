@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MIN_SUGGEST_LENGTH, cleanQuery } from "@/lib/discovery/query";
+import { MAX_SUGGEST_LENGTH, MIN_SUGGEST_LENGTH, cleanQuery } from "@/lib/discovery/query";
 import type { Suggestions } from "@/lib/api/types";
 
 const DEBOUNCE_MS = 200;
@@ -21,7 +21,7 @@ export function useSuggestions(text: string, enabled: boolean): SuggestState {
   const [state, setState] = useState<SuggestState>({ status: "idle" });
 
   useEffect(() => {
-    const query = cleanQuery(text);
+    const query = Array.from(cleanQuery(text)).slice(0, MAX_SUGGEST_LENGTH).join("").trim();
     if (!enabled || Array.from(query).length < MIN_SUGGEST_LENGTH) {
       setState({ status: "idle" });
       return;

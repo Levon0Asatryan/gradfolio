@@ -8,9 +8,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const SUGGESTIONS = {
   query: "io",
-  people: [{ id: "p1", name: "Ioana Petrosyan", headline: "IoT engineer" }],
-  projects: [{ id: "j1", title: "IoT Garden", category: "course" }],
-  tags: [{ name: "IoT", projects: 14, people: 9 }],
+  people: [{ id: "p1", label: "Ioana Petrosyan", avatarUrl: null }],
+  projects: [{ id: "j1", label: "IoT Garden", avatarUrl: null }],
+  tags: ["IoT"],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -46,9 +46,9 @@ describe("search suggestions (combobox)", () => {
     expect(box.getAttribute("aria-controls")).toBeTruthy();
   });
 
-  it("asks the same-origin route (never the API), debounced, and only from two characters", async () => {
+  it("asks the same-origin route (never the API), debounced, and not for an empty box", async () => {
     renderInApp(<SearchBox initialQuery="" />);
-    await type("i");
+    await type("   ");
     expect(fetchMock).not.toHaveBeenCalled();
     await type("io");
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -124,7 +124,7 @@ describe("search suggestions (combobox)", () => {
           query: "iot",
           people: [],
           projects: [],
-          tags: [{ name: "IoT", projects: 1, people: 1 }],
+          tags: ["IoT"],
         }),
       );
     renderInApp(<SearchBox initialQuery="" />);

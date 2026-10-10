@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError, getSuggestions } from "@/lib/api/client";
-import { MIN_SUGGEST_LENGTH, cleanQuery } from "@/lib/discovery/query";
+import { MAX_SUGGEST_LENGTH, MIN_SUGGEST_LENGTH, cleanQuery } from "@/lib/discovery/query";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 
@@ -10,7 +10,11 @@ const NO_STORE = { "Cache-Control": "no-store" } as const;
  * the way the search page cleans it, so a crafted one cannot make the API answer 400.
  */
 export async function GET(request: NextRequest) {
-  const q = cleanQuery(request.nextUrl.searchParams.get("q") ?? "");
+  // The API takes 50 characters here: cut, as the search page cuts to its own limit.
+  const q = Array.from(cleanQuery(request.nextUrl.searchParams.get("q") ?? ""))
+    .slice(0, MAX_SUGGEST_LENGTH)
+    .join("")
+    .trim();
   if (Array.from(q).length < MIN_SUGGEST_LENGTH) {
     return NextResponse.json({ code: "VALIDATION_FAILED" }, { status: 400, headers: NO_STORE });
   }

@@ -3,13 +3,17 @@
 import { FC } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 
 export interface SuggestionOption {
   key: string;
   group: "people" | "projects" | "tags" | "search";
   label: string;
   secondary: string;
+  /** People only. */
+  avatarUrl?: string | null;
   href: string;
 }
 
@@ -122,9 +126,20 @@ export const SuggestionList: FC<{
                   "&:hover": { bgcolor: palette.surface.soft },
                 })}
               >
-                <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                  {option.label}
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                  {option.group === "people" && (
+                    <Avatar
+                      src={safeHttpsUrl(option.avatarUrl)}
+                      alt=""
+                      sx={{ width: 28, height: 28, flex: "none", fontSize: 14 }}
+                    >
+                      {option.label.trim().charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                    {option.label}
+                  </Typography>
+                </Box>
                 {option.secondary && (
                   <Typography variant="caption" color="text.secondary" noWrap>
                     {option.secondary}

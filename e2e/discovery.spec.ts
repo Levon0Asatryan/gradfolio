@@ -391,6 +391,23 @@ test.describe("behaviour", () => {
     await expect(page).toHaveURL(/\/(profile|projects|tags)\//);
   });
 
+  test("typing on while a search is in flight and the list is open keeps every character", async ({
+    page,
+  }) => {
+    // "slow..." is answered late, for the search and for the suggestions: the dropdown is
+    // open or loading while the page's own search comes back with an older query.
+    await page.goto("/search");
+    const box = page.getByRole("combobox", { name: /Search people/ });
+    await box.click();
+    await page.keyboard.type("slow", { delay: 40 });
+    await page.waitForTimeout(450);
+    await page.keyboard.type(" query go", { delay: 40 });
+    await page.waitForTimeout(1800);
+    await expect(box).toHaveValue("slow query go");
+    await expect(box).toBeFocused();
+    await expect(page).toHaveURL(/q=slow\+query\+go/);
+  });
+
   test("Enter with nothing chosen is the plain search", async ({ page }) => {
     await page.goto("/search");
     const box = page.getByRole("combobox", { name: /Search people/ });

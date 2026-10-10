@@ -134,14 +134,14 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       people: people(5)
         .filter((p) => starts(p.name) || starts(p.headline))
         .slice(0, 3)
-        .map((p) => ({ id: p.id, name: p.name, headline: p.headline })),
+        .map((p) => ({ id: p.id, label: p.name, avatarUrl: null })),
       projects: projects(4)
         .filter((p) => starts(p.title))
         .slice(0, 3)
-        .map((p) => ({ id: p.id, title: p.title, category: p.category })),
+        .map((p) => ({ id: p.id, label: p.title, avatarUrl: null })),
       tags: Object.values(TAGS)
         .filter((tag) => starts(tag.name))
-        .map((tag) => ({ name: tag.name, projects: tag.projectCount, people: tag.peopleCount })),
+        .map((tag) => tag.name),
     };
     return send(res, 200, body);
   }

@@ -2438,6 +2438,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/suggestions:
+    get:
+      operationId: searchSuggestions
+      tags:
+        - discovery
+      summary: "Typeahead: a few people, projects and terms that start with the text"
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Matches the start of the text or of any word in it, so a single letter works; at most 5 of each. Tags are skills, technologies and tags that a public project or profile uses, in the site-wide spelling. Has its own, larger rate budget for debounced bursts. Use `/v1/search` for results."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            description: The start of a name, title or term, 1 to 50 characters. Matches the start of the text or the start of any word in it.
+            type: string
+      responses:
+        "200":
+          description: The suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Suggestions"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/search/people:
     get:
       operationId: searchPeople
@@ -5057,6 +5102,49 @@ components:
         - query
         - people
         - projects
+      additionalProperties: false
+    Suggestion:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The person’s or project’s id, for a link.
+        label:
+          type: string
+          description: The name or title to show.
+        avatarUrl:
+          nullable: true
+          description: People only; null for projects.
+          type: string
+      required:
+        - id
+        - label
+        - avatarUrl
+      additionalProperties: false
+    Suggestions:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The text as normalized.
+        people:
+          type: array
+          items:
+            $ref: "#/components/schemas/Suggestion"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/Suggestion"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Skills, technologies and tags in the site-wide spelling that a public project or profile uses.
+      required:
+        - query
+        - people
+        - projects
+        - tags
       additionalProperties: false
     TagCloud:
       type: object

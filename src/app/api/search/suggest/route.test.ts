@@ -33,14 +33,28 @@ describe("GET /api/search/suggest", () => {
     expect(await res.json()).toMatchObject({ query: "ml" });
   });
 
-  it.each(["", "a", "   ", "%00%00", "x%E2%80%8B"])(
-    "refuses %j (under two characters once cleaned) without calling the API",
+  it.each(["", "   ", "%00%00", "%E2%80%8B"])(
+    "refuses %j (empty once cleaned) without calling the API",
     async (q) => {
       const res = await GET(req(`?q=${q}`));
       expect(res.status).toBe(400);
       expect(api.getSuggestions).not.toHaveBeenCalled();
     },
   );
+
+  it("a single letter is a valid suggestion query (the API matches word starts)", async () => {
+    api.getSuggestions.mockResolvedValue({ query: "r", people: [], projects: [], tags: [] });
+    const res = await GET(req("?q=R"));
+    expect(res.status).toBe(200);
+    expect(api.getSuggestions).toHaveBeenCalledWith("R");
+  });
+
+  it("cuts to the 50 characters the API takes here (search takes 100)", async () => {
+    api.getSuggestions.mockResolvedValue({ query: "", people: [], projects: [], tags: [] });
+    await GET(req(`?q=${"ab ".repeat(30)}`));
+    const sent = api.getSuggestions.mock.calls[0]?.[0] as string;
+    expect(Array.from(sent).length).toBeLessThanOrEqual(50);
+  });
 
   it("cuts a paragraph to what the API takes instead of sending a 400 through", async () => {
     api.getSuggestions.mockResolvedValue({ query: "", people: [], projects: [], tags: [] });

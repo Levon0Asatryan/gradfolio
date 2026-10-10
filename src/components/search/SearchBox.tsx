@@ -63,23 +63,24 @@ export const SearchBox: FC<{ initialQuery: string }> = ({ initialQuery }) => {
       ...data.people.map((p) => ({
         key: `person-${p.id}`,
         group: "people" as const,
-        label: p.name,
-        secondary: p.headline,
+        label: p.label,
+        secondary: "",
+        avatarUrl: p.avatarUrl,
         href: `/profile/${encodeURIComponent(p.id)}`,
       })),
       ...data.projects.map((p) => ({
         key: `project-${p.id}`,
         group: "projects" as const,
-        label: p.title,
-        secondary: t.projects.categories[p.category] ?? p.category,
+        label: p.label,
+        secondary: "",
         href: `/projects/${encodeURIComponent(p.id)}`,
       })),
-      ...data.tags.map((tag) => ({
-        key: `tag-${tag.name}`,
+      ...data.tags.map((name) => ({
+        key: `tag-${name}`,
         group: "tags" as const,
-        label: tag.name,
+        label: name,
         secondary: "",
-        href: tagHref(tag.name),
+        href: tagHref(name),
       })),
       // Last, always: the search itself, so there is one obvious way to take the typed text.
       {
