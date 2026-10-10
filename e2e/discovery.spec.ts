@@ -24,6 +24,21 @@ const PAGES = [
   { name: "people list", path: "/search?q=iot&type=people", h1: /Explore|Обзор|Ուսումնասիրել/ },
   { name: "no results", path: "/search?q=nothing", h1: /Explore|Обзор|Ուսումնասիրել/ },
   { name: "tag page", path: "/tags/IoT", h1: /IoT/ },
+  {
+    name: "browse projects",
+    path: "/browse/projects",
+    h1: /Browse projects|Обзор проектов|Դիտել նախագծերը/,
+  },
+  {
+    name: "browse projects, empty",
+    path: "/browse/projects?category=other",
+    h1: /Browse projects|Обзор проектов|Դիտել նախագծերը/,
+  },
+  {
+    name: "browse people",
+    path: "/browse/people?school=NPUA",
+    h1: /Browse people|Обзор людей|Դիտել մարդկանց/,
+  },
 ] as const;
 
 const settled = (page: Page) =>
@@ -220,6 +235,55 @@ test.describe("behaviour", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tag: C%23");
     await expect(page).toHaveTitle(/C%23/);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/tags\/C%2523$/);
+  });
+
+  test("the landing has the tag cloud and the newest lists, each with its link", async ({
+    page,
+  }) => {
+    await page.goto("/search");
+    await expect(page.getByRole("list", { name: "Popular tags" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "IoT: 14 projects, 9 people" })).toHaveAttribute(
+      "href",
+      "/tags/IoT",
+    );
+    await expect(page.getByRole("heading", { level: 2, name: "Newest projects" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Browse all people" })).toHaveAttribute(
+      "href",
+      "/browse/people",
+    );
+  });
+
+  test("the gallery filters by link, and Next page / First page keep them", async ({ page }) => {
+    await page.goto("/browse/projects");
+    await expect(page.locator("article")).toHaveCount(12);
+    await page.getByRole("link", { name: "Course", exact: true }).click();
+    await expect(page).toHaveURL(/category=course/);
+    await expect(page.getByRole("link", { name: "Course", exact: true })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    await page.getByRole("link", { name: "Next page" }).click();
+    await expect(page).toHaveURL(/category=course&cursor=page-2/);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await page.getByRole("link", { name: "First page" }).click();
+    await expect(page).toHaveURL(/category=course$/);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /^index/);
+  });
+
+  test("an empty gallery says so, and is not an error", async ({ page }) => {
+    await page.goto("/browse/projects?category=other");
+    await expect(page.getByText("No projects match these filters.")).toBeVisible();
+    await expect(page.getByText("This section could not be loaded.")).toHaveCount(0);
+  });
+
+  test("people filters are a GET form: choosing a school puts it in the URL", async ({ page }) => {
+    await page.goto("/browse/people");
+    await page.getByRole("combobox", { name: "School" }).click();
+    await page.getByRole("option", { name: "NPUA" }).click();
+    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect(page).toHaveURL(/school=NPUA/);
+    await expect(page.getByRole("link", { name: "Clear filters" })).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   });
 
   test("an unknown tag is a real 404 and not indexed", async ({ page }) => {
