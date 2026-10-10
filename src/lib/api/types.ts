@@ -65,3 +65,13 @@ export type LookupUser = components["schemas"]["UserLookupResult"]["items"][numb
 export type MyTeams = components["schemas"]["MyTeams"];
 export type IncomingInvite = components["schemas"]["IncomingInvite"];
 export type OutgoingInvite = components["schemas"]["OutgoingInvite"];
+
+// Discovery (M6 6.1, 6.2). Provisional until the contract is pinned: see discoveryTypes.ts.
+export type {
+  DiscoveryProject,
+  DiscoveryProjectPage,
+  PersonPage,
+  PersonSummary,
+  SearchResults,
+  TagSummary,
+} from "./discoveryTypes";

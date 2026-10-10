@@ -1,4 +1,5 @@
 import "server-only";
+import { headers as requestHeaders } from "next/headers";
 import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
 import type { Section } from "@/lib/profile/sections";
@@ -21,6 +22,10 @@ import type {
   TeamMember,
   LookupUser,
   MyTeams,
+  PersonPage,
+  DiscoveryProjectPage,
+  SearchResults,
+  TagSummary,
 } from "./types";
 
 /**
@@ -87,8 +92,35 @@ interface Call {
   method: "GET" | "PATCH" | "POST" | "PUT" | "DELETE";
   path: string;
   body?: unknown;
-  /** `optional`: send the token when there is a session, read anonymously otherwise. */
-  auth?: "required" | "optional";
+  /**
+   * `optional`: send the token when there is a session, read anonymously otherwise.
+   * `none`: never send one. Public discovery answers the same for everyone, so it carries
+   * no identity and cannot differ per user (and is safe to cache).
+   */
+  auth?: "required" | "optional" | "none";
+}
+
+/**
+ * The visitor's address, for the API's rate limiter (API plan §2.4, D4). Every anonymous
+ * request from this server otherwise comes from one address and shares one budget. Sent
+ * only with `API_PROXY_SECRET`, which proves to the API that the header comes from here;
+ * with no secret nothing is sent and the API falls back to the shared bucket.
+ */
+export async function forwardedClientHeaders(
+  env: Record<string, string | undefined> = process.env,
+): Promise<Record<string, string>> {
+  const secret = env.API_PROXY_SECRET;
+  if (!secret) return {};
+  let forwarded: string | null = null;
+  try {
+    forwarded = (await requestHeaders()).get("x-forwarded-for");
+  } catch {
+    return {}; // outside a request
+  }
+  // Vercel overwrites x-forwarded-for; the first entry is the client.
+  const ip = forwarded?.split(",")[0]?.trim();
+  if (!ip || ip.length > 64 || !/^[0-9a-fA-F:.]+$/.test(ip)) return {};
+  return { "X-Client-IP": ip, "X-Gradfolio-Proxy-Secret": secret };
 }
 
 async function request<T>({ method, path, body, auth = "required" }: Call): Promise<T> {
@@ -96,8 +128,12 @@ async function request<T>({ method, path, body, auth = "required" }: Call): Prom
   if (!base) throw new ApiError(503, LOCAL_CODES.notConfigured, "API_BASE_URL is not set");
 
   const headers: Record<string, string> = { Accept: "application/json" };
-  const token = await accessToken(auth === "optional");
-  if (token !== null) headers.Authorization = `Bearer ${token}`;
+  if (auth === "none") {
+    Object.assign(headers, await forwardedClientHeaders());
+  } else {
+    const token = await accessToken(auth === "optional");
+    if (token !== null) headers.Authorization = `Bearer ${token}`;
+  }
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   let response: Response;
@@ -370,4 +406,65 @@ export function getMyTeams(query: TeamsQuery = {}): Promise<MyTeams> {
   }
   const qs = params.toString();
   return request<MyTeams>({ method: "GET", path: `/v1/me/teams${qs ? `?${qs}` : ""}` });
+}
+
+/** The query string of the discovery calls: unset and empty values are left out. */
+function qs(values: Record<string, string | number | undefined>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
+
+interface Paging {
+  limit?: number;
+  cursor?: string;
+}
+
+/** Grouped top results for a query: public content only (Q3), no identity sent. */
+export function searchAll(q: string, limit?: number): Promise<SearchResults> {
+  return request<SearchResults>({
+    method: "GET",
+    path: `/v1/search${qs({ q, limit })}`,
+    auth: "none",
+  });
+}
+
+export function searchPeople(q: string, paging: Paging = {}): Promise<PersonPage> {
+  return request<PersonPage>({
+    method: "GET",
+    path: `/v1/search/people${qs({ q, ...paging })}`,
+    auth: "none",
+  });
+}
+
+export function searchProjects(q: string, paging: Paging = {}): Promise<DiscoveryProjectPage> {
+  return request<DiscoveryProjectPage>({
+    method: "GET",
+    path: `/v1/search/projects${qs({ q, ...paging })}`,
+    auth: "none",
+  });
+}
+
+/** A tag's counts; a term no public item uses is the API's 404. The name is a query value. */
+export function getTag(name: string): Promise<TagSummary> {
+  return request<TagSummary>({ method: "GET", path: `/v1/tags${qs({ name })}`, auth: "none" });
+}
+
+export function listTagProjects(name: string, paging: Paging = {}): Promise<DiscoveryProjectPage> {
+  return request<DiscoveryProjectPage>({
+    method: "GET",
+    path: `/v1/tags/projects${qs({ name, ...paging })}`,
+    auth: "none",
+  });
+}
+
+export function listTagPeople(name: string, paging: Paging = {}): Promise<PersonPage> {
+  return request<PersonPage>({
+    method: "GET",
+    path: `/v1/tags/people${qs({ name, ...paging })}`,
+    auth: "none",
+  });
 }
