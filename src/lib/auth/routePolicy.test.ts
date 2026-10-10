@@ -25,6 +25,8 @@ describe("isProtectedPath", () => {
     "/profile/0b6f2c1e-1111-4222-8333-444455556666",
     "/projects/abc-123",
     "/search",
+    "/tags/ml",
+    "/tags/C%23",
     "/settings",
     "/auth/login",
     "/auth/callback",

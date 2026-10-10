@@ -233,6 +233,7 @@ export interface Dictionary {
     noMatchesHelp: string;
     clearFilters: string;
     filterByCategory: string;
+    allCategories: string;
     clearSearch: string;
     moreTech: string;
     categories: {
@@ -451,19 +452,39 @@ export interface Dictionary {
     title: string;
     subtitle: string;
     placeholder: string;
+    searchLabel: string;
+    searchButton: string;
+    landingHint: string;
+    people: string;
+    projects: string;
+    seeAllPeople: string;
+    seeAllProjects: string;
+    resultsFor: string;
     noResults: string;
+    noPeople: string;
+    noProjects: string;
     tryAdjusting: string;
-    clearFilters: string;
     showingResults: string;
-    featuredProjects: string;
-    categories: {
-      all: string;
-      developers: string;
-      designers: string;
-      productManagers: string;
-      dataScientists: string;
-      researchers: string;
-    };
+    nextPage: string;
+    firstPage: string;
+    backToResults: string;
+    loadErrorTitle: string;
+    errorRateLimited: string;
+    errorUnavailable: string;
+    errorGeneric: string;
+    tryAgain: string;
+    loading: string;
+    projectCount: string;
+    byOwner: string;
+    verified: string;
+  };
+  tags: {
+    title: string;
+    projectsTagged: string;
+    peopleWith: string;
+    summary: string;
+    openTag: string;
+    tagsOf: string;
   };
   account: {
     title: string;

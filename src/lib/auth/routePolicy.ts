@@ -2,8 +2,8 @@
  * Which pages need a signed-in user (tracker 2.10).
  *
  * Public, so a recruiter can follow a shared link without an account (spec
- * §8d): a profile (`/profile/<id>`), a project (`/projects/<id>`), search,
- * settings (language and theme, stored in the browser), and the auth routes.
+ * §8d): a profile (`/profile/<id>`), a project (`/projects/<id>`), search
+ * and tag pages (`/search`, `/tags/<name>`), settings (language and theme, stored in the browser), and the auth routes.
  * Everything that shows or edits the signed-in user's own data needs a login.
  * `/` is the personal dashboard, so it is protected too.
  */

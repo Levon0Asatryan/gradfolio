@@ -23,7 +23,9 @@ const HighlightedText: FC<HighlightedTextProps> = ({ text, query }) => {
             sx={{
               bgcolor: (theme) =>
                 theme.palette.mode === "dark" ? "warning.main" : "warning.light", // More visible highlight color
-              color: "inherit",
+              // The marker's own background decides the text colour: inheriting a grey caption
+              // colour onto a yellow highlight fails contrast (axe, WCAG AA) in either theme.
+              color: "common.black",
               px: 0,
               borderRadius: 0,
               boxDecorationBreak: "clone",

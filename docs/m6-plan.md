@@ -93,8 +93,10 @@ discovery (§3.3), so nothing is added to the sidebar, and its two links lead to
     interactive; a `useTransition` pending flag shows a thin progress bar on a replace.
   - _No results_: the sentence with the query, two suggestions: check spelling, or open a tag from
     the cloud (it is shown here). Never an error look.
-  - _Too short_ (1 character): a hint, no API call. 2 characters is allowed (D3: the API has a
-    fallback for `ML`, `AI`, `Go`).
+  - _One character_: **sent to the API, no "too short" state** (decided against the API contract
+    during PR 3). `openapi.yaml` takes `q` of 1 to 100 characters, and a single character matches
+    an exact skill, technology or tag (`R`, `C`): a hint instead would hide a real search. An
+    empty or whitespace-only query is the landing.
   - _Error_: `ApiError` becomes an error panel with a Retry link (same URL): 429 "Too many
     searches, wait a moment", 503/unreachable "Search is unavailable". **An API error is never an
     empty result** (AGENTS "Rendering and data").
@@ -197,8 +199,8 @@ action is the dashboard's feed "load more" (§6).
 
 ### 4.3 Rate limits
 
-Public search is the one place a user can generate many calls. The FE does: 300 ms debounce, a
-2-character minimum, the replace-not-push navigation (no history spam), no prefetch of result
+Public search is the one place a user can generate many calls. The FE does: 300 ms debounce, the
+replace-not-push navigation (no history spam), no prefetch of result
 links in a list of 6 to 12 cards that is not in view, and 429 handled as a message with Retry. The
 shared-bucket problem (all anonymous traffic from Vercel's address) is the API's to fix: forward
 the visitor's address (`X-Forwarded-For`) with `TRUST_PROXY` set, or a separate budget for the

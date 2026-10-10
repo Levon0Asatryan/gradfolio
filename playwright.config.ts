@@ -12,6 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
  * in ~/Library/Caches, then `npx playwright install chromium`.
  */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
+const API_PORT = Number(process.env.E2E_API_PORT ?? 3199);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -25,25 +26,38 @@ export default defineConfig({
   // Not started when PLAYWRIGHT_BASE_URL points at a running site.
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
-    : {
-        command: `npx next start -p ${PORT}`,
-        url: `${baseURL}/settings`,
-        reuseExistingServer: !process.env.CI,
-        timeout: 60_000,
-        env: {
-          AUTH0_DOMAIN: "e2e.example.auth0.com",
-          AUTH0_CLIENT_ID: "e2e-client",
-          AUTH0_CLIENT_SECRET: "e2e-secret",
-          AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-          APP_BASE_URL: baseURL,
-          // A port nothing listens on: a request with no session must stop at the token
-          // check (401) before it is ever sent, which the notifications spec relies on.
-          API_BASE_URL: "http://127.0.0.1:9",
-          NEXT_TELEMETRY_DISABLED: "1",
-          // Vercel's Node does not allow require() of an ES module. Without this the server here
-          // would, so a dependency that needs it (jsdom 30 broke every project page that way)
-          // passes locally and in CI and fails in production.
-          NODE_OPTIONS: "--no-experimental-require-module",
+    : [
+        {
+          // The public discovery endpoints, canned (e2e/fixtures/api-stub.ts).
+          command: "node e2e/fixtures/api-stub.ts",
+          url: `http://127.0.0.1:${API_PORT}/__requests`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 30_000,
+          env: { E2E_API_PORT: String(API_PORT) },
         },
-      },
+        {
+          command: `npx next start -p ${PORT}`,
+          url: `${baseURL}/settings`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 60_000,
+          env: {
+            AUTH0_DOMAIN: "e2e.example.auth0.com",
+            AUTH0_CLIENT_ID: "e2e-client",
+            AUTH0_CLIENT_SECRET: "e2e-secret",
+            AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            APP_BASE_URL: baseURL,
+            // The stub: public discovery answers, everything else is a 503. A request with no
+            // session must still stop at the token check (401) before it is ever sent, which
+            // the notifications spec relies on.
+            API_BASE_URL: `http://127.0.0.1:${API_PORT}`,
+            // The shared secret the stub records: proves the visitor's address is forwarded.
+            API_PROXY_SECRET: "e2e-proxy-secret",
+            NEXT_TELEMETRY_DISABLED: "1",
+            // Vercel's Node does not allow require() of an ES module. Without this the server here
+            // would, so a dependency that needs it (jsdom 30 broke every project page that way)
+            // passes locally and in CI and fails in production.
+            NODE_OPTIONS: "--no-experimental-require-module",
+          },
+        },
+      ],
 });
