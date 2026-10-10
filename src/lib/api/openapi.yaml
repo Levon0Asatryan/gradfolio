@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Gradfolio API
   version: 0.1.0
-  description: Backend for Gradfolio, a student portfolio platform. Every route except the health checks is under `/v1` and needs an Auth0 access token, except reading a public profile (`GET /v1/users/{id}`). Every failure answers with an `ErrorResponse`.
+  description: Backend for Gradfolio, a student portfolio platform. Every route except the health checks is under `/v1` and needs an Auth0 access token, except reading a public profile (`GET /v1/users/{id}`), a public project, and search and tag pages (`discovery`). Every failure answers with an `ErrorResponse`.
   license:
     name: MIT
 tags:
@@ -20,6 +20,8 @@ tags:
     description: The caller’s own notifications
   - name: activities
     description: The caller’s own activity feed
+  - name: discovery
+    description: "Public search and tag pages: published work of public profiles only"
 paths:
   /healthz:
     get:
@@ -2306,6 +2308,349 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/search:
+    get:
+      operationId: search
+      tags:
+        - discovery
+      summary: Search people and projects
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Each group is the best few matches, in relevance order, with `hasMore`; page one group with `/v1/search/people` or `/v1/search/projects`. Words of two characters or fewer (`AI`, `ML`, `Go`), and `C#`-style words, match whole skills, technologies and tags exactly and the start of words in names and titles. Common English words (`the`, `an`) are ignored when other words remain."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            description: Words to find, 1 to 100 characters, at most 6 words. Every word must match; very common English words are ignored when other words remain.
+            type: string
+      responses:
+        "200":
+          description: The best matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/people:
+    get:
+      operationId: searchPeople
+      tags:
+        - discovery
+      summary: Search people, paged
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Order: relevance (name equals the query, then every word starts a word of the name, then headline or skill), then newest. Cursors are not signed: they only position the page."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            description: Words to find, 1 to 100 characters, at most 6 words. Every word must match; very common English words are ignored when other words remain.
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/search/projects:
+    get:
+      operationId: searchProjects
+      tags:
+        - discovery
+      summary: Search projects, paged
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Order: relevance (title equals the query, then every word in the title or a technology/tag, then the summary), then newest. Cursors are not signed."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            description: Words to find, 1 to 100 characters, at most 6 words. Every word must match; very common English words are ignored when other words remain.
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryProjectPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/tags:
+    get:
+      operationId: getTag
+      tags:
+        - discovery
+      summary: A skill, technology or tag and how many public things use it
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. The name is matched case-insensitively and returned in the site-wide spelling. A name that no public project or profile uses is 404, the same answer for one that is only used privately."
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            description: The skill, technology or tag, in any case. A query parameter, not a path segment, so names such as `C#` and `CI/CD` need no escaping.
+            example: C#
+            type: string
+      responses:
+        "200":
+          description: The term
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagSummary"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no public project or profile uses this name"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/tags/projects:
+    get:
+      operationId: listTagProjects
+      tags:
+        - discovery
+      summary: Projects that use a skill, technology or tag, newest first
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. A name nobody public uses is an empty page, not an error."
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            description: The skill, technology or tag, in any case. A query parameter, not a path segment, so names such as `C#` and `CI/CD` need no escaping.
+            example: C#
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryProjectPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/tags/people:
+    get:
+      operationId: listTagPeople
+      tags:
+        - discovery
+      summary: People who list a skill, newest first
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. A name nobody public lists is an empty page, not an error."
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            description: The skill, technology or tag, in any case. A query parameter, not a path segment, so names such as `C#` and `CI/CD` need no escaping.
+            example: C#
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/education:
     post:
       operationId: createEducation
@@ -3256,6 +3601,21 @@ components:
         - date
         - credentialUrl
       additionalProperties: false
+    DiscoveryProjectPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectCard"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+      required:
+        - items
+        - nextCursor
+      additionalProperties: false
     Education:
       type: object
       properties:
@@ -3683,6 +4043,72 @@ components:
         - isDraft
         - members
       additionalProperties: false
+    PersonGroup:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonSummary"
+        hasMore:
+          type: boolean
+      required:
+        - items
+        - hasMore
+      additionalProperties: false
+    PersonPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonSummary"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+      required:
+        - items
+        - nextCursor
+      additionalProperties: false
+    PersonSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        headline:
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+        verified:
+          type: boolean
+        location:
+          nullable: true
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+          description: Up to 5, in the owner’s order, in the site-wide spelling of each name.
+        projectCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: "Published projects that are discoverable: their own and those they are an accepted member of, whose owner’s profile is public."
+      required:
+        - id
+        - name
+        - headline
+        - avatarUrl
+        - verified
+        - location
+        - skills
+        - projectCount
+      additionalProperties: false
+      description: A public profile as a card. Never an email, contact email, phone, birthday, login id or link.
     Profile:
       type: object
       properties:
@@ -3899,6 +4325,82 @@ components:
         - thumbnailUrl
         - embedUrl
       additionalProperties: false
+    ProjectCard:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          nullable: true
+          description: The author’s own text. Plain text.
+          type: string
+        category:
+          type: string
+          enum:
+            - academic
+            - personal
+            - research
+            - hackathon
+            - course
+            - other
+        status:
+          type: string
+          enum:
+            - ongoing
+            - completed
+            - archived
+        heroImageUrl:
+          nullable: true
+          type: string
+        technologies:
+          type: array
+          items:
+            type: string
+          description: Up to 5.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Up to 5.
+        owner:
+          $ref: "#/components/schemas/ProjectCardOwner"
+        createdAt:
+          type: string
+          description: ISO 8601, UTC.
+        updatedAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - id
+        - title
+        - summary
+        - category
+        - status
+        - heroImageUrl
+        - technologies
+        - tags
+        - owner
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+      description: A published project of a public profile as a card. Never the description, links, files, visibility flags or repository data.
+    ProjectCardOwner:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+      required:
+        - id
+        - name
+        - avatarUrl
+      additionalProperties: false
     ProjectDetail:
       type: object
       properties:
@@ -4042,6 +4544,19 @@ components:
         - team
         - owner
         - source
+      additionalProperties: false
+    ProjectGroup:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectCard"
+        hasMore:
+          type: boolean
+      required:
+        - items
+        - hasMore
       additionalProperties: false
     ProjectMetadata:
       type: object
@@ -4247,6 +4762,40 @@ components:
           maximum: 9007199254740991
       required:
         - updated
+      additionalProperties: false
+    SearchResults:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The query as normalized (what was searched).
+        people:
+          $ref: "#/components/schemas/PersonGroup"
+        projects:
+          $ref: "#/components/schemas/ProjectGroup"
+      required:
+        - query
+        - people
+        - projects
+      additionalProperties: false
+    TagSummary:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The site-wide spelling of the term.
+        projectCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        peopleCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - name
+        - projectCount
+        - peopleCount
       additionalProperties: false
     TeamList:
       type: object

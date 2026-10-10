@@ -66,12 +66,11 @@ export type MyTeams = components["schemas"]["MyTeams"];
 export type IncomingInvite = components["schemas"]["IncomingInvite"];
 export type OutgoingInvite = components["schemas"]["OutgoingInvite"];
 
-// Discovery (M6 6.1, 6.2). Provisional until the contract is pinned: see discoveryTypes.ts.
-export type {
-  DiscoveryProject,
-  DiscoveryProjectPage,
-  PersonPage,
-  PersonSummary,
-  SearchResults,
-  TagSummary,
-} from "./discoveryTypes";
+// Discovery (M6 6.1, 6.2): the API's `discovery` tag.
+export type PersonSummary = components["schemas"]["PersonSummary"];
+/** A published project in a result list; `ProjectCard` in the contract. */
+export type DiscoveryProject = components["schemas"]["ProjectCard"];
+export type SearchResults = components["schemas"]["SearchResults"];
+export type PersonPage = components["schemas"]["PersonPage"];
+export type DiscoveryProjectPage = components["schemas"]["DiscoveryProjectPage"];
+export type TagSummary = components["schemas"]["TagSummary"];
