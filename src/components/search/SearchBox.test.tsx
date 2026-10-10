@@ -20,7 +20,7 @@ describe("SearchBox", () => {
     const form = screen.getByRole("search");
     expect(form).toHaveAttribute("action", "/search");
     expect(form).toHaveAttribute("method", "get");
-    expect(screen.getByRole("searchbox", { name: "Search people and projects" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Search people and projects" })).toHaveAttribute(
       "name",
       "q",
     );
@@ -28,7 +28,7 @@ describe("SearchBox", () => {
 
   it("replaces the URL with /search?q=... 300 ms after the last key, never /projects", async () => {
     renderInApp(<SearchBox initialQuery="" />);
-    const box = screen.getByRole("searchbox");
+    const box = screen.getByRole("combobox");
     fireEvent.change(box, { target: { value: "C#" } });
     fireEvent.change(box, { target: { value: "C# go" } });
     await act(async () => vi.advanceTimersByTime(299));
@@ -40,7 +40,7 @@ describe("SearchBox", () => {
 
   it("clearing the box goes back to /search", async () => {
     renderInApp(<SearchBox initialQuery="ml" />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "" } });
     await act(async () => vi.advanceTimersByTime(300));
     expect(router.replace).toHaveBeenCalledWith("/search");
   });
@@ -53,7 +53,7 @@ describe("SearchBox", () => {
 
   it("keeps what was typed while a search is in flight: the echo of an older query changes nothing", async () => {
     const view = renderInApp(<SearchBox initialQuery="" />);
-    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    const box = screen.getByRole("combobox") as HTMLInputElement;
     fireEvent.change(box, { target: { value: "slow" } });
     await act(async () => vi.advanceTimersByTime(300));
     expect(router.replace).toHaveBeenCalledWith("/search?q=slow");
@@ -83,7 +83,7 @@ describe("SearchBox", () => {
 
   it("follows a navigation from outside (Back, a link): the box shows the URL's query", () => {
     const view = renderInApp(<SearchBox initialQuery="iot" />);
-    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    const box = screen.getByRole("combobox") as HTMLInputElement;
     view.rerender(
       <ThemeWrapper initialMode="light">
         <LanguageProvider>
@@ -96,7 +96,7 @@ describe("SearchBox", () => {
 
   it("does not search in the middle of an input-method composition, and searches when it ends", async () => {
     renderInApp(<SearchBox initialQuery="" />);
-    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    const box = screen.getByRole("combobox") as HTMLInputElement;
     fireEvent.compositionStart(box);
     fireEvent.change(box, { target: { value: "Արմ" } });
     await act(async () => vi.advanceTimersByTime(1000));
@@ -108,7 +108,7 @@ describe("SearchBox", () => {
 
   it("a composition that never ends does not leave the search stuck: leaving the box releases it", async () => {
     renderInApp(<SearchBox initialQuery="" />);
-    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    const box = screen.getByRole("combobox") as HTMLInputElement;
     fireEvent.compositionStart(box);
     fireEvent.change(box, { target: { value: "ml" } });
     await act(async () => vi.advanceTimersByTime(1000));

@@ -494,6 +494,10 @@ export const am: Dictionary = {
     projectCount: "Նախագծեր՝ {count}",
     byOwner: "հեղինակ՝ {name}",
     verified: "Հաստատված հաշիվ",
+    suggestionsLabel: "Հուշումներ",
+    suggestionsCount: "Հասանելի հուշումներ՝ {count}։ Ընտրեք սլաքներով։",
+    suggestionsNone: "Հուշումներ չկան",
+    suggestionSearchFor: "Որոնել «{query}»",
   },
   browse: {
     projectsTitle: "Դիտել նախագծերը",

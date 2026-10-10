@@ -27,6 +27,7 @@ import type {
   DiscoveryProjectPage,
   SearchResults,
   TagSummary,
+  Suggestions,
   TagCloud,
   UserFacets,
 } from "./types";
@@ -514,5 +515,14 @@ export function getTagCloud(limit = 40): Promise<TagCloud> {
     path: `/v1/tags/cloud${qs({ limit })}`,
     auth: "none",
     revalidate: 300,
+  });
+}
+
+/** Typeahead for the search box: a few names, titles and tags that start with `q`. Public. */
+export function getSuggestions(q: string): Promise<Suggestions> {
+  return request<Suggestions>({
+    method: "GET",
+    path: `/v1/search/suggestions${qs({ q })}`,
+    auth: "none",
   });
 }

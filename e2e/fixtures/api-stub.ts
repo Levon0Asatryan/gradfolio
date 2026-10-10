@@ -12,6 +12,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
   DiscoveryProject,
+  Suggestions,
   TagCloud,
   UserFacets,
   DiscoveryProjectPage,
@@ -124,6 +125,26 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       return { items: all.slice(0, limit), nextCursor: all.length > limit ? "page-2" : null };
     return { items: all.slice(limit), nextCursor: null };
   };
+
+  if (url.pathname === "/v1/search/suggestions") {
+    // Prefix match on a few fixed names; `zzz` has none.
+    const starts = (text: string) => text.toLowerCase().startsWith(q);
+    const body: Suggestions = {
+      query: q,
+      people: people(5)
+        .filter((p) => starts(p.name) || starts(p.headline))
+        .slice(0, 3)
+        .map((p) => ({ id: p.id, name: p.name, headline: p.headline })),
+      projects: projects(4)
+        .filter((p) => starts(p.title))
+        .slice(0, 3)
+        .map((p) => ({ id: p.id, title: p.title, category: p.category })),
+      tags: Object.values(TAGS)
+        .filter((tag) => starts(tag.name))
+        .map((tag) => ({ name: tag.name, projects: tag.projectCount, people: tag.peopleCount })),
+    };
+    return send(res, 200, body);
+  }
 
   if (url.pathname === "/v1/search") {
     const body: SearchResults =

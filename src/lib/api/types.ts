@@ -79,3 +79,11 @@ export type TagSummary = components["schemas"]["TagSummary"];
 export type TagCloud = components["schemas"]["TagCloud"];
 export type TagCloudItem = components["schemas"]["TagCloudItem"];
 export type UserFacets = components["schemas"]["UserFacets"];
+
+// Search suggestions (typeahead). Provisional until the contract is pinned: see suggestionTypes.ts.
+export type {
+  SuggestedPerson,
+  SuggestedProject,
+  SuggestedTag,
+  Suggestions,
+} from "./suggestionTypes";

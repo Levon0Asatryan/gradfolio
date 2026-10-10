@@ -10,6 +10,8 @@ export const MAX_QUERY_TOKENS = 6;
 export const MAX_TOKEN_LENGTH = 50;
 export const MAX_CURSOR_LENGTH = 600;
 const MAX_TAG_LENGTH = 255;
+/** Suggestions are asked for from this many characters (one letter matches too much). */
+export const MIN_SUGGEST_LENGTH = 2;
 /** Cards per page in a full list; the grouped view uses the API's own group size. */
 export const SEARCH_PAGE_SIZE = 12;
 

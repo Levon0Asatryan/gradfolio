@@ -494,6 +494,10 @@ export const en: Dictionary = {
     projectCount: "{count} projects",
     byOwner: "by {name}",
     verified: "Verified account",
+    suggestionsLabel: "Suggestions",
+    suggestionsCount: "{count} suggestions available. Use the arrow keys to choose one.",
+    suggestionsNone: "No suggestions",
+    suggestionSearchFor: "Search for “{query}”",
   },
   browse: {
     projectsTitle: "Browse projects",

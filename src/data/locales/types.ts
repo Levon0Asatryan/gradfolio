@@ -477,6 +477,10 @@ export interface Dictionary {
     projectCount: string;
     byOwner: string;
     verified: string;
+    suggestionsLabel: string;
+    suggestionsCount: string;
+    suggestionsNone: string;
+    suggestionSearchFor: string;
   };
   browse: {
     projectsTitle: string;
