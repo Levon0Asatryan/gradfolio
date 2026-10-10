@@ -68,8 +68,11 @@ now). Answering one leaves the other stale until the list reloads; a click on th
 - 429 (`RATE_LIMITED`) and `PROJECT_IS_DRAFT` were not provoked against the real API (a draft cannot
   be created from the UI; 429 needs a burst). Both are unit-tested and mapped; no real example yet.
 - `TEAM_FULL` (20 rows) not provoked.
-- The local API stack (3007) was not used: the real issuer is needed; the run used the production API.
-- The matrix ran on the dev server; the console check ignores Next's dev-only logo LCP hint.
+- The plan's local two-account journey (§ verification step 4, incl. the draft 409) was NOT run: the local
+  stack (3007) needs the real issuer, so the run used the production API. 5.6 and 5.7 stay pending until
+  that run is done or the lead accepts the production run as its substitute.
+- The matrix ran on the dev server. The console check collects every error and warning, unfiltered
+  (a re-run with the old `Failed to load resource` filter removed also passed 22/22).
 - Pre-existing: `/projects` in Armenian logs a hydration mismatch (project card dates in the browser
   locale vs the server). Not M5; proposed follow-up. `DeleteAccount` and `DeleteProjectDialog` use the
   same `autoFocus` pattern as the bug above and probably share it: proposed follow-up.
@@ -87,7 +90,7 @@ cancel journey.
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 done once #75 merges and the production run is filled in.
+- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 stay pending until the local two-account journey is run (or the lead accepts the production run instead), #75 is merged and the production run is filled in.
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
