@@ -94,7 +94,7 @@ const ProjectsListToolbar: FC<ProjectsListToolbarProps> = ({
         sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}
       >
         <FilterChip
-          label={t.search.categories.all}
+          label={t.projects.allCategories}
           selected={category === ""}
           onClick={() => onCategoryChange("")}
         />

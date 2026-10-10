@@ -10,7 +10,7 @@ export const ProfileSkeleton: FC = () => {
   const { t } = useLanguage();
   return (
     <PageContainer gap={0}>
-      <div aria-busy="true" aria-label={t.profile.loading}>
+      <div role="status" aria-busy="true" aria-label={t.profile.loading}>
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
           <Skeleton variant="circular" width={96} height={96} />
           <Stack sx={{ flex: 1 }}>

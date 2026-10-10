@@ -9,7 +9,7 @@ export default function Loading() {
   const { t } = useLanguage();
   return (
     <PageContainer maxWidth={1000}>
-      <div aria-busy="true" aria-label={t.teamsPage.loading}>
+      <div role="status" aria-busy="true" aria-label={t.teamsPage.loading}>
         <Skeleton width="30%" height={44} />
         <Skeleton width="60%" />
         <Skeleton variant="rounded" height={120} sx={{ my: 2 }} />
