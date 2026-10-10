@@ -27,13 +27,13 @@ vi.mock("@/lib/requestDictionary", async () => {
 vi.mock("@/components/search/ResultsView", () => ({ ResultsView: () => null }));
 vi.mock("@/components/search/SearchBox", () => ({ SearchBox: () => null }));
 vi.mock("@/components/search/SearchError", () => ({ SearchError: () => null }));
-vi.mock("@/components/search/LandingHint", () => ({ LandingHint: () => null }));
+vi.mock("@/components/search/Landing", () => ({ Landing: () => null }));
 
 const { default: SearchPage, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 const { ResultsView } = await import("@/components/search/ResultsView");
 const { SearchError } = await import("@/components/search/SearchError");
-const { LandingHint } = await import("@/components/search/LandingHint");
+const { Landing } = await import("@/components/search/Landing");
 
 /** The first element of a component type anywhere in the tree. */
 function find(node: ReactNode, type: unknown): ReactElement | undefined {
@@ -56,7 +56,7 @@ beforeEach(() => vi.resetAllMocks());
 describe("/search (server)", () => {
   it("with no query is the landing and calls nothing", async () => {
     const el = await page({});
-    expect(find(el, LandingHint)).toBeDefined();
+    expect(find(el, Landing)).toBeDefined();
     expect(api.searchAll).not.toHaveBeenCalled();
   });
 
@@ -71,6 +71,22 @@ describe("/search (server)", () => {
     const view = props(find(el, ResultsView));
     expect(view.people.seeAllHref).toBe("/search?q=C%23+go&type=people");
     expect(view.projects.seeAllHref).toBeUndefined();
+  });
+
+  it("a one-character query is sent to the API: an exact skill such as R is a real search", async () => {
+    api.searchAll.mockResolvedValue({
+      query: "r",
+      people: { items: [], hasMore: false },
+      projects: { items: [], hasMore: false },
+    });
+    await page({ q: "R" });
+    expect(api.searchAll).toHaveBeenCalledWith("R");
+  });
+
+  it("a whitespace-only query is the landing and makes no call", async () => {
+    const el = await page({ q: "   " });
+    expect(find(el, Landing)).toBeDefined();
+    expect(api.searchAll).not.toHaveBeenCalled();
   });
 
   it("a full list is paged with the cursor, and Next page keeps the query and the type", async () => {

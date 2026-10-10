@@ -9,7 +9,7 @@ import { SEARCH_PAGE_SIZE, parseSearchQuery, searchHref } from "@/lib/discovery/
 import { pageOpenGraph } from "@/lib/discovery/seo";
 import { requestDictionary } from "@/lib/requestDictionary";
 import type { DiscoveryProjectPage, PersonPage, SearchResults } from "@/lib/api/types";
-import { LandingHint } from "@/components/search/LandingHint";
+import { Landing } from "@/components/search/Landing";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +76,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
   let body;
   switch (loaded.kind) {
     case "landing":
-      body = <LandingHint />;
+      body = <Landing />;
       break;
     case "error":
       body = <SearchError code={loaded.code} />;
