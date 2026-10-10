@@ -95,6 +95,7 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
               key={item.href}
               href={item.href}
               current={current}
+              fullLoad={item.fullLoad}
               sx={{
                 flexDirection: "column",
                 gap: 0.375,
@@ -216,6 +217,7 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
               key={item.href}
               href={item.href}
               current={current}
+              fullLoad={item.fullLoad}
               onClick={() => setMore(false)}
               sx={(theme) => ({
                 display: "flex",

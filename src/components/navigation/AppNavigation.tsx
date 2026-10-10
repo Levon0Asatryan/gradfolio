@@ -119,6 +119,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
             key={item.href}
             href={item.href}
             current={current}
+            fullLoad={item.fullLoad}
             sx={(theme) => ({
               display: "flex",
               flexDirection: pick("column", "row"),
