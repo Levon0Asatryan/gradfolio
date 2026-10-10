@@ -184,7 +184,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Browse projects
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Newest first by creation (`sort=newest`, the default) or by last change (`sort=updated`), optionally one `category` and/or `status`. Every order ends in the id, so pages never repeat or skip a row. Cursors are not signed.
+         */
+        get: operations["browseProjects"];
         put?: never;
         /**
          * Create a project
@@ -702,6 +706,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tags/cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The most used skills, technologies and tags, with counts
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Most used first (projects plus people), then by name. Served from a one-minute in-memory cache, so a change can take up to a minute (and a little more per server instance) to show: `generatedAt` says when the counts were computed.
+         */
+        get: operations["getTagCloud"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse people
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Newest sign-up first (`sort=newest`, the only order). `school`, `major` and `gradYear` filter on the education entries: one entry must match every filter given. Take the choices from `/v1/users/facets`.
+         */
+        get: operations["browseUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The school, major and graduation-year choices of the people directory
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Values present on public profiles, most common first, at most 50 each; cached for a minute like the tag cloud.
+         */
+        get: operations["getUserFacets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/education": {
         parameters: {
             query?: never;
@@ -987,6 +1051,10 @@ export interface components {
             userId: string;
             /** @description Shown on the team list; optional. */
             role?: (null) | string;
+        };
+        MajorFacet: {
+            value: string;
+            count: number;
         };
         MemberTeam: {
             id: string;
@@ -1342,11 +1410,28 @@ export interface components {
         ReadAllResult: {
             updated: number;
         };
+        SchoolFacet: {
+            value: string;
+            count: number;
+        };
         SearchResults: {
             /** @description The query as normalized (what was searched). */
             query: string;
             people: components["schemas"]["PersonGroup"];
             projects: components["schemas"]["ProjectGroup"];
+        };
+        TagCloud: {
+            items: components["schemas"]["TagCloudItem"][];
+            /** @description ISO 8601, UTC: when these counts were computed. A new project can take up to this long plus the cache time (60 s) to show. */
+            generatedAt: string;
+        };
+        TagCloudItem: {
+            /** @description The site-wide spelling of the term. */
+            name: string;
+            /** @description Discoverable projects that use it. */
+            projects: number;
+            /** @description Public people who list it as a skill. */
+            people: number;
         };
         TagSummary: {
             /** @description The site-wide spelling of the term. */
@@ -1390,6 +1475,13 @@ export interface components {
             /** @description ISO 8601, UTC. */
             expiresAt: string;
         };
+        /** @description The choices for the directory filters: the values present on public profiles, most common first, at most 50 each. */
+        UserFacets: {
+            schools: components["schemas"]["SchoolFacet"][];
+            majors: components["schemas"]["MajorFacet"][];
+            years: components["schemas"]["YearFacet"][];
+            generatedAt: string;
+        };
         UserLookupResult: {
             items: {
                 id: string;
@@ -1397,6 +1489,10 @@ export interface components {
                 headline: string | null;
                 avatarUrl: string | null;
             }[];
+        };
+        YearFacet: {
+            value: number;
+            count: number;
         };
     };
     responses: never;
@@ -2107,6 +2203,68 @@ export interface operations {
                 };
             };
             /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    browseProjects: {
+        parameters: {
+            query?: {
+                sort?: "newest" | "updated";
+                category?: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+                status?: "ongoing" | "completed" | "archived";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryProjectPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -3932,6 +4090,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getTagCloud: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cloud */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagCloud"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    browseUsers: {
+        parameters: {
+            query?: {
+                sort?: "newest";
+                school?: string;
+                major?: string;
+                gradYear?: number;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getUserFacets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The choices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserFacets"];
                 };
             };
             /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */

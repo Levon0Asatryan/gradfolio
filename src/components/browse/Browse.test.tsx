@@ -43,6 +43,7 @@ describe("PeopleFilters", () => {
     schools: [{ value: "NPUA", count: 3 }],
     majors: [{ value: "Informatics", count: 2 }],
     years: [{ value: 2026, count: 3 }],
+    generatedAt: "2026-10-10T00:00:00.000Z",
   };
 
   it("is a GET form to /browse/people with a select per filter", () => {

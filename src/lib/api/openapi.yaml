@@ -970,6 +970,91 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: browseProjects
+      tags:
+        - discovery
+      summary: Browse projects
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Newest first by creation (`sort=newest`, the default) or by last change (`sort=updated`), optionally one `category` and/or `status`. Every order ends in the id, so pages never repeat or skip a row. Cursors are not signed."
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            default: newest
+            description: newest by creation, updated by last change; both newest first.
+            type: string
+            enum:
+              - newest
+              - updated
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - academic
+              - personal
+              - research
+              - hackathon
+              - course
+              - other
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ongoing
+              - completed
+              - archived
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryProjectPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/projects/{id}/attachments:
     post:
       operationId: addAttachment
@@ -2651,6 +2736,175 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/tags/cloud:
+    get:
+      operationId: getTagCloud
+      tags:
+        - discovery
+      summary: The most used skills, technologies and tags, with counts
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Most used first (projects plus people), then by name. Served from a one-minute in-memory cache, so a change can take up to a minute (and a little more per server instance) to show: `generatedAt` says when the counts were computed."
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Terms to return; at most TAG_CLOUD_MAX (100); 40 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+      responses:
+        "200":
+          description: The cloud
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagCloud"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/users:
+    get:
+      operationId: browseUsers
+      tags:
+        - discovery
+      summary: Browse people
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Newest sign-up first (`sort=newest`, the only order). `school`, `major` and `gradYear` filter on the education entries: one entry must match every filter given. Take the choices from `/v1/users/facets`."
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            default: newest
+            description: newest sign-up first. The only order today; sending it is allowed.
+            type: string
+            enum:
+              - newest
+        - name: school
+          in: query
+          required: false
+          schema:
+            description: Institution on an education entry, matched case-insensitively and exactly.
+            type: string
+        - name: major
+          in: query
+          required: false
+          schema:
+            description: Field of study on an education entry, matched exactly.
+            type: string
+        - name: gradYear
+          in: query
+          required: false
+          schema:
+            description: End year of an education entry. One entry must match every filter given.
+            type: integer
+            minimum: 1950
+            maximum: 2100
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size; at most DISCOVERY_PAGE_MAX (30); 12 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "The `nextCursor` of the previous page of the same list. Anything else is 400. Not signed: it only positions the page, and a forged one still returns only rows that belong to the listing."
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonPage"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/users/facets:
+    get:
+      operationId: getUserFacets
+      tags:
+        - discovery
+      summary: The school, major and graduation-year choices of the people directory
+      description: "Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Values present on public profiles, most common first, at most 50 each; cached for a minute like the tag cloud."
+      responses:
+        "200":
+          description: The choices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserFacets"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: a token was sent and is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/education:
     post:
       operationId: createEducation
@@ -3754,6 +4008,19 @@ components:
       required:
         - userId
       additionalProperties: false
+    MajorFacet:
+      type: object
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - value
+        - count
+      additionalProperties: false
     MemberTeam:
       type: object
       properties:
@@ -4763,6 +5030,19 @@ components:
       required:
         - updated
       additionalProperties: false
+    SchoolFacet:
+      type: object
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - value
+        - count
+      additionalProperties: false
     SearchResults:
       type: object
       properties:
@@ -4777,6 +5057,41 @@ components:
         - query
         - people
         - projects
+      additionalProperties: false
+    TagCloud:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TagCloudItem"
+        generatedAt:
+          type: string
+          description: "ISO 8601, UTC: when these counts were computed. A new project can take up to this long plus the cache time (60 s) to show."
+      required:
+        - items
+        - generatedAt
+      additionalProperties: false
+    TagCloudItem:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The site-wide spelling of the term.
+        projects:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Discoverable projects that use it.
+        people:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Public people who list it as a skill.
+      required:
+        - name
+        - projects
+        - people
       additionalProperties: false
     TagSummary:
       type: object
@@ -4882,6 +5197,30 @@ components:
         - fileUrl
         - expiresAt
       additionalProperties: false
+    UserFacets:
+      type: object
+      properties:
+        schools:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchoolFacet"
+        majors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorFacet"
+        years:
+          type: array
+          items:
+            $ref: "#/components/schemas/YearFacet"
+        generatedAt:
+          type: string
+      required:
+        - schools
+        - majors
+        - years
+        - generatedAt
+      additionalProperties: false
+      description: "The choices for the directory filters: the values present on public profiles, most common first, at most 50 each."
     UserLookupResult:
       type: object
       properties:
@@ -4908,6 +5247,21 @@ components:
             additionalProperties: false
       required:
         - items
+      additionalProperties: false
+    YearFacet:
+      type: object
+      properties:
+        value:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        count:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - value
+        - count
       additionalProperties: false
   securitySchemes:
     bearerAuth:

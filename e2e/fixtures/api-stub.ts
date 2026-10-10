@@ -159,6 +159,7 @@ createServer((req, res) => {
         { value: 2026, count: 6 },
         { value: 2027, count: 3 },
       ],
+      generatedAt: "2026-10-10T00:00:00.000Z",
     };
     return send(res, 200, body);
   }
