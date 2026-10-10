@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import { parseTeamsQuery, teamsHref, toApiQuery, TEAMS_PAGE_SIZE } from "./query";
 
 describe("parseTeamsQuery", () => {
-  it("reads one cursor per list and ignores anything else", () => {
-    expect(
-      parseTeamsQuery({ ownedCursor: "a", memberCursor: ["b", "c"], q: "x", userId: "u" }),
-    ).toEqual({ owned: "a", member: "b" });
+  it("reads the cursor of one list and ignores anything else", () => {
+    expect(parseTeamsQuery({ memberCursor: ["b", "c"], q: "x", userId: "u" })).toEqual({
+      member: "b",
+    });
+  });
+
+  it("keeps only one cursor from a hand-edited URL: the API restarts the other lists", () => {
+    expect(parseTeamsQuery({ outgoingCursor: "o", ownedCursor: "a" })).toEqual({ owned: "a" });
   });
 
   it("drops an empty or over-long cursor instead of sending the API a 400", () => {
@@ -27,10 +31,8 @@ describe("toApiQuery and teamsHref", () => {
     });
   });
 
-  it("builds a link that keeps the other lists where they are", () => {
+  it("builds a link for one list; the others restart from their first page", () => {
     expect(teamsHref({})).toBe("/teams");
-    expect(teamsHref({ owned: "a b", member: null, incoming: "i" })).toBe(
-      "/teams?ownedCursor=a+b&incomingCursor=i",
-    );
+    expect(teamsHref({ owned: "a b", member: null })).toBe("/teams?ownedCursor=a+b");
   });
 });

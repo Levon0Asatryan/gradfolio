@@ -3,6 +3,13 @@ import { isValidElement, type ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ getMyTeams: vi.fn(), getMe: vi.fn() }));
+const cookie = vi.hoisted(() => ({ language: undefined as string | undefined }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "language" && cookie.language ? { value: cookie.language } : undefined,
+  }),
+}));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
@@ -17,7 +24,7 @@ vi.mock("@/lib/api/client", () => {
   return { ApiError, getMyTeams: api.getMyTeams, getMe: api.getMe };
 });
 
-const { default: TeamsPage } = await import("./page");
+const { default: TeamsPage, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 
 const lists = (over: Record<string, unknown> = {}) => ({
@@ -35,6 +42,14 @@ const props = (el: unknown) =>
 beforeEach(() => vi.resetAllMocks());
 
 describe("/teams (server)", () => {
+  it("titles the tab in the request language", async () => {
+    cookie.language = undefined;
+    expect(await generateMetadata()).toEqual({ title: "Teams" });
+    cookie.language = "ru";
+    expect(await generateMetadata()).toEqual({ title: "Команды" });
+    cookie.language = undefined;
+  });
+
   it("asks for the page size and the cursors in the URL, and ignores anything else", async () => {
     api.getMyTeams.mockResolvedValue(lists());
     await load({ ownedCursor: "o1", userId: "someone-else", memberCursor: "" });
@@ -47,13 +62,13 @@ describe("/teams (server)", () => {
     });
   });
 
-  it("links to the next page of a list, keeping the other lists where they are", async () => {
+  it("links to the next page of one list only: the other lists restart, no cursor leaks", async () => {
     api.getMyTeams.mockResolvedValue(
       lists({ owned: { items: [], nextCursor: "o2" }, incoming: { items: [], nextCursor: null } }),
     );
     const el = await load({ incomingCursor: "i1" });
     expect(props(el).more).toEqual({
-      owned: "/teams?ownedCursor=o2&incomingCursor=i1",
+      owned: "/teams?ownedCursor=o2",
       member: undefined,
       incoming: undefined,
       outgoing: undefined,

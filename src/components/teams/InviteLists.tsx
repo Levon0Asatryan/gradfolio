@@ -27,6 +27,13 @@ import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 
+/** Fixed locale and UTC: the server and the browser must print the same text (hydration). */
+const DATE_OPTIONS = {
+  en: { locale: "en-US", timeZone: "UTC" },
+  ru: { locale: "ru-RU", timeZone: "UTC" },
+  am: { locale: "hy-AM", timeZone: "UTC" },
+} as const;
+
 const metaLine = (parts: Array<string | null | undefined>) => parts.filter(Boolean).join(" · ");
 
 const rowSx = (theme: import("@mui/material/styles").Theme) => ({
@@ -72,7 +79,7 @@ export const IncomingRow: FC<{ invite: IncomingInvite; onDone: (message: string)
   invite,
   onDone,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -118,7 +125,10 @@ export const IncomingRow: FC<{ invite: IncomingInvite; onDone: (message: string)
           />
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {metaLine([roleText(invite.role, t), formatDate(invite.invitedAt)])}
+          {metaLine([
+            roleText(invite.role, t),
+            formatDate(invite.invitedAt, DATE_OPTIONS[language]),
+          ])}
         </Typography>
         {problem && (
           <Alert severity="error" role="alert" sx={{ mt: 1 }}>
@@ -157,7 +167,7 @@ export const OutgoingRow: FC<{ invite: OutgoingInvite; onDone: (message: string)
   invite,
   onDone,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -202,7 +212,10 @@ export const OutgoingRow: FC<{ invite: OutgoingInvite; onDone: (message: string)
             {invite.project.title}
           </Link>
           {" · "}
-          {metaLine([roleText(invite.role, t), formatDate(invite.invitedAt)])}
+          {metaLine([
+            roleText(invite.role, t),
+            formatDate(invite.invitedAt, DATE_OPTIONS[language]),
+          ])}
         </Typography>
       </Box>
       <Button

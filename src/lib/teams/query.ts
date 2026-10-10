@@ -9,7 +9,8 @@ const first = (v: string | string[] | undefined): string | undefined =>
   Array.isArray(v) ? v[0] : v;
 
 /**
- * The cursors in the URL, one per list. Anything that is not a plausible cursor (empty, longer
+ * The cursor in the URL: at most one, for the list being extended (the API restarts the others;
+ * a hand-edited URL with several keeps the first). Anything that is not a plausible cursor (empty, longer
  * than the API's 600, not text) is ignored, so the list starts from its first page instead of
  * the API answering 400 to a hand-edited URL.
  */
@@ -21,6 +22,7 @@ export function parseTeamsQuery(
     const value = first(raw[`${section}Cursor`]);
     if (typeof value === "string" && value.length >= 1 && value.length <= MAX_CURSOR) {
       out[section] = value;
+      break; // the contract: only the list being extended takes a cursor, the others restart
     }
   }
   return out;

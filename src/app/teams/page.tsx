@@ -1,10 +1,15 @@
+import type { Metadata } from "next";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { TeamsView } from "@/components/teams/TeamsView";
 import { ApiError, getMe, getMyTeams } from "@/lib/api/client";
+import { requestDictionary } from "@/lib/requestDictionary";
 import { parseTeamsQuery, teamsHref, toApiQuery } from "@/lib/teams/query";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Teams" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await requestDictionary();
+  return { title: t.teamsPage.title };
+}
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -37,17 +42,13 @@ export default async function TeamsPage({ searchParams }: PageProps) {
   }
 
   const more = {
-    owned: teams.owned.nextCursor
-      ? teamsHref({ ...cursors, owned: teams.owned.nextCursor })
-      : undefined,
-    member: teams.member.nextCursor
-      ? teamsHref({ ...cursors, member: teams.member.nextCursor })
-      : undefined,
+    owned: teams.owned.nextCursor ? teamsHref({ owned: teams.owned.nextCursor }) : undefined,
+    member: teams.member.nextCursor ? teamsHref({ member: teams.member.nextCursor }) : undefined,
     incoming: teams.incoming.nextCursor
-      ? teamsHref({ ...cursors, incoming: teams.incoming.nextCursor })
+      ? teamsHref({ incoming: teams.incoming.nextCursor })
       : undefined,
     outgoing: teams.outgoing.nextCursor
-      ? teamsHref({ ...cursors, outgoing: teams.outgoing.nextCursor })
+      ? teamsHref({ outgoing: teams.outgoing.nextCursor })
       : undefined,
   };
   const firstHref = Object.keys(cursors).length > 0 ? "/teams" : null;

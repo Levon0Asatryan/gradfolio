@@ -147,6 +147,14 @@ describe("outgoing invitations", () => {
     nextCursor: null,
   };
 
+  it("prints the date in the app language (fixed locale, UTC), so server and browser agree", () => {
+    renderInApp(
+      <TeamsView teams={teams({ outgoing })} viewerUserId={null} more={{}} firstHref={null} />,
+      "ru",
+    );
+    expect(screen.getByText(/9 окт\. 2026 г\./)).toBeVisible();
+  });
+
   it("cancels only after a confirmation that names the invitee, and calls the remove action", async () => {
     show(teams({ outgoing }));
     expect(screen.getByRole("link", { name: "Smart Campus" })).toHaveAttribute(
