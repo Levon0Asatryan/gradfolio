@@ -7,6 +7,8 @@ import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import ExperienceList from "@/components/profile/ExperienceList";
 import ProjectMetadataCard from "@/components/project/ProjectMetadataCard";
+import IntegrationCard from "@/components/integrations/IntegrationCard";
+import RecentProjects from "@/components/dashboard/RecentProjects";
 import ProjectCard from "@/components/projects/ProjectCard";
 import { projectSummary } from "@/testing/fixtures";
 
@@ -58,6 +60,36 @@ const cases: Array<[string, React.ReactElement]> = [
     />,
   ],
   ["an experience row", <ExperienceList key="x" items={[experience]} />],
+  [
+    "a dashboard recent project",
+    <RecentProjects
+      key="r"
+      items={[
+        {
+          id: "p1",
+          title: "EcoRoute",
+          description: "Routes",
+          category: "personal",
+          status: "ongoing",
+          technologies: ["Next.js"],
+          lastUpdated: "2026-10-09T12:00:00.000Z",
+        },
+      ]}
+    />,
+  ],
+  [
+    "an integration's last sync",
+    <IntegrationCard
+      key="i"
+      id="github"
+      name="GitHub"
+      description="Repos"
+      status="connected"
+      lastSyncedAt="2026-10-09T12:00:00.000Z"
+      onConnect={() => {}}
+      onDisconnect={() => {}}
+    />,
+  ],
 ];
 
 afterEach(() => vi.restoreAllMocks());
