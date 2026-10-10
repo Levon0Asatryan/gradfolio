@@ -33,24 +33,24 @@ the generated schema (Q5).
 Specs: `e2e/notifications.spec.ts`, `e2e/team.spec.ts` (committed). The invite journey was a scratch
 script (not committed; it creates and deletes data).
 
-| Check                                                                                                 | Result                                                |
-| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Bell matrix, A: en/ru/am x light/dark x 390/1440: screenshots, axe, console                           | pass: 12/12, axe 0 serious or critical, console clean |
-| Team matrix, A (project with a team row): same matrix incl. add dialog (both tabs) and remove confirm | pass: 12/12, axe 0 serious or critical, console clean |
-| Keyboard only: Tab to bell, open, focus stays inside, Escape returns to the bell                      | pass                                                  |
-| Keyboard only: open Add, focus stays inside, Escape returns to the button                             | pass                                                  |
-| Non-owner (B) on A's project: no team controls                                                        | pass                                                  |
-| Journey: A creates a public project; adds a name with no account (no link, no notification)           | pass                                                  |
-| A invites B (search by 3+ letters, pick, send); row shows Pending                                     | pass                                                  |
-| A invites B again: real 409 `ALREADY_MEMBER`, shown in the dialog                                     | pass                                                  |
-| B: badge rises, bell lists the invite, Accept inline, outcome shown, badge 1 to 0                     | pass                                                  |
-| The project is in B's list; A sees B accepted                                                         | pass                                                  |
-| B (member) sees Leave and no owner controls; B leaves, toast "You left the project"                   | pass                                                  |
-| A receives the `team_left` notification                                                               | pass                                                  |
-| A invites B again; B declines; A sees Declined; A invites again; B accepts                            | pass                                                  |
-| A removes B behind a confirm naming the person and the project; Cancel has the focus; axe on it       | pass (after the fix in #75, see below)                |
-| A removes the no-account name; mark all read: badge 0 for A and B                                     | pass                                                  |
-| Test data deleted (projects created for the run)                                                      | done, 0 left                                          |
+| Check                                                                                                 | Result                                                                 |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Bell matrix, A: en/ru/am x light/dark x 390/1440: screenshots, axe, console                           | pass: 12/12, axe 0 serious or critical, console clean (see note below) |
+| Team matrix, A (project with a team row): same matrix incl. add dialog (both tabs) and remove confirm | pass: 12/12, axe 0 serious or critical, console clean (see note below) |
+| Keyboard only: Tab to bell, open, focus stays inside, Escape returns to the bell                      | pass                                                                   |
+| Keyboard only: open Add, focus stays inside, Escape returns to the button                             | pass                                                                   |
+| Non-owner (B) on A's project: no team controls                                                        | pass                                                                   |
+| Journey: A creates a public project; adds a name with no account (no link, no notification)           | pass                                                                   |
+| A invites B (search by 3+ letters, pick, send); row shows Pending                                     | pass                                                                   |
+| A invites B again: real 409 `ALREADY_MEMBER`, shown in the dialog                                     | pass                                                                   |
+| B: badge rises, bell lists the invite, Accept inline, outcome shown, badge 1 to 0                     | pass                                                                   |
+| The project is in B's list; A sees B accepted                                                         | pass                                                                   |
+| B (member) sees Leave and no owner controls; B leaves, toast "You left the project"                   | pass                                                                   |
+| A receives the `team_left` notification                                                               | pass                                                                   |
+| A invites B again; B declines; A sees Declined; A invites again; B accepts                            | pass                                                                   |
+| A removes B behind a confirm naming the person and the project; Cancel has the focus; axe on it       | pass (after the fix in #75, see below)                                 |
+| A removes the no-account name; mark all read: badge 0 for A and B                                     | pass                                                                   |
+| Test data deleted (projects created for the run)                                                      | done, 0 left                                                           |
 
 **Defect found by this run (fixed in #75).** In a real browser the confirm dialogs did not focus
 Cancel: `autoFocus` is refused while MUI fades the dialog in (`visibility: hidden`), so focus fell to
@@ -70,9 +70,15 @@ now). Answering one leaves the other stale until the list reloads; a click on th
 - `TEAM_FULL` (20 rows) not provoked.
 - The plan's local two-account journey (§ verification step 4, incl. the draft 409) was NOT run: the local
   stack (3007) needs the real issuer, so the run used the production API. 5.6 and 5.7 stay pending until
-  that run is done or the lead accepts the production run as its substitute.
-- The matrix ran on the dev server. The console check collects every error and warning, unfiltered
-  (a re-run with the old `Failed to load resource` filter removed also passed 22/22).
+  that run is done. The production-site run is additional evidence, not a replacement.
+- Console check, exact numbers. The first matrices (rows above) ran with the specs filtering the browser's
+  `Failed to load resource` line, so "console clean" there was filtered. Re-run on #75's specs with
+  that filter removed (it is removed in #75): the 24 matrix cases (12 bell, 12 team) all passed
+  with axe 0 serious or critical: 22 on the first run and the other 2 (ru dark team, phone and desktop)
+  on a re-run after timeouts under heavy machine load; 34 tests in all, 3 re-run, all passed. Only Next's
+  dev-only LCP hint is ignored. Two items were also ignored, locally and not committed: Auth0's
+  `Failed to persist the updated token set` server log (the saved sessions' access tokens had
+  expired; it appears on `/projects` too, so it is not from M5) and no other message.
 - Pre-existing: `/projects` in Armenian logs a hydration mismatch (project card dates in the browser
   locale vs the server). Not M5; proposed follow-up. `DeleteAccount` and `DeleteProjectDialog` use the
   same `autoFocus` pattern as the bug above and probably share it: proposed follow-up.
@@ -90,7 +96,7 @@ cancel journey.
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 stay pending until the local two-account journey is run (or the lead accepts the production run instead), #75 is merged and the production run is filled in.
+- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 stay pending until the local two-account journey (plan step 4, incl. the draft 409) is run, #75 is merged and the production run is filled in; or the plan is amended in its own PR.
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
