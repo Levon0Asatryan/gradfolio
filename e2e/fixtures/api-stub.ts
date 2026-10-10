@@ -9,7 +9,7 @@
  * list; `nothing` is empty; `limited` is a 429; `boom` is a 503. Any path it does not know
  * answers 503, so a page that depends on another endpoint shows its error state.
  */
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
   DiscoveryProject,
   TagCloud,
@@ -69,7 +69,7 @@ const TAGS: Record<string, TagSummary> = {
 const seen: Array<{ path: string; search: string; headers: Record<string, string | undefined> }> =
   [];
 
-function send(res: import("node:http").ServerResponse, status: number, body: unknown) {
+function send(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json" });
   res.end(JSON.stringify(body));
 }
@@ -79,7 +79,21 @@ const FAIL = {
   boom: [503, { code: "DATABASE_UNAVAILABLE", message: "down" }],
 } as const;
 
+/** A query that starts with "slow" is answered late, so a test can type while a search is in flight. */
+const SLOW_MS = 700;
+
 createServer((req, res) => {
+  const slow = (new URL(req.url ?? "/", "http://stub").searchParams.get("q") ?? "")
+    .toLowerCase()
+    .startsWith("slow");
+  if (slow) {
+    setTimeout(() => handle(req, res), SLOW_MS);
+    return;
+  }
+  handle(req, res);
+}).listen(PORT, "127.0.0.1", () => process.stdout.write(`api stub on ${PORT}\n`));
+
+function handle(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? "/", "http://stub");
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
   const name = (url.searchParams.get("name") ?? "").trim().toLowerCase();
@@ -180,4 +194,4 @@ createServer((req, res) => {
     return tag ? send(res, 200, tag) : send(res, 404, { code: "NOT_FOUND", message: "no tag" });
   }
   return send(res, 503, { code: "DATABASE_UNAVAILABLE", message: "the stub has no such endpoint" });
-}).listen(PORT, "127.0.0.1", () => process.stdout.write(`api stub on ${PORT}\n`));
+}
