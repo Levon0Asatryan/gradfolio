@@ -141,6 +141,17 @@ test.describe("owner (account A)", () => {
         });
       }
 
+  test("the delete-project confirm has Cancel focused once the fade-in ends", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/projects/${projectId}/edit`);
+    await page.getByRole("button", { name: "Delete project" }).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+
   test("keyboard only: open Add, focus stays inside, Escape returns focus to the button", async ({
     page,
   }) => {
