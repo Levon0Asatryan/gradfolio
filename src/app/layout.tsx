@@ -16,6 +16,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import ThemeRegistry from "@/components/theme/ThemeRegistry";
 import type { NavUser } from "@/components/navigation/AppNavigation";
 import { auth0 } from "@/lib/auth0";
+import { siteUrl } from "@/lib/auth/siteUrl";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 
 // Nunito has no Armenian glyphs: Noto Sans Armenian fills them in (see FONT_STACK).
@@ -37,6 +38,7 @@ const DESCRIPTION =
 const TAGLINE = "Your projects, backed by evidence.";
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
   title: { default: "Gradfolio", template: "%s | Gradfolio" },
   description: DESCRIPTION,
   applicationName: "Gradfolio",
