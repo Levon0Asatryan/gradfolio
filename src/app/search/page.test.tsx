@@ -115,6 +115,8 @@ describe("/search metadata (SEO)", () => {
     const m = await meta({});
     expect(m.robots).toEqual({ index: true, follow: true });
     expect(m.alternates?.canonical).toBe("/search");
+    // A page's openGraph replaces the layout's, so the share image must be named again.
+    expect(m.openGraph).toMatchObject({ images: [{ url: "/opengraph-image.png" }] });
   });
 
   it("a result page is noindex and canonical to the clean /search", async () => {

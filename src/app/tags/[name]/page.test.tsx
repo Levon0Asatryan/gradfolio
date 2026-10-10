@@ -104,6 +104,7 @@ describe("/tags/[name] metadata (SEO)", () => {
     api.getTag.mockResolvedValue({ ...TAG, name: "ML" });
     const m = await meta("ml");
     expect(m.alternates?.canonical).toBe("/tags/ML");
+    expect(m.openGraph).toMatchObject({ images: [{ url: "/opengraph-image.png" }] });
     expect(m.robots).toEqual({ index: true, follow: true });
   });
 

@@ -8,6 +8,7 @@ import { SearchError } from "@/components/search/SearchError";
 import { ApiError, getTag, listTagPeople, listTagProjects } from "@/lib/api/client";
 import { SEARCH_PAGE_SIZE, cleanTagName, parseSearchQuery, tagHref } from "@/lib/discovery/query";
 import type { DiscoveryProjectPage, PersonPage } from "@/lib/api/types";
+import { pageOpenGraph } from "@/lib/discovery/seo";
 import { requestDictionary } from "@/lib/requestDictionary";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     title,
     description,
     alternates: { canonical: tagHref(canonicalName) },
-    openGraph: { title, description, url: tagHref(canonicalName), type: "website" },
+    openGraph: pageOpenGraph({ title, description, url: tagHref(canonicalName) }),
     robots: query.type || !tag ? { index: false, follow: true } : { index: true, follow: true },
   };
 }

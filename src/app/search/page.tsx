@@ -6,6 +6,7 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { SearchError } from "@/components/search/SearchError";
 import { ApiError, searchAll, searchPeople, searchProjects } from "@/lib/api/client";
 import { SEARCH_PAGE_SIZE, parseSearchQuery, searchHref } from "@/lib/discovery/query";
+import { pageOpenGraph } from "@/lib/discovery/seo";
 import { requestDictionary } from "@/lib/requestDictionary";
 import type { DiscoveryProjectPage, PersonPage, SearchResults } from "@/lib/api/types";
 import { LandingHint } from "@/components/search/LandingHint";
@@ -29,7 +30,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     title: query.q ? `${query.q} | ${t.search.title}` : t.search.title,
     description,
     alternates: { canonical: "/search" },
-    openGraph: { title: t.search.title, description, url: "/search", type: "website" },
+    openGraph: pageOpenGraph({ title: t.search.title, description, url: "/search" }),
     robots: query.q ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
