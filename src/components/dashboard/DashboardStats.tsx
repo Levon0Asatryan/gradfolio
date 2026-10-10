@@ -1,31 +1,33 @@
 "use client";
 
 import { FC, memo, ReactElement } from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import FolderIcon from "@mui/icons-material/Folder";
+import PublicIcon from "@mui/icons-material/Public";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import GitHubIcon from "@mui/icons-material/GitHub";
-import LinkedInIcon from "@mui/icons-material/LinkedIn";
-import type { DashboardStats as DashboardStatsType } from "@/utils/types/dashboard.types";
+import type { DashboardStats as DashboardStatsType } from "@/lib/api/types";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface DashboardStatsProps {
-  stats?: DashboardStatsType;
+  /** `null`: the numbers could not be loaded. That is shown, never as zeros. */
+  stats: DashboardStatsType | null;
 }
 
 type Tone = "primary" | "success" | "info" | "secondary";
 
 interface StatCardProps {
   label: string;
-  value?: number;
-  noData: string;
+  value: number;
   icon: ReactElement;
   tone: Tone;
 }
 
-const StatCard: FC<StatCardProps> = ({ label, value, noData, icon, tone }) => (
+const StatCard: FC<StatCardProps> = ({ label, value, icon, tone }) => (
   <Card
     component="li"
     sx={{ p: 2, display: "flex", alignItems: "center", gap: 2, minWidth: 0, listStyle: "none" }}
@@ -51,7 +53,7 @@ const StatCard: FC<StatCardProps> = ({ label, value, noData, icon, tone }) => (
         component="p"
         sx={{ lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
       >
-        {value ?? noData}
+        {value}
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
         {label}
@@ -60,39 +62,58 @@ const StatCard: FC<StatCardProps> = ({ label, value, noData, icon, tone }) => (
   </Card>
 );
 
+/**
+ * The numbers the API counted. GitHub stars appear only when the API has a number (an import
+ * stored some, M7): a tile that says "No data" for ever is noise, and a made-up number is a
+ * wrong result. LinkedIn connections are not collected and have no tile.
+ */
 const DashboardStats: FC<DashboardStatsProps> = ({ stats }) => {
   const { t } = useLanguage();
   const s = t.dashboard.stats;
-  const items: Array<Omit<StatCardProps, "noData"> & { key: string }> = [
+
+  if (stats === null) {
+    return <Alert severity="error">{t.dashboard.statsLoadError}</Alert>;
+  }
+
+  const items: Array<StatCardProps & { key: string }> = [
     {
       key: "projects",
       label: s.totalProjects,
-      value: stats?.totalProjects,
+      value: stats.projects.total,
       icon: <FolderIcon />,
       tone: "primary",
     },
     {
-      key: "stars",
-      label: s.githubStars,
-      value: stats?.githubStars,
-      icon: <GitHubIcon />,
-      tone: "info",
-    },
-    {
-      key: "connections",
-      label: s.linkedinConnections,
-      value: stats?.linkedinConnections,
-      icon: <LinkedInIcon />,
-      tone: "secondary",
-    },
-    {
-      key: "activity",
-      label: s.recentActivities,
-      value: stats?.recentActivities,
-      icon: <TrendingUpIcon />,
+      key: "published",
+      label: s.published,
+      value: stats.projects.published,
+      icon: <PublicIcon />,
       tone: "success",
     },
+    {
+      key: "drafts",
+      label: s.drafts,
+      value: stats.projects.draft,
+      icon: <EditNoteIcon />,
+      tone: "secondary",
+    },
   ];
+  if (stats.githubStars !== null) {
+    items.push({
+      key: "stars",
+      label: s.githubStars,
+      value: stats.githubStars,
+      icon: <GitHubIcon />,
+      tone: "info",
+    });
+  }
+  items.push({
+    key: "activity",
+    label: s.recentActivities,
+    value: stats.recentActivities,
+    icon: <TrendingUpIcon />,
+    tone: "info",
+  });
 
   return (
     <Box
@@ -102,12 +123,16 @@ const DashboardStats: FC<DashboardStatsProps> = ({ stats }) => {
         m: 0,
         p: 0,
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "repeat(2, 1fr)",
+          lg: "repeat(auto-fit, minmax(200px, 1fr))",
+        },
         gap: 2,
       }}
     >
       {items.map(({ key, ...it }) => (
-        <StatCard key={key} noData={t.dashboard.noData} {...it} />
+        <StatCard key={key} {...it} />
       ))}
     </Box>
   );

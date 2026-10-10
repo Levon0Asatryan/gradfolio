@@ -9,18 +9,20 @@ import CardActionArea from "@mui/material/CardActionArea";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import type { Project } from "@/utils/types/dashboard.types";
+import type { DashboardProject } from "@/lib/api/types";
+import Alert from "@mui/material/Alert";
 import { formatDay } from "@/utils/helpers/formatDay";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface RecentProjectsProps {
-  items?: Project[];
+  /** `null`: the list could not be loaded (shown as an error, never as "no projects"). */
+  items: DashboardProject[] | null;
 }
 
 const SHOWN = 3;
 
-const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
+const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) => {
   const { t, language } = useLanguage();
   const titleId = useId();
   return (
@@ -36,6 +38,14 @@ const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
           <Typography variant="caption" color="text.secondary">
             {t.projects.status[p.status]}
           </Typography>
+          {p.isDraft ? (
+            <Chip size="small" variant="outlined" label={t.dashboard.statusDraft} />
+          ) : !p.isPublic ? (
+            <Chip size="small" variant="outlined" label={t.dashboard.statusPrivate} />
+          ) : null}
+          {p.role === "member" && (
+            <Chip size="small" variant="outlined" label={t.dashboard.roleMember} />
+          )}
         </Box>
         <Typography id={titleId} variant="subtitle1" component="h3" sx={{ fontWeight: 800 }}>
           {p.title}
@@ -50,7 +60,7 @@ const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
             overflow: "hidden",
           }}
         >
-          {p.description}
+          {p.summary}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: "auto" }}>
           {p.technologies.slice(0, 3).map((tech) => (
@@ -58,24 +68,19 @@ const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
           ))}
         </Box>
         <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
-          {formatDay(p.lastUpdated, language)}
+          {formatDay(p.updatedAt, language)}
         </Typography>
       </CardActionArea>
     </Card>
   );
 };
 
-const RecentProjects: FC<RecentProjectsProps> = ({ items = [] }) => {
+const RecentProjects: FC<RecentProjectsProps> = ({ items }) => {
   const { t } = useLanguage();
   const headingId = useId();
 
-  const top = useMemo(
-    () =>
-      [...items]
-        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
-        .slice(0, SHOWN),
-    [items],
-  );
+  // The API already orders them by last change; this only caps the row.
+  const top = useMemo(() => (items ?? []).slice(0, SHOWN), [items]);
 
   return (
     <Box
@@ -91,10 +96,12 @@ const RecentProjects: FC<RecentProjectsProps> = ({ items = [] }) => {
           {t.common.viewAll}
         </Button>
       </Box>
-      {top.length === 0 ? (
+      {items === null ? (
+        <Alert severity="error">{t.dashboard.projectsLoadError}</Alert>
+      ) : top.length === 0 ? (
         <Card sx={{ p: 4, textAlign: "center" }}>
           <FolderOpenIcon color="disabled" sx={{ fontSize: 48 }} />
-          <Typography color="text.secondary">{t.common.noProjectsYet}</Typography>
+          <Typography color="text.secondary">{t.dashboard.noRecentProjects}</Typography>
         </Card>
       ) : (
         <Box
