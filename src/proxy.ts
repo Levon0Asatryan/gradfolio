@@ -18,6 +18,26 @@ const UNAVAILABLE_MESSAGE = [
   "Մուտքը ժամանակավորապես անհասանելի է։ Խնդրում ենք կրկին փորձել։",
 ].join("\n");
 
+/**
+ * Renew an expired access token here, where the new session cookie can be written.
+ *
+ * A server component cannot set cookies. When one asks the SDK for a token that has expired,
+ * the SDK refreshes it, fails to save the new token set ("Failed to persist the updated token
+ * set") and the next request refreshes again with the same refresh token. With refresh-token
+ * rotation the second use is refused and the user is signed out. Here the response can carry
+ * the cookie, and Next hands it to the page being rendered in the same request.
+ *
+ * A failure is left for the page: it asks for the token again and answers 401 ("sign in
+ * again"). A visitor without a session has nothing to renew.
+ */
+async function refreshExpiredToken(request: NextRequest, response: NextResponse): Promise<void> {
+  try {
+    await auth0.getAccessToken(request, response);
+  } catch {
+    // MISSING_SESSION for a visitor; an expired session or a lost refresh token for the rest.
+  }
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname, search } = request.nextUrl;
 
@@ -29,7 +49,10 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const protectedPath = isProtectedPath(pathname);
   try {
     const authResponse = await auth0.middleware(request);
-    if (!protectedPath) return authResponse;
+    if (!protectedPath) {
+      await refreshExpiredToken(request, authResponse);
+      return authResponse;
+    }
 
     const session = await auth0.getSession(request);
     if (!session) {
@@ -37,6 +60,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       login.searchParams.set("returnTo", `${pathname}${search}`);
       return NextResponse.redirect(login);
     }
+    await refreshExpiredToken(request, authResponse);
     return authResponse;
   } catch (error) {
     console.error("proxy: session check failed", {

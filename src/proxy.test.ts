@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const sdk = vi.hoisted(() => ({
   middleware: vi.fn(),
   getSession: vi.fn(),
+  getAccessToken: vi.fn(),
 }));
 vi.mock("@/lib/auth0", () => ({ auth0: sdk }));
 
@@ -17,6 +18,7 @@ const sdkResponse = () => NextResponse.next({ headers: { "x-from-sdk": "1" } });
 beforeEach(() => {
   sdk.middleware.mockImplementation(() => Promise.resolve(sdkResponse()));
   sdk.getSession.mockResolvedValue(null);
+  sdk.getAccessToken.mockResolvedValue({ token: "t" });
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -80,6 +82,38 @@ describe("proxy", () => {
       path: "/search",
       error: "Error",
     });
+  });
+});
+
+describe("proxy renews an expired access token", () => {
+  // A server component cannot set cookies, so the SDK's refresh there is not persisted
+  // ("Failed to persist the updated token set"). The proxy's response can carry the cookie.
+  it("on a protected page, writing the new token set to the response the page is served with", async () => {
+    sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
+    const req = request("/projects");
+    const res = await proxy(req);
+    expect(sdk.getAccessToken).toHaveBeenCalledTimes(1);
+    expect(sdk.getAccessToken.mock.calls[0]?.[0]).toBe(req);
+    expect(sdk.getAccessToken.mock.calls[0]?.[1]).toBe(res);
+  });
+
+  it("on a public page too: a profile reads the API with the session when there is one", async () => {
+    const req = request("/projects/5c1d9a3e-aaaa-4bbb-8ccc-ddddeeeeffff");
+    const res = await proxy(req);
+    expect(sdk.getAccessToken.mock.calls[0]?.[1]).toBe(res);
+  });
+
+  it("not for /auth/*, whose routes are the SDK's own", async () => {
+    await proxy(request("/auth/callback"));
+    expect(sdk.getAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("and a failed renewal does not fail the page: it answers 401 itself", async () => {
+    sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
+    sdk.getAccessToken.mockRejectedValue(new Error("refresh token revoked"));
+    const res = await proxy(request("/projects"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-from-sdk")).toBe("1");
   });
 });
 
