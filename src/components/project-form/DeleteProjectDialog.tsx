@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useState } from "react";
+import { FC, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -24,6 +24,7 @@ export const DeleteProjectDialog: FC<{
   const text = t.projects.form;
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const cancelButton = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
 
@@ -57,6 +58,8 @@ export const DeleteProjectDialog: FC<{
         onClose={() => !busy && setOpen(false)}
         aria-labelledby="delete-project-title"
         aria-describedby="delete-project-body"
+        // `autoFocus` is lost while the dialog fades in (its content is `visibility: hidden`).
+        slotProps={{ transition: { onEntered: () => cancelButton.current?.focus() } }}
       >
         <DialogTitle id="delete-project-title">
           {text.deleteTitle.replace("{name}", name)}
@@ -70,7 +73,7 @@ export const DeleteProjectDialog: FC<{
           )}
         </DialogContent>
         <DialogActions>
-          <Button autoFocus onClick={() => setOpen(false)} disabled={busy}>
+          <Button ref={cancelButton} onClick={() => setOpen(false)} disabled={busy}>
             {text.cancel}
           </Button>
           <Button color="error" variant="contained" onClick={confirm} disabled={busy}>

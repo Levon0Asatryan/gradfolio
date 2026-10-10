@@ -413,7 +413,9 @@ describe("ProjectForm, edit", () => {
     show();
     fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
     const dialog = await screen.findByRole("dialog", { name: "Delete “EcoRoute”?" });
-    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus(),
+    );
     expect(act_.del).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete project" }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/projects?flash=deleted"));

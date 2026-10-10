@@ -97,6 +97,8 @@ test.describe("owner (account A)", () => {
           const dialog = page.getByRole("dialog");
           await expect(dialog).toBeVisible();
           await settled(page);
+          // The search field has the focus once the fade-in ends (MUI hides the content until then).
+          await expect(page.locator("#add-teammate-search")).toBeFocused();
           await testInfo.attach("add-find", {
             body: await page.screenshot(),
             contentType: "image/png",
