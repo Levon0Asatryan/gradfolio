@@ -124,7 +124,7 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
     const d = new Date(lastSyncedAt);
     const formatted = isNaN(d.getTime()) ? lastSyncedAt : formatDay(lastSyncedAt, language);
     return (
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
         {t.integrations.lastSynced} {formatted}
       </Typography>
     );

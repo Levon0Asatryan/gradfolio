@@ -68,6 +68,8 @@ const ExperienceList: FC<ExperienceListProps> = ({ items }) => {
                   </Stack>
                 }
                 secondary={formatRange(exp.start, exp.end)}
+                // Month names depend on the machine's ICU data (server and browser can differ).
+                slotProps={{ secondary: { suppressHydrationWarning: true } }}
               />
             </ListItem>
           ))}

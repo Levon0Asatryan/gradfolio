@@ -24,7 +24,7 @@ const ProjectMetadataCard: FC<ProjectMetadataCardProps> = ({ metadata, category 
     <Panel title={t.common.projectInfo}>
       <Stack spacing={1}>
         {(start || end) && (
-          <Typography variant="body2">
+          <Typography variant="body2" suppressHydrationWarning>
             <strong>{t.common.timeline}</strong> {start || "—"} {"–"} {end || t.common.present}
           </Typography>
         )}
