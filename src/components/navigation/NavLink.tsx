@@ -9,12 +9,14 @@ import { navLinkComponent } from "./navLinkComponent";
 export const NavLink: FC<{
   href: string;
   current?: boolean;
+  /** A full page load instead of a client-side fetch: a protected page for a visitor (M4 F3). */
+  fullLoad?: boolean;
   onClick?: () => void;
   sx?: SxProps<Theme>;
   children: ReactNode;
-}> = ({ href, current, onClick, sx, children }) => (
+}> = ({ href, current, fullLoad, onClick, sx, children }) => (
   <ButtonBase
-    component={navLinkComponent(href)}
+    component={navLinkComponent(href, fullLoad)}
     href={href}
     onClick={onClick}
     aria-current={current ? "page" : undefined}

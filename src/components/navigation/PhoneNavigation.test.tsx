@@ -26,6 +26,11 @@ const show = (user: { name: string } | null) =>
   );
 
 describe("PhoneNavigation", () => {
+  it("is marked so the 404 page can hide it before the first paint (M4 F4)", () => {
+    show(null);
+    expect(screen.getByRole("navigation", { name: "Main menu" })).toHaveAttribute("data-app-nav");
+  });
+
   it("shows the four main places with labels, and More", () => {
     show({ name: "Ani" });
     const bar = screen.getByRole("navigation", { name: "Main menu" });

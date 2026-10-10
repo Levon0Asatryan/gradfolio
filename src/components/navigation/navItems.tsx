@@ -10,6 +10,7 @@ import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import SpaceDashboardOutlined from "@mui/icons-material/SpaceDashboardOutlined";
 import TuneOutlined from "@mui/icons-material/TuneOutlined";
 import type { Dictionary } from "@/data/locales/types";
+import { isProtectedPath } from "@/lib/auth/routePolicy";
 
 export interface NavItem {
   label: string;
@@ -17,6 +18,11 @@ export interface NavItem {
   icon: ReactNode;
   /** Shown in the phone bar; the rest go under "More". */
   primary?: boolean;
+  /**
+   * Load with a plain `<a>`: a visitor with no session is redirected to Auth0 from here, and
+   * a client-side fetch of that redirect is a cross-origin request Auth0 rejects (M4 F3).
+   */
+  fullLoad?: boolean;
 }
 
 /** Shown only to a signed-out visitor: login, and the login-connections stepper. */
@@ -40,7 +46,8 @@ export function navItems(t: Dictionary, signedIn: boolean): NavItem[] {
     { label: t.common.account, href: "/account", icon: <ShieldOutlined /> },
     { label: t.common.settings, href: "/settings", icon: <TuneOutlined /> },
   ];
-  return signedIn ? all.filter((i) => !SIGNED_OUT_ONLY.has(i.href)) : all;
+  if (signedIn) return all.filter((i) => !SIGNED_OUT_ONLY.has(i.href));
+  return all.map((i) => (isProtectedPath(i.href) ? { ...i, fullLoad: true } : i));
 }
 
 const normalize = (path: string) =>

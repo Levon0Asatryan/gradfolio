@@ -302,13 +302,26 @@ export const NotificationsProvider: FC<{ children: ReactNode; pollMs?: number }>
       const result = await respondToInviteAction(target.params.projectId, decision);
       answering.current.delete(id);
       setRespondingIds(new Set(answering.current));
+      // The answer is about the project, not the row: a second pending invitation row for the
+      // same project (an invite sent again) is answered by it too, and must not keep its buttons.
+      const rows = itemsRef.current.filter(
+        (n) =>
+          n.id === id ||
+          (n.type === "team_invite" &&
+            n.invite?.status === "pending" &&
+            n.params?.projectId === target.params?.projectId),
+      );
+      const ids = new Set(rows.map((n) => n.id));
       const show = (status: "accepted" | "rejected" | "gone") =>
-        setItems((c) => c.map((n) => (n.id === id ? { ...n, read: true, invite: { status } } : n)));
+        setItems((c) =>
+          c.map((n) => (ids.has(n.id) ? { ...n, read: true, invite: { status } } : n)),
+        );
       if (result.ok) {
         show(decision === "accept" ? "accepted" : "rejected");
-        if (!target.read) setCount((c) => (c === null ? c : Math.max(0, c - 1)));
+        const unread = rows.filter((n) => !n.read).length;
+        if (unread > 0) setCount((c) => (c === null ? c : Math.max(0, c - unread)));
         // The API may or may not mark the notification read itself; asking again is harmless.
-        void markNotificationReadAction(id);
+        for (const row of rows) void markNotificationReadAction(row.id);
         // Pages that list the user's projects now differ.
         router.refresh();
       } else if (result.code === "NOT_FOUND") {

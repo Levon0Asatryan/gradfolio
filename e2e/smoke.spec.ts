@@ -32,10 +32,10 @@ async function setLanguage(page: Page, language: string, theme = "light") {
  * requests are judged by their own response below.
  *
  * Allowed to fail here, and only here: Vercel's analytics scripts (they exist only on
- * Vercel), and the sidebar's prefetch of a protected page, which the proxy redirects to
- * `/auth/login` (that answers 500 because the Auth0 tenant of this run is fake).
+ * Vercel). A request to `/auth/login` is not allowed: a visitor's navigation links to
+ * protected pages are plain anchors, so nothing fetches them behind the user's back (M4 F3).
  */
-const ALLOWED_FAILURES = [/\/_vercel\//, /\/auth\/login/];
+const ALLOWED_FAILURES = [/\/_vercel\//];
 
 function watchConsole(page: Page): string[] {
   const problems: string[] = [];
@@ -45,6 +45,10 @@ function watchConsole(page: Page): string[] {
     problems.push(m.text());
   });
   page.on("pageerror", (e) => problems.push(`pageerror: ${e.message}`));
+  // A visitor's page must not fetch a protected link in the background (M4 F3).
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/auth/login") problems.push(`requested ${r.url()}`);
+  });
   page.on("response", (r) => {
     if (r.status() < 400) return;
     if (r.request().isNavigationRequest() && r.status() === 404) return; // the 404 page itself
@@ -78,6 +82,29 @@ for (const language of LANGUAGES) {
       );
       expect(await serious(page)).toEqual([]);
       expect(problems).toEqual([]);
+    });
+
+    test("an unknown page does not shift when it hides the navigation (CLS below 0.1 at 1440)", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.addInitScript(() => {
+        const w = window as unknown as { __cls: number };
+        w.__cls = 0;
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries() as unknown as Array<{
+            value: number;
+            hadRecentInput: boolean;
+          }>) {
+            if (!e.hadRecentInput) w.__cls += e.value;
+          }
+        }).observe({ type: "layout-shift", buffered: true });
+      });
+      await page.goto("/no-such-page", { waitUntil: "networkidle" });
+      await page.waitForTimeout(1000);
+      const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+      expect(cls).toBeLessThan(0.1);
+      await expect(page.locator("nav")).toHaveCount(0);
     });
 
     for (const path of ["/settings", "/search"]) {

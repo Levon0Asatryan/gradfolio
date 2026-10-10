@@ -209,6 +209,28 @@ describe("answering an invitation", () => {
     expect(bell()).toHaveAttribute("aria-label", "Notifications, unread: 1");
   });
 
+  it("a second pending row for the same project is answered with the first, not left with buttons", async () => {
+    // An invite sent again leaves two rows for one invitation (M5 follow-up).
+    const second = { ...invite(), id: ID(2) };
+    page = { items: [invite(), second], nextCursor: null };
+    unread = 2;
+    show();
+    const dialog = await open();
+    await waitFor(() =>
+      expect(
+        within(dialog).getAllByRole("button", { name: /^Accept the invitation/ }),
+      ).toHaveLength(2),
+    );
+    fireEvent.click(within(dialog).getAllByRole("button", { name: /^Accept the invitation/ })[0]!);
+    await waitFor(() =>
+      expect(within(dialog).getAllByText("You joined this project")).toHaveLength(2),
+    );
+    expect(within(dialog).queryByRole("button", { name: /^Accept the invitation/ })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: /^Decline the invitation/ })).toBeNull();
+    expect(actions.respond).toHaveBeenCalledTimes(1);
+    expect(bell()).toHaveAttribute("aria-label", "Notifications");
+  });
+
   it("declining shows the outcome", async () => {
     const dialog = await openWithInvite();
     fireEvent.click(within(dialog).getByRole("button", { name: /^Decline the invitation/ }));

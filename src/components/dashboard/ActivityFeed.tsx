@@ -70,7 +70,7 @@ const ActivityFeed: FC<ActivityFeedProps> = ({ items = [] }) => {
                     a.translationParams,
                   )}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
                   {formatDay(a.timestamp, language)}
                 </Typography>
               </Box>

@@ -57,7 +57,7 @@ const RecentProjectCard: FC<{ project: Project }> = ({ project: p }) => {
             <Chip key={tech} size="small" label={tech} variant="outlined" />
           ))}
         </Box>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
           {formatDay(p.lastUpdated, language)}
         </Typography>
       </CardActionArea>

@@ -60,6 +60,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
     <Box
       component="nav"
       aria-label={t.common.mainMenu}
+      data-app-nav
       sx={(theme) => ({
         display: { xs: "none", sm: "flex" },
         flexDirection: "column",
@@ -119,6 +120,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
             key={item.href}
             href={item.href}
             current={current}
+            fullLoad={item.fullLoad}
             sx={(theme) => ({
               display: "flex",
               flexDirection: pick("column", "row"),

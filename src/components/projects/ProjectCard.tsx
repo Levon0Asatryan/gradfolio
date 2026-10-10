@@ -94,7 +94,9 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
               <Chip size="small" variant="outlined" label={t.projects.private} />
             ) : null}
             {range && (
-              <Typography variant="caption" color="text.secondary">
+              // The month names come from the machine's ICU data: the server may have Armenian,
+              // the browser not. Keep the server's text rather than report a mismatch.
+              <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
                 {range}
               </Typography>
             )}
