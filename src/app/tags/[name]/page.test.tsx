@@ -102,15 +102,47 @@ describe("/tags/[name] metadata (SEO)", () => {
 
   it("is indexable with the API's spelling as the canonical URL", async () => {
     api.getTag.mockResolvedValue({ ...TAG, name: "ML" });
+    api.listTagProjects.mockResolvedValue({ items: [], nextCursor: null });
+    api.listTagPeople.mockResolvedValue({ items: [], nextCursor: null });
     const m = await meta("ml");
     expect(m.alternates?.canonical).toBe("/tags/ML");
     expect(m.openGraph).toMatchObject({ images: [{ url: "/opengraph-image.png" }] });
     expect(m.robots).toEqual({ index: true, follow: true });
   });
 
+  it("a tag whose lists fail to load is an error page and noindex", async () => {
+    api.getTag.mockResolvedValue(TAG);
+    api.listTagProjects.mockRejectedValue(new ApiError(503, "DATABASE_UNAVAILABLE", "down"));
+    api.listTagPeople.mockResolvedValue({ items: [], nextCursor: null });
+    const m = await meta("C#");
+    expect(m.robots).toEqual({ index: false, follow: true });
+  });
+
+  it("is indexable when the lists load", async () => {
+    api.getTag.mockResolvedValue(TAG);
+    api.listTagProjects.mockResolvedValue({ items: [], nextCursor: null });
+    api.listTagPeople.mockResolvedValue({ items: [], nextCursor: null });
+    const m = await meta("C#");
+    expect(m.robots).toEqual({ index: true, follow: true });
+  });
+
+  it("a tag named C%23 is one tag in the page and in the metadata (no second decode)", async () => {
+    api.getTag.mockResolvedValue({ ...TAG, name: "C%23" });
+    api.listTagProjects.mockResolvedValue({ items: [], nextCursor: null });
+    api.listTagPeople.mockResolvedValue({ items: [], nextCursor: null });
+    // Next gives the page the segment encoded and the metadata decoded.
+    await generateMetadata({
+      params: Promise.resolve({ name: "C%23" }),
+      searchParams: Promise.resolve({}),
+    });
+    await run("C%2523");
+    // (React's per-request cache is not active here, so the call may repeat: the name must not vary.)
+    expect(new Set(api.getTag.mock.calls.map((c) => c[0]))).toEqual(new Set(["C%23"]));
+  });
+
   it("a paged list is noindex", async () => {
     api.getTag.mockResolvedValue(TAG);
-    const m = await meta("C%23", { type: "projects", cursor: "c" });
+    const m = await meta("C#", { type: "projects", cursor: "c" });
     expect(m.robots).toEqual({ index: false, follow: true });
   });
 

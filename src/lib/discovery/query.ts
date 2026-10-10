@@ -75,15 +75,26 @@ export function parseSearchQuery(raw: Raw): SearchQuery {
   return query;
 }
 
-/** A tag name from a route segment: decoded by Next, one term, 1 to 255 characters. */
-export function cleanTagName(value: string): string | null {
-  let decoded = value;
+/**
+ * A tag name from a route segment. Next hands the page the segment **still encoded** and
+ * `generateMetadata` the **decoded** one (verified on the production build: `/tags/C%2523`
+ * is `"C%2523"` in the page and `"C%23"` in the metadata). Decoding the first and not the
+ * second is what keeps a tag whose name contains `%23` one tag; a second decode would turn
+ * it into `C#`.
+ */
+export function tagNameFromPageParam(segment: string): string | null {
+  let decoded = segment;
   try {
-    decoded = decodeURIComponent(value);
+    decoded = decodeURIComponent(segment);
   } catch {
-    // Next already decodes a segment once; a stray "%" stays as it is.
+    // A stray "%" that is not an escape stays as typed.
   }
-  const name = normalizeText(decoded);
+  return tagNameFromDecoded(decoded);
+}
+
+/** The metadata's `params` are already decoded: never decode them again. */
+export function tagNameFromDecoded(value: string): string | null {
+  const name = normalizeText(value);
   if (!name || Array.from(name).length > MAX_TAG_LENGTH) return null;
   return name;
 }

@@ -212,6 +212,16 @@ test.describe("behaviour", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tag: CI/CD");
   });
 
+  test("a tag named C%23 is that tag, not C# (the page and its metadata agree)", async ({
+    page,
+  }) => {
+    const response = await page.goto("/tags/C%2523");
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tag: C%23");
+    await expect(page).toHaveTitle(/C%23/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/tags\/C%2523$/);
+  });
+
   test("an unknown tag is a real 404 and not indexed", async ({ page }) => {
     const response = await page.goto("/tags/no-such-tag-anywhere");
     expect(response?.status()).toBe(404);

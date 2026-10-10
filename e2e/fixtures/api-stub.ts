@@ -60,6 +60,8 @@ const TAGS: Record<string, TagSummary> = {
   ml: { name: "ML", projectCount: 5, peopleCount: 7 },
   "c#": { name: "C#", projectCount: 3, peopleCount: 4 },
   "ci/cd": { name: "CI/CD", projectCount: 1, peopleCount: 1 },
+  // A tag whose own name contains an escape sequence: it must stay one tag.
+  "c%23": { name: "C%23", projectCount: 1, peopleCount: 1 },
 };
 
 const seen: Array<{ path: string; search: string; headers: Record<string, string | undefined> }> =

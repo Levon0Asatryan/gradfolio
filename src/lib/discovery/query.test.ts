@@ -5,7 +5,8 @@ import {
   MAX_QUERY_TOKENS,
   MAX_TOKEN_LENGTH,
   cleanQuery,
-  cleanTagName,
+  tagNameFromDecoded,
+  tagNameFromPageParam,
   normalizeText,
   parseSearchQuery,
   searchHref,
@@ -67,26 +68,34 @@ describe("parseSearchQuery", () => {
 });
 
 describe("tag names", () => {
-  it("round trips through the route segment", () => {
-    for (const name of ["C#", "C++", ".NET", "CI/CD", "Արմեն", "100%", "a&b=c"]) {
-      expect(cleanTagName(decodeURIComponent(tagHref(name).slice("/tags/".length)))).toBe(name);
+  it("round trips through the route segment the page receives (still encoded)", () => {
+    for (const name of ["C#", "C++", ".NET", "CI/CD", "Արմեն", "100%", "C%23", "a&b=c"]) {
+      expect(tagNameFromPageParam(tagHref(name).slice("/tags/".length))).toBe(name);
     }
+  });
+
+  it("does not decode the metadata's params a second time", () => {
+    // `/tags/C%2523` is the tag named "C%23"; the metadata receives exactly that.
+    expect(tagNameFromDecoded("C%23")).toBe("C%23");
+    expect(tagNameFromPageParam("C%2523")).toBe("C%23");
+    expect(tagNameFromPageParam("C%2523")).toBe(tagNameFromDecoded("C%23"));
   });
 
   it("encodes characters that would change the route", () => {
     expect(tagHref("CI/CD")).toBe("/tags/CI%2FCD");
     expect(tagHref("C#")).toBe("/tags/C%23");
     expect(tagHref("../x")).toBe("/tags/..%2Fx");
+    expect(tagHref("C%23")).toBe("/tags/C%2523");
   });
 
   it("refuses an empty name and one over 255 characters", () => {
-    expect(cleanTagName("   ")).toBeNull();
-    expect(cleanTagName("x".repeat(256))).toBeNull();
-    expect(cleanTagName("x".repeat(255))).toBe("x".repeat(255));
+    expect(tagNameFromPageParam("   ")).toBeNull();
+    expect(tagNameFromPageParam("x".repeat(256))).toBeNull();
+    expect(tagNameFromPageParam("x".repeat(255))).toBe("x".repeat(255));
   });
 
   it("does not throw on a stray percent sign", () => {
-    expect(cleanTagName("100%")).toBe("100%");
+    expect(tagNameFromPageParam("100%")).toBe("100%");
   });
 });
 
