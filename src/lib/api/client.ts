@@ -3,6 +3,7 @@ import { headers as requestHeaders } from "next/headers";
 import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
 import type { Section } from "@/lib/profile/sections";
+import type { PeopleBrowseQuery, ProjectBrowseQuery } from "@/lib/discovery/browse";
 import type {
   Me,
   Profile,
@@ -26,6 +27,8 @@ import type {
   DiscoveryProjectPage,
   SearchResults,
   TagSummary,
+  TagCloud,
+  UserFacets,
 } from "./types";
 
 /**
@@ -98,6 +101,12 @@ interface Call {
    * no identity and cannot differ per user (and is safe to cache).
    */
   auth?: "required" | "optional" | "none";
+  /**
+   * Seconds a response may be reused. **Only for public calls with `auth: "none"`** whose
+   * answer is the same for everyone (the tag cloud, the facets): a call that carries a token
+   * must never set it. Omitted: never cached.
+   */
+  revalidate?: number;
 }
 
 /**
@@ -123,7 +132,7 @@ export async function forwardedClientHeaders(
   return { "X-Client-IP": ip, "X-Gradfolio-Proxy-Secret": secret };
 }
 
-async function request<T>({ method, path, body, auth = "required" }: Call): Promise<T> {
+async function request<T>({ method, path, body, auth = "required", revalidate }: Call): Promise<T> {
   const base = process.env.API_BASE_URL;
   if (!base) throw new ApiError(503, LOCAL_CODES.notConfigured, "API_BASE_URL is not set");
 
@@ -142,7 +151,8 @@ async function request<T>({ method, path, body, auth = "required" }: Call): Prom
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      cache: "no-store",
+      // Only a public call with no identity may be reused: it is the same for every visitor.
+      ...(revalidate !== undefined ? { next: { revalidate } } : { cache: "no-store" as const }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
@@ -466,5 +476,43 @@ export function listTagPeople(name: string, paging: Paging = {}): Promise<Person
     method: "GET",
     path: `/v1/tags/people${qs({ name, ...paging })}`,
     auth: "none",
+  });
+}
+
+/** Published projects, newest first by default (`GET /v1/projects`): public, no identity. */
+export function browseProjects(query: ProjectBrowseQuery = {}): Promise<DiscoveryProjectPage> {
+  return request<DiscoveryProjectPage>({
+    method: "GET",
+    path: `/v1/projects${qs({ ...query })}`,
+    auth: "none",
+  });
+}
+
+/** Public profiles, newest first (`GET /v1/users`). */
+export function browsePeople(query: PeopleBrowseQuery = {}): Promise<PersonPage> {
+  return request<PersonPage>({
+    method: "GET",
+    path: `/v1/users${qs({ sort: "newest", ...query })}`,
+    auth: "none",
+  });
+}
+
+/** The values the people filters offer (`GET /v1/users/facets`). */
+export function getUserFacets(): Promise<UserFacets> {
+  return request<UserFacets>({
+    method: "GET",
+    path: "/v1/users/facets",
+    auth: "none",
+    revalidate: 300,
+  });
+}
+
+/** The tag cloud (`GET /v1/tags/cloud`); the API caches it for a minute, this for five. */
+export function getTagCloud(limit = 40): Promise<TagCloud> {
+  return request<TagCloud>({
+    method: "GET",
+    path: `/v1/tags/cloud${qs({ limit })}`,
+    auth: "none",
+    revalidate: 300,
   });
 }

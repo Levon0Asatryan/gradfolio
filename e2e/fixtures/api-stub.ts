@@ -12,6 +12,8 @@
 import { createServer } from "node:http";
 import type {
   DiscoveryProject,
+  TagCloud,
+  UserFacets,
   DiscoveryProjectPage,
   PersonPage,
   PersonSummary,
@@ -132,6 +134,45 @@ createServer((req, res) => {
   if (url.pathname === "/v1/search/projects" || url.pathname === "/v1/tags/projects") {
     const all = q === "nothing" ? [] : projects(name || q === "iot" ? 15 : 3);
     const body: DiscoveryProjectPage = list(all);
+    return send(res, 200, body);
+  }
+  if (url.pathname === "/v1/projects") {
+    // Browse: `category=other` is empty so the empty state can be seen.
+    const all = url.searchParams.get("category") === "other" ? [] : projects(15);
+    const body: DiscoveryProjectPage = list(all);
+    return send(res, 200, body);
+  }
+  if (url.pathname === "/v1/users") {
+    const school = url.searchParams.get("school");
+    const all = school === "Nowhere" ? [] : people(15);
+    const body: PersonPage = list(all);
+    return send(res, 200, body);
+  }
+  if (url.pathname === "/v1/users/facets") {
+    const body: UserFacets = {
+      schools: [
+        { value: "NPUA", count: 9 },
+        { value: "YSU", count: 4 },
+      ],
+      majors: [{ value: "Informatics", count: 7 }],
+      years: [
+        { value: 2026, count: 6 },
+        { value: 2027, count: 3 },
+      ],
+      generatedAt: "2026-10-10T00:00:00.000Z",
+    };
+    return send(res, 200, body);
+  }
+  if (url.pathname === "/v1/tags/cloud") {
+    const body: TagCloud = {
+      generatedAt: "2026-10-10T00:00:00.000Z",
+      items: [
+        { name: "IoT", projects: 14, people: 9 },
+        { name: "ML", projects: 5, people: 7 },
+        { name: "C#", projects: 3, people: 4 },
+        { name: "Go", projects: 1, people: 2 },
+      ],
+    };
     return send(res, 200, body);
   }
   if (url.pathname === "/v1/tags") {

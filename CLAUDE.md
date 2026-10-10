@@ -329,7 +329,7 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; their types are provisional in `src/lib/api/discoveryTypes.ts` until the contract is pinned). Still mock until their milestones: dashboard, integrations.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; browse, facets and the tag cloud included). Still mock until their milestones: dashboard, integrations.
 
 ## Environment variables
 
@@ -356,22 +356,23 @@ mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` firs
 
 ## Pages
 
-| Route                       | What it does                                                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `/`                         | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`         |
-| `/profile/[id]`             | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header            |
-| `/profile`, `/profile/edit` | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                           |
-| `/projects`                 | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)           |
-| `/projects/[id]`            | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team          |
-| `/projects/new`             | `ProjectForm` (create): sections, Tiptap description, terms, links, visibility; login required               |
-| `/projects/[id]/edit`       | `ProjectForm` (edit) for the owner (404 otherwise) and delete with a confirmation naming the project         |
-| `/search`                   | Global search on the API (6.8): `q`/`type`/`cursor` in the URL; People and Projects groups; public, no token |
-| `/tags/[name]`              | A tag's projects and people (`GET /v1/tags`); unknown tag is a 404; chips on project and profile link here   |
-| `/integrations`             | GitHub and LinkedIn cards; connect/disconnect is local state                                                 |
-| `/integrations/connections` | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                              |
-| `/settings`                 | Language and theme                                                                                           |
-| `/account`                  | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required     |
-| 404                         | Hides the sidebar, Noise effect                                                                              |
+| Route                                | What it does                                                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                                  | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`                                       |
+| `/profile/[id]`                      | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header                                          |
+| `/profile`, `/profile/edit`          | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                                                         |
+| `/projects`                          | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)                                         |
+| `/projects/[id]`                     | `GET /v1/projects/{id}`: header, description (DOMPurify on the server), attachments, metadata, team                                        |
+| `/projects/new`                      | `ProjectForm` (create): sections, Tiptap description, terms, links, visibility; login required                                             |
+| `/projects/[id]/edit`                | `ProjectForm` (edit) for the owner (404 otherwise) and delete with a confirmation naming the project                                       |
+| `/search`                            | Global search on the API (6.8): `q`/`type`/`cursor` in the URL; People and Projects groups; public, no token                               |
+| `/tags/[name]`                       | A tag's projects and people (`GET /v1/tags`); unknown tag is a 404; chips on project and profile link here                                 |
+| `/browse/projects`, `/browse/people` | Public gallery and directory (6.9): filters in the URL, "Next page" links (no infinite scroll); people filters from `GET /v1/users/facets` |
+| `/integrations`                      | GitHub and LinkedIn cards; connect/disconnect is local state                                                                               |
+| `/integrations/connections`          | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                                                            |
+| `/settings`                          | Language and theme                                                                                                                         |
+| `/account`                           | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required                                   |
+| 404                                  | Hides the sidebar, Noise effect                                                                                                            |
 
 ## What is not built yet
 

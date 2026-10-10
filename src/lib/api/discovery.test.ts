@@ -19,6 +19,10 @@ const {
   getTag,
   listTagProjects,
   listTagPeople,
+  browseProjects,
+  browsePeople,
+  getUserFacets,
+  getTagCloud,
 } = await import("./client");
 
 const json = (status: number, body: unknown) =>
@@ -51,6 +55,10 @@ describe("public discovery calls carry no identity", () => {
     ["getTag", () => getTag("IoT")],
     ["listTagProjects", () => listTagProjects("IoT")],
     ["listTagPeople", () => listTagPeople("IoT")],
+    ["browseProjects", () => browseProjects({ category: "course" })],
+    ["browsePeople", () => browsePeople({ gradYear: 2026 })],
+    ["getUserFacets", () => getUserFacets()],
+    ["getTagCloud", () => getTagCloud()],
   ])("%s sends no Authorization header and never asks for the token", async (_n, call) => {
     await call();
     expect(sdk.getAccessToken).not.toHaveBeenCalled();
@@ -117,5 +125,40 @@ describe("errors", () => {
     fetchMock.mockResolvedValue(json(404, { code: "NOT_FOUND", message: "no" }));
     await expect(getTag("nothing")).rejects.toMatchObject({ status: 404, code: "NOT_FOUND" });
     await expect(getTag("nothing")).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe("caching: only the identity-free, same-for-everyone answers are reused", () => {
+  const initOf = () => (fetchMock.mock.calls.at(-1) as [URL, RequestInit & { next?: unknown }])[1];
+
+  it("the tag cloud and the facets may be reused for five minutes", async () => {
+    await getTagCloud(30);
+    expect(initOf().next).toEqual({ revalidate: 300 });
+    expect(lastCall().url.searchParams.get("limit")).toBe("30");
+    await getUserFacets();
+    expect(initOf().next).toEqual({ revalidate: 300 });
+  });
+
+  it("search, tag and browse lists are never cached", async () => {
+    for (const call of [
+      () => searchAll("ml"),
+      () => getTag("ML"),
+      () => browseProjects(),
+      () => browsePeople(),
+    ]) {
+      await call();
+      expect(initOf().cache).toBe("no-store");
+      expect(initOf().next).toBeUndefined();
+    }
+  });
+
+  it("people are asked for newest first, and filters are sent as given", async () => {
+    await browsePeople({ school: "NPUA", gradYear: 2026, cursor: "c" });
+    const { url } = lastCall();
+    expect(url.pathname).toBe("/v1/users");
+    expect(url.searchParams.get("sort")).toBe("newest");
+    expect(url.searchParams.get("school")).toBe("NPUA");
+    expect(url.searchParams.get("gradYear")).toBe("2026");
+    expect(url.searchParams.get("cursor")).toBe("c");
   });
 });

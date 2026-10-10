@@ -478,6 +478,37 @@ export interface Dictionary {
     byOwner: string;
     verified: string;
   };
+  browse: {
+    projectsTitle: string;
+    projectsSubtitle: string;
+    peopleTitle: string;
+    peopleSubtitle: string;
+    filters: string;
+    categoryLabel: string;
+    statusLabel: string;
+    sortLabel: string;
+    all: string;
+    sortNewest: string;
+    sortUpdated: string;
+    school: string;
+    major: string;
+    gradYear: string;
+    any: string;
+    apply: string;
+    clear: string;
+    noProjects: string;
+    noPeople: string;
+    tryClearing: string;
+    browseProjects: string;
+    browsePeople: string;
+    newestProjects: string;
+    newestPeople: string;
+    cloudTitle: string;
+    cloudEmpty: string;
+    cloudItem: string;
+    sectionError: string;
+    results: string;
+  };
   tags: {
     title: string;
     projectsTagged: string;

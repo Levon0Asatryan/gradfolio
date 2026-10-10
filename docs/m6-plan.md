@@ -282,7 +282,7 @@ redirect and a search page with `q` carries `noindex`.
   keeps them cacheable and user-independent); `ApiError` mapping; 429.
 - Search page: grouped sections with counts, "See all" hrefs carry the query, group omitted when empty,
   landing without `q`, no-results with the query shown escaped, error is not the empty state, the
-  1-character hint makes no call.
+  a one-character query is sent to the API (no too-short state), and an empty or whitespace-only query makes no call.
 - Browse: a filter change produces the expected URL; "Next page" is a link whose `href` has the
   cursor and the same filters; "First page" drops the cursor; empty and error states.
 - `TagLink`: href encoding round trip; not rendered as a link inside a card.

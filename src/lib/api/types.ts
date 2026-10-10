@@ -74,3 +74,8 @@ export type SearchResults = components["schemas"]["SearchResults"];
 export type PersonPage = components["schemas"]["PersonPage"];
 export type DiscoveryProjectPage = components["schemas"]["DiscoveryProjectPage"];
 export type TagSummary = components["schemas"]["TagSummary"];
+
+// Browse, facets and the tag cloud (M6 6.3, 6.4): the API's `discovery` tag.
+export type TagCloud = components["schemas"]["TagCloud"];
+export type TagCloudItem = components["schemas"]["TagCloudItem"];
+export type UserFacets = components["schemas"]["UserFacets"];
