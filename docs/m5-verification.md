@@ -76,9 +76,9 @@ now). Answering one leaves the other stale until the list reloads; a click on th
   that filter removed (it is removed in #75): the 24 matrix cases (12 bell, 12 team) all passed
   with axe 0 serious or critical: 22 on the first run and the other 2 (ru dark team, phone and desktop)
   on a re-run after timeouts under heavy machine load; 34 tests in all, 3 re-run, all passed. Only Next's
-  dev-only LCP hint is ignored. Two items were also ignored, locally and not committed: Auth0's
+  dev-only LCP hint is ignored. One more message was ignored, locally and not committed: Auth0's
   `Failed to persist the updated token set` server log (the saved sessions' access tokens had
-  expired; it appears on `/projects` too, so it is not from M5) and no other message.
+  expired; it appears on `/projects` too, so it is not from M5).
 - Pre-existing: `/projects` in Armenian logs a hydration mismatch (project card dates in the browser
   locale vs the server). Not M5; proposed follow-up. `DeleteAccount` and `DeleteProjectDialog` use the
   same `autoFocus` pattern as the bug above and probably share it: proposed follow-up.
