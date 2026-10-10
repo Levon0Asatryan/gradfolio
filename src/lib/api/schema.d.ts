@@ -465,6 +465,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s teams in one call
+         * @description Four lists, each on its own cursor: `owned` (projects the caller owns that have members, with every member and status), `member` (projects the caller is an accepted member of, never a draft), `incoming` (invitations waiting for the caller: the project’s title and the inviter only) and `outgoing` (invitations the caller sent that are pending). Everything is the caller’s own; another user’s teams cannot be asked for. Leaving a team is `DELETE /v1/projects/{id}/team/me`. A fixed number of statements however many projects and members there are.
+         */
+        get: operations["getMyTeams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/activities": {
         parameters: {
             query?: never;
@@ -820,11 +840,72 @@ export interface components {
             achievements: string[];
             skills: string[];
         };
+        IncomingInvite: {
+            /** @description The membership id. */
+            id: string;
+            /** @description Only the title: a pending invitee does not read the project (answer with /projects/{id}/team/me/accept or reject). */
+            project: {
+                id: string;
+                title: string;
+            };
+            role: string | null;
+            /** @description ISO 8601, UTC. */
+            invitedAt: string;
+            invitedBy: {
+                /** @description The account, for a profile link. null when their profile is not visible to the caller. */
+                id: string | null;
+                name: string;
+            };
+        };
         InviteMemberRequest: {
             /** @description The account to invite (a public profile). */
             userId: string;
             /** @description Shown on the team list; optional. */
             role?: (null) | string;
+        };
+        MemberTeam: {
+            id: string;
+            title: string;
+            isPublic: boolean;
+            /** @description The caller’s role on the team. */
+            role: string | null;
+            /** @description ISO 8601, UTC. */
+            joinedAt: string;
+            owner: {
+                /** @description The account, for a profile link. null when their profile is not visible to the caller. */
+                id: string | null;
+                name: string;
+                avatarUrl: string | null;
+            };
+            /** @description The accepted members, the caller included. */
+            team: components["schemas"]["TeamMember"][];
+        };
+        /** @description Four lists in one call. Each pages on its own cursor: pass only the cursor of the list you are extending; the others start from their first page. */
+        MyTeams: {
+            /** @description Projects the caller owns that have any membership, newest first. */
+            owned: {
+                items: components["schemas"]["OwnedTeam"][];
+                /** @description Pass as this section’s cursor parameter; null on the last page. */
+                nextCursor: string | null;
+            };
+            /** @description Projects the caller is an accepted member of (never a draft), newest join first. */
+            member: {
+                items: components["schemas"]["MemberTeam"][];
+                /** @description Pass as this section’s cursor parameter; null on the last page. */
+                nextCursor: string | null;
+            };
+            /** @description Invitations waiting for the caller’s answer. */
+            incoming: {
+                items: components["schemas"]["IncomingInvite"][];
+                /** @description Pass as this section’s cursor parameter; null on the last page. */
+                nextCursor: string | null;
+            };
+            /** @description Invitations the caller sent that are still pending. */
+            outgoing: {
+                items: components["schemas"]["OutgoingInvite"][];
+                /** @description Pass as this section’s cursor parameter; null on the last page. */
+                nextCursor: string | null;
+            };
         };
         Notification: {
             id: string;
@@ -862,6 +943,31 @@ export interface components {
             projectId: string;
             projectTitle: string;
             role: string | null;
+        };
+        OutgoingInvite: {
+            /** @description The membership id, for cancelling (DELETE /projects/{id}/team/{memberId}). */
+            id: string;
+            project: {
+                id: string;
+                title: string;
+            };
+            invitee: {
+                /** @description The account, for a profile link. null when their profile is not visible to the caller. */
+                id: string | null;
+                name: string;
+                avatarUrl: string | null;
+            };
+            role: string | null;
+            /** @description ISO 8601, UTC. */
+            invitedAt: string;
+        };
+        OwnedTeam: {
+            id: string;
+            title: string;
+            isPublic: boolean;
+            isDraft: boolean;
+            /** @description Every membership of the project, with its status. Never empty here. */
+            members: components["schemas"]["TeamMember"][];
         };
         Profile: {
             id: string;
@@ -2955,6 +3061,68 @@ export interface operations {
             };
             /** @description NOT_FOUND: no such project, or the caller is not an accepted member */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getMyTeams: {
+        parameters: {
+            query?: {
+                limit?: number;
+                ownedCursor?: string;
+                memberCursor?: string;
+                incomingCursor?: string;
+                outgoingCursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The four lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyTeams"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -74,7 +74,14 @@ describe("AppNavigation (tracker 2.13)", () => {
     for (const user of [null, { name: "Ani" }]) {
       const { unmount } = show(user);
       expect(hrefs()).toEqual(
-        expect.arrayContaining(["/", "/projects", "/integrations", "/search", "/settings"]),
+        expect.arrayContaining([
+          "/",
+          "/projects",
+          "/teams",
+          "/integrations",
+          "/search",
+          "/settings",
+        ]),
       );
       unmount();
     }
@@ -86,6 +93,7 @@ describe("AppNavigation (tracker 2.13)", () => {
       "Dashboard",
       "My profile",
       "Projects",
+      "Teams",
       "Explore",
       "Integrations",
       "Account",

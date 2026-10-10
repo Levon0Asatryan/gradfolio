@@ -20,6 +20,7 @@ import type {
   UnreadCount,
   TeamMember,
   LookupUser,
+  MyTeams,
 } from "./types";
 
 /**
@@ -350,4 +351,23 @@ export async function lookupUsers(q: string): Promise<LookupUser[]> {
     path: `/v1/users/lookup?q=${encodeURIComponent(q)}`,
   });
   return page.items;
+}
+
+/** The cursors the four lists of `GET /v1/me/teams` take; pass only the one being extended. */
+export interface TeamsQuery {
+  limit?: number;
+  ownedCursor?: string;
+  memberCursor?: string;
+  incomingCursor?: string;
+  outgoingCursor?: string;
+}
+
+/** The caller's invitations, owned teams and joined teams. Always the caller's own. */
+export function getMyTeams(query: TeamsQuery = {}): Promise<MyTeams> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return request<MyTeams>({ method: "GET", path: `/v1/me/teams${qs ? `?${qs}` : ""}` });
 }
