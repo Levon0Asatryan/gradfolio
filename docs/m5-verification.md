@@ -78,10 +78,15 @@ afterwards (0 left in either account).
 | DeleteProjectDialog opens with Cancel focused (real browser)                                                                                                                                                                                                                                                                                         | pass                                                                                                                |
 | `/teams` and `/projects`, en/ru/am, account B, loaded cold: hydration errors                                                                                                                                                                                                                                                                         | 0                                                                                                                   |
 
-One console problem in the `/teams` journey: a single `Minified React error #418` (hydration text mismatch)
-on account B during the 36-view matrix. I could not tie it to a page (a cold load of `/teams` and `/projects`
-in all three languages shows none); it is most likely the known date-format mismatch (section 4) on a page that
-lists B's joined project. Not fixed here; proposed follow-up with a reproduction.
+**Hydration error, reproduced and fixed in #80.** The deployed-site `/teams` matrix logged one
+`Minified React error #418` on account B, so 5.9 is **not** marked verified by this run. On the dev server
+(unminified React) the same journey shows the exact mismatch: an incoming invite's date, in Armenian, is
+`10 հոկ, 2026 թ.` on the server and `Oct 10, 2026` in the browser. The Chromium used by Playwright ships no
+Armenian ICU data and falls back to English; the server's Node formats it. #80 keeps the server's text (`<time
+suppressHydrationWarning>`) with a hydration test that fails without it; the dev-server matrix then shows an
+empty console and axe 0 serious or critical. **5.9 becomes verified when the full 36-view matrix (plus the
+journey) is re-run with zero hydration and console errors on the deployed build after #80 deploys.** Result of
+that re-run: PENDING.
 
 ## 4. Not verified, known gaps
 
@@ -142,8 +147,8 @@ Review fixes on the head (cb0f3ef), each with a test that fails without it:
   hand-edited URL, as the `MyTeams` contract says; the other lists restart from page one.
 - The tab title is generated from the request language (Teams, Команды, Թիմեր; checked in a browser).
 
-Hydration: `/teams` showed 0 hydration errors in en/ru/am; `/projects` in Armenian still does (pre-existing,
-section 4).
+Hydration: see section 3b; a cold load of `/teams` is clean in en/ru/am, but the Armenian date mismatch showed once
+the account had an incoming invite (fixed in #80).
 
 Not verified here:
 
@@ -157,7 +162,7 @@ Not verified here:
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6, 5.7 and 5.9 verified on the deployed production site (section 3b) and the production API, with the recorded deviation that the local-stack journey (plan section 11, item 4) was not run. Follow-up: the one unlocated hydration error (section 3b).
+- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 verified on the deployed production site (section 3b) and the production API, with the recorded deviation that the local-stack journey (plan section 11, item 4) was not run. 5.9: verified only after #80 deploys and the 36-view matrix re-runs clean on the deployed build (section 3b).
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
