@@ -40,7 +40,7 @@ commit of each PR. No hand-written copy of a shape.
 | Tag page (6.2)        | `GET /v1/tags/{tag}?limit=`                                       | `{ tag, projects: {items[], total}, people: {items[], total} }`; unknown tag is **200 with empty groups**, not 404 (a tag is a search).                                                                                    |
 | Tag cloud (6.4)       | `GET /v1/tags?limit=`                                             | `[{ tag, count }]`, skills and technologies merged, canonical spelling, sorted by count.                                                                                                                                   |
 | Browse projects (6.3) | `GET /v1/projects?q=&category=&tag=&sort=&cursor=&limit=`         | `{ items: ProjectSummary[], nextCursor }`; sort `newest` always, `most_viewed` only if 6.6 lands.                                                                                                                          |
-| Browse people (6.3)   | `GET /v1/users?q=&school=&major=&gradYear=&skill=&cursor=&limit=` | `{ items: UserSummary[], nextCursor }` ordered by name then id (keyset), public profiles only.                                                                                                                             |
+| Browse people (6.3)   | `GET /v1/users?q=&school=&major=&gradYear=&skill=&cursor=&limit=` | `{ items: UserSummary[], nextCursor }` ordered by name then id (keyset) by default, public profiles only. **Requested API change:** `sort=name                                                                             | newest`(default`name`; `newest`is account creation, newest first, id as the tie-break, still keyset) so the landing can show the newest people.`UserSummary` need not expose the timestamp. |
 | Filter values         | in the people response or `GET /v1/users/facets`                  | The distinct schools, majors and graduation years that exist, so the filter shows real options, never free text.                                                                                                           |
 | Dashboard (6.5)       | `GET /v1/me/dashboard`                                            | `{ counts: { projects, drafts, ... }, recentProjects[], recentActivityCount }`; the feed itself is `GET /v1/me/activities` (M5 5.5).                                                                                       |
 | Activities            | `GET /v1/me/activities?limit&cursor` (merged in M5)               | `{ id, type, translationKey, translationParams, timestamp }`. Keys: `projectCreated`, `projectPublished`, `projectDeleted`, `teamInvited`, `teamMemberJoined`, `teamMemberDeclined`, `teamJoined`, `teamLeft`, `newSkill`. |
@@ -74,8 +74,10 @@ discovery (§3.3), so nothing is added to the sidebar, and its two links lead to
   (§4.1). The page is `force-dynamic`, like `/projects`.
 - **The URL is the state.** A `<form role="search" method="get" action="/search">` with one
   `type="search"` input: it works without JavaScript, and Enter submits. A client island adds the
-  debounced `router.replace` of `/projects` (300 ms, same hook, extracted to
-  `src/components/shared/useDebouncedUrlQuery.ts`) so typing updates the results. A pasted URL
+  debounced `router.replace` to **`/search?q=…`** (300 ms; the hook of `/projects`, extracted to
+  `src/components/shared/useDebouncedUrlQuery.ts`, takes the base path as a parameter, so the
+  target is `/search` here and `/browse/…` on the browse pages; it never navigates to `/projects`,
+  which is protected) so typing updates the results. A pasted URL
   `…/search?q=iot` shows the same results for anyone: that is the "can be shared" requirement.
 - **Grouped results.** Two sections with a heading and a count, **People** then **Projects**
   (matches LinkedIn and GitHub; a recruiter searches names as often as work). Each shows up to 6
@@ -83,7 +85,9 @@ discovery (§3.3), so nothing is added to the sidebar, and its two links lead to
   the full list and the filters). A group with no hits is not rendered, and the page says which
   groups were empty ("No people match").
 - **States, each a distinct screen.**
-  - _Landing_ (no `q`): tag cloud, newest 6 projects, 6 newest people, two "Browse" links. This is
+  - _Landing_ (no `q`): tag cloud, the 6 newest projects, the 6 newest people (needs the API change in §2: a `sort=newest`
+    on the people list; if the API declines, the section is labelled "People" in name order and
+    never "newest"), two "Browse" links. This is
     also the empty-box state, so there is no blank page.
   - _Loading_: `loading.tsx` skeleton with the same card heights (CLS), and the input stays
     interactive; a `useTransition` pending flag shows a thin progress bar on a replace.
@@ -239,8 +243,10 @@ by concatenating translated fragments (counts and queries go through `{placehold
   dictionary type, so the compiler lists a key the FE lacks only if the API's enum is generated
   into types; until then `locales.test.ts` checks the nine. Dates through `formatDay` (UTC, hydration
   safe, #81).
-- **Load more.** "Show more" asks `loadMoreActivitiesAction` (a server action; takes a cursor, never
-  a user id) and appends. 10 per load; no auto-scroll.
+- **Load more.** "Show more" asks `loadMoreActivitiesAction` (a server action; takes no user id) and appends.
+  Its argument is `unknown`: it must be an object whose `cursor` is a string of 1 to 600 characters
+  (the limit `parseListQuery` uses), otherwise it answers `VALIDATION_FAILED` without calling the
+  API; any other key is dropped. 10 per load; no auto-scroll.
 - **Deleted:** `src/data/dashboard.mock.ts`, the `Project`, `Activity` and `DashboardStats` types in
   `dashboard.types.ts` that the API types replace, and `DashboardContent`'s mock imports. `knip`
   proves nothing is left (it runs in CI).
@@ -279,6 +285,9 @@ redirect and a search page with `q` carries `noindex`.
   cursor and the same filters; "First page" drops the cursor; empty and error states.
 - `TagLink`: href encoding round trip; not rendered as a link inside a card.
 - Tag cloud: size step from count, accessible name has the count, order, 40-item cap.
+- `loadMoreActivitiesAction`: rejects, without a call to the API, a non-object input, a missing
+  or non-string cursor, an array, a 601-character cursor and an empty cursor (negative tests; the
+  guard removed makes them fail); forwards a valid cursor and nothing else.
 - Dashboard: each of the three sections fails alone and shows its error line; an unknown activity
   key shows `activity.unknown`, not the key; activity params interpolated with their placeholder;
   a hydration test for the feed date (the #81 pattern).
