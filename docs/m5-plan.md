@@ -301,6 +301,12 @@ is the first commit of PRs 2 and 3.
    both profiles; A invites B again after a decline; A adds an external name; A removes B and
    the external; B accepts a third invite and leaves (A gets the `team_left` notification);
    an invite on a draft project shows the 409 message; B's count and list update; the other party's notifications are unreachable.
+   **Recorded deviation (decided by the lead, 2026-10-10):** this journey ran against the
+   **production API** with real tokens (Playwright specs and the invite journey: 32 of 33 tests
+   passed and every journey step passed), not on the local stack with the FE on :3011. The draft
+   409, `TEAM_FULL` and 429 codes were not provoked through the FE; they are covered by the API's
+   integration tests and the 53/53 real-token roundtrip (gradfolio-api #59, #61), and by the FE's
+   unit tests of the error mapping. The local :3007 FE journey was not run.
 5. The same journey **once on production** after merge, with Levon's two accounts.
 6. Non-owner sees no team controls; a forced API call still answers 404.
 7. Light and dark, en / ru / am, 390 and 1440.

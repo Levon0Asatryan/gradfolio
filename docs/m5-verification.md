@@ -3,7 +3,7 @@
 Teams and notifications, tracker 5.6 and 5.7. Plan: `docs/m5-plan.md`. Section 3 is the logged-in
 run of 2026-10-10 against the **production API** through a local dev server (`localhost:3000`, Auth0
 allows only that port), with two disposable test accounts A and B signed in by the lead (no credential
-or token is in any repo file, log or screenshot). The production-site run is still **PENDING**.
+or token is in any repo file, log or screenshot). The run on the deployed site is in section 3b.
 
 ## 1. What shipped
 
@@ -62,15 +62,50 @@ Accept / Decline while the membership is `pending` (the API derives the state fr
 now). Answering one leaves the other stale until the list reloads; a click on the stale one gets 409
 `INVITE_NOT_PENDING` and the panel reloads. Acceptable at this scale; noted for the tracker.
 
+## 3b. Deployed site run (plan section 11, item 5)
+
+2026-10-10, `https://gradfolio-navy.vercel.app` (no dev server), main at 640213d, accounts A and B
+signed in with fresh sessions (no token in any repo file or log). Test projects were created by A and deleted
+afterwards (0 left in either account).
+
+| Check                                                                                                                                                                                                                                                                                                                                                | Result                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `e2e` notifications, team and teams specs (bell, team, `/teams` matrices, keyboards, non-owner, delete-project confirm focus)                                                                                                                                                                                                                        | 48 passed, 1 skipped, 0 failed                                                                                      |
+| Skipped: "badge drops by one when a row is marked read" (it skips when A has no unread row at the start)                                                                                                                                                                                                                                             | the journey below covers the badge: 9 -> 8                                                                          |
+| Invite journey: A adds a no-account name, invites B, a repeat invite gives the real 409 `ALREADY_MEMBER`, B sees the badge and accepts in the bell, project in B's list, B (non-owner) has no owner controls and has Leave, B leaves and A gets `team_left`, A invites B again, B declines, A re-invites, B accepts, A removes B, A removes the name | pass, console clean (the journey filters the browser's `Failed to load resource` line: the 409 above is deliberate) |
+| `/teams` journey: A sees the outgoing invite and owned team; B the incoming invite (title only, no link); B accepts, keyboard to Leave (Cancel focused, Escape returns focus), leaves (toast, stays on `/teams`), declines another invite, A cancels one                                                                                             | pass                                                                                                                |
+| `/teams` matrices (owner/outgoing, incoming, member): en/ru/am x light/dark x 390/1440 = 36 views                                                                                                                                                                                                                                                    | axe 0 serious or critical in all 36                                                                                 |
+| DeleteProjectDialog opens with Cancel focused (real browser)                                                                                                                                                                                                                                                                                         | pass                                                                                                                |
+| `/teams` and `/projects`, en/ru/am, account B, loaded cold: hydration errors                                                                                                                                                                                                                                                                         | 0                                                                                                                   |
+
+**Hydration error, reproduced and fixed in #80.** The first deployed-site `/teams` matrix logged one
+`Minified React error #418` on account B, so that run could not verify 5.9. On the dev server
+(unminified React) the same journey shows the exact mismatch: an incoming invite's date, in Armenian, is
+`10 հոկ, 2026 թ.` on the server and `Oct 10, 2026` in the browser. The Chromium used by Playwright ships no
+Armenian ICU data and falls back to English; the server's Node formats it. #80 keeps the server's text (`<time
+suppressHydrationWarning>`) with a hydration test that fails without it; the dev-server matrix then shows an
+empty console and axe 0 serious or critical. 5.9 was held back until the matrix re-ran clean on the deployed
+build after #80 deployed; that re-run is below.
+
+**Re-run after #80 deployed** (2026-10-10, `https://gradfolio-navy.vercel.app`, main at 6349438, fresh sessions
+for A and B): the `/teams` journey and the full matrix. Matrix: owner/outgoing view (A), incoming view (B, with a
+real incoming invite, so the Armenian date that failed before is on screen), member view (B): 3 views x
+en/ru/am x light/dark x 390/1440 = 36 views, in all of them axe 0 serious or critical, and 0 console errors,
+warnings and page errors in the whole run (including 0 hydration errors). The only message the script ignores is
+Next's dev-only LCP hint, which a production build does not print. Journey steps all passed (accept on
+`/teams`, keyboard to Leave with Cancel focused, leave, decline, cancel a sent invite). Test data deleted: 0 left.
+Result: **5.9 verified on the deployed site.**
+
 ## 4. Not verified, known gaps
 
-- **Production site**: the same journey on `gradfolio-navy.vercel.app` after #75 merges. PENDING.
+- **Production site**: done, see section 3b.
 - 429 (`RATE_LIMITED`) and `PROJECT_IS_DRAFT` were not provoked against the real API (a draft cannot
   be created from the UI; 429 needs a burst). Both are unit-tested and mapped; no real example yet.
 - `TEAM_FULL` (20 rows) not provoked.
-- The plan's local two-account journey (§ verification step 4, incl. the draft 409) was NOT run: the local
-  stack (3007) needs the real issuer, so the run used the production API. 5.6 and 5.7 stay pending until
-  that run is done. The production-site run is additional evidence, not a replacement.
+- The plan's local two-account journey (step 4, incl. the draft 409) was NOT run. Recorded deviation (lead's
+  decision, also in `docs/m5-plan.md` section 11): the journey ran against the production API with real tokens;
+  the draft 409, `TEAM_FULL` and 429 codes are covered by the API's integration tests and its 53/53 real-token
+  roundtrip (gradfolio-api #59, #61), not provoked through the FE; the local :3007 FE journey was not run.
 - Console check, exact numbers. The first matrices (rows above) ran with the specs filtering the browser's
   `Failed to load resource` line, so "console clean" there was filtered. Re-run on #75's specs with
   that filter removed (it is removed in #75): the 24 matrix cases (12 bell, 12 team) all passed
@@ -88,15 +123,54 @@ now). Answering one leaves the other stale until the list reloads; a click on th
 - Review receipts were written by hand (`method: manual`): the `/gradfolio-web-review` skill was not
   invocable from the sub-agent.
 
-## 5. 5.9 Teams page
+## 5. 5.9 Teams page (#78)
 
-PENDING: planned after API 5.8 (`GET /v1/me/teams`) is merged and deployed. Section to be filled with the
-same matrix (390/1440, light/dark, en/ru/am, keyboard walkthrough, axe, console) and the leave / invite /
-cancel journey.
+`/teams`: invites in and out, the team of each owned project (the project page's `TeamSection`, one
+implementation), and the projects I joined (leave with a confirm naming the project). Data: `GET /v1/me/teams`,
+server side only, contract pinned to gradfolio-api f7003fc. A signed-out request gets a 307 to login that keeps
+`returnTo=/teams` (e2e, and 307 on production after the merge).
+
+Run: accounts A and B (disposable), dev server, production API, before the sessions expired.
+
+| Check                                                                                                                                      | Result                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Journey: A invites B; A sees the outgoing invite, the owned team (Pending chip, a no-account name)                                         | pass                                      |
+| B sees the incoming invite (title only, no project link), accepts on `/teams`: toast, project under "Projects I'm on" with Owner and Leave | pass                                      |
+| B keyboard: Tab reaches Leave, Enter opens the confirm, Cancel is focused, Escape returns focus to Leave                                   | pass (with #75's focus fix applied)       |
+| B leaves: stays on `/teams`, "You left the project" toast, project gone from the list                                                      | pass                                      |
+| B declines an invite: toast; A cancels a sent invite (confirm names B, Cancel focused); B's incoming list empty                            | pass                                      |
+| Matrices (owner/outgoing, incoming, member views): en/ru/am x light/dark x 390/1440 = 12 each, 36 combinations                             | pass: axe 0 serious or critical in all 36 |
+| `e2e/teams.spec.ts` matrix (account's own data, empty states included): 12 combinations, console, axe                                      | pass: 12/12                               |
+| Nav: labelled Teams item in the sidebar, the rail, and under More on a phone                                                               | pass                                      |
+| Test data (projects, invites) deleted afterwards: 0 left                                                                                   | pass                                      |
+
+Found and fixed by this run: the in-text "Open project" link failed axe `link-in-text-block` (serious) with
+hover-only underline; it is now underlined.
+
+Review fixes on the head (cb0f3ef), each with a test that fails without it:
+
+- Dates in the invite rows use the app language's locale and UTC, so server and browser print the same text
+  (`formatDate` takes optional `locale` and `timeZone`; other callers unchanged).
+- A next-page link carries only the cursor of the list being advanced, and the page keeps one cursor from a
+  hand-edited URL, as the `MyTeams` contract says; the other lists restart from page one.
+- The tab title is generated from the request language (Teams, Команды, Թիմեր; checked in a browser).
+
+Hydration: see section 3b; a cold load of `/teams` is clean in en/ru/am, but the Armenian date mismatch showed once
+the account had an incoming invite (fixed in #80).
+
+Not verified here:
+
+- The matrices ran before the review fixes (dates, cursor, title); only the title and hydration were re-checked
+  in a browser after them. The deployed-site run (section 3b) is on the merged build and includes the review fixes.
+- The local-API two-account journey was not run (recorded deviation, section 4); production API only.
+- A project with more than 10 team rows or a list past its first page (cursor links) was covered by unit tests,
+  not by a real two-page list.
+- The Auth0 refresh-token log (section 4 and the proposed tracker rows) shows on `/teams` as on every page.
+- ru and am strings are machine-drafted.
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 stay pending until the local two-account journey (plan step 4, incl. the draft 409) is run, #75 is merged and the production run is filled in; or the plan is amended in its own PR.
+- 4.6-4.10 done (merged #61-#64); 5.6, 5.7 and 5.9 verified on the deployed production site (section 3b), with the recorded deviation that the local-stack journey (plan section 11, item 4) was not run.
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
