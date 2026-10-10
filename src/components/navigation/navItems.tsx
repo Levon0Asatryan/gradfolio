@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import ExploreOutlined from "@mui/icons-material/ExploreOutlined";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
+import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import PersonOutlined from "@mui/icons-material/PersonOutlined";
@@ -33,6 +34,7 @@ export function navItems(t: Dictionary, signedIn: boolean): NavItem[] {
     },
     { label: t.common.myProfile, href: "/profile", icon: <PersonOutlined />, primary: true },
     { label: t.common.projects, href: "/projects", icon: <FolderOutlined />, primary: true },
+    { label: t.common.teams, href: "/teams", icon: <GroupsOutlined /> },
     { label: t.common.explore, href: "/search", icon: <ExploreOutlined />, primary: true },
     { label: t.common.integrations, href: "/integrations", icon: <ExtensionOutlined /> },
     { label: t.common.account, href: "/account", icon: <ShieldOutlined /> },

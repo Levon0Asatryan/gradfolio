@@ -11,6 +11,8 @@ describe("isProtectedPath", () => {
     "/projects/",
     "/projects/new",
     "/projects/abc-123/edit",
+    "/teams",
+    "/teams/",
     "/integrations",
     "/integrations/connections",
     "/account",

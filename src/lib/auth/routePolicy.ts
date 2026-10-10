@@ -14,6 +14,7 @@ const PROTECTED_EXACT = new Set([
   "/profile/edit",
   "/projects",
   "/projects/new",
+  "/teams",
   "/account",
 ]);
 

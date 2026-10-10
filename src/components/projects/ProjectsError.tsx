@@ -8,11 +8,11 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { messageKey } from "@/components/profile/ProfileError";
 
 /** A failed load of projects, shown as an error and never as "no projects yet". */
-export const ProjectsError: FC<{ code: string; returnTo: string; what?: "list" | "project" }> = ({
-  code,
-  returnTo,
-  what = "list",
-}) => {
+export const ProjectsError: FC<{
+  code: string;
+  returnTo: string;
+  what?: "list" | "project" | "teams";
+}> = ({ code, returnTo, what = "list" }) => {
   const { t } = useLanguage();
   const router = useRouter();
   const signIn = code === "UNAUTHENTICATED";
@@ -30,7 +30,11 @@ export const ProjectsError: FC<{ code: string; returnTo: string; what?: "list" |
         }
       >
         <AlertTitle>
-          {what === "list" ? t.projects.loadErrorTitle : t.projects.projectLoadErrorTitle}
+          {what === "list"
+            ? t.projects.loadErrorTitle
+            : what === "teams"
+              ? t.teamsPage.loadErrorTitle
+              : t.projects.projectLoadErrorTitle}
         </AlertTitle>
         {t.projects[messageKey(code)]}
         {signIn && (

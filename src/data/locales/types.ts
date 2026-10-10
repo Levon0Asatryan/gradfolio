@@ -29,6 +29,7 @@ export interface Dictionary {
     loginConnections: string;
     myAccount: string;
     projects: string;
+    teams: string;
     integrations: string;
     explorePortfolios: string;
     viewAll: string;
@@ -696,5 +697,34 @@ export interface Dictionary {
     retry: string;
     pickedUser: string;
     selectedUser: string;
+  };
+  teamsPage: {
+    title: string;
+    subtitle: string;
+    invitesTitle: string;
+    incomingTitle: string;
+    outgoingTitle: string;
+    incomingEmpty: string;
+    outgoingEmpty: string;
+    invitedBy: string;
+    roleAs: string;
+    inviteeLabel: string;
+    ownedTitle: string;
+    ownedEmpty: string;
+    ownedEmptyHint: string;
+    goToProjects: string;
+    openProject: string;
+    memberTitle: string;
+    memberEmpty: string;
+    memberEmptyHint: string;
+    ownerLabel: string;
+    yourRole: string;
+    nextPage: string;
+    firstPage: string;
+    loadErrorTitle: string;
+    loading: string;
+    joined: string;
+    declinedToast: string;
+    gone: string;
   };
 }

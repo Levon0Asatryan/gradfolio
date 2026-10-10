@@ -60,3 +60,8 @@ export type UnreadCount = components["schemas"]["UnreadCount"];
 export type TeamMember = components["schemas"]["TeamMember"];
 /** A person to invite, `GET /v1/users/lookup`. */
 export type LookupUser = components["schemas"]["UserLookupResult"]["items"][number];
+
+/** The caller's teams in one call, `GET /v1/me/teams`: four lists, each on its own cursor. */
+export type MyTeams = components["schemas"]["MyTeams"];
+export type IncomingInvite = components["schemas"]["IncomingInvite"];
+export type OutgoingInvite = components["schemas"]["OutgoingInvite"];

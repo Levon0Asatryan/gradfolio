@@ -1,6 +1,6 @@
 "use client";
 
-import { type FC, useRef, useState } from "react";
+import { type FC, type ReactNode, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
@@ -55,6 +55,12 @@ export interface TeamSectionProps {
   managedFailed?: boolean;
   /** The signed-in viewer's account id, to offer "Leave" on their own accepted row. */
   viewerUserId: string | null;
+  /** The panel's title; the project page uses the default ("Team Members"). */
+  title?: string;
+  /** A line under the title (the /teams page: the owner, a link to the project). */
+  note?: ReactNode;
+  /** Where "Leave project" goes afterwards; the project may no longer be readable. */
+  leaveRedirect?: string;
 }
 
 /**
@@ -71,6 +77,9 @@ export const TeamSection: FC<TeamSectionProps> = ({
   managed,
   managedFailed = false,
   viewerUserId,
+  title,
+  note,
+  leaveRedirect = "/projects?flash=left",
 }) => {
   const { t } = useLanguage();
   const text = t.team;
@@ -122,7 +131,7 @@ export const TeamSection: FC<TeamSectionProps> = ({
       setConfirm(null);
       if (kind === "leave") {
         // The project may no longer be readable: go to the list, with its toast.
-        router.push("/projects?flash=left");
+        router.push(leaveRedirect);
         return;
       }
       done((kind === "cancel" ? text.inviteCancelled : text.removed).replace("{name}", row.name));
@@ -171,7 +180,7 @@ export const TeamSection: FC<TeamSectionProps> = ({
   return (
     <>
       <Panel
-        title={t.common.teamMembers}
+        title={title ?? t.common.teamMembers}
         action={
           isOwner ? (
             <Button
@@ -188,6 +197,7 @@ export const TeamSection: FC<TeamSectionProps> = ({
           ) : undefined
         }
       >
+        {note}
         {isOwner && managedFailed && (
           <Alert
             severity="error"

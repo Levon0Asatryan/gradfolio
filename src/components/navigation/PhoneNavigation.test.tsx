@@ -45,6 +45,7 @@ describe("PhoneNavigation", () => {
       "/account",
     );
     expect(within(sheet).getByRole("link", { name: "Integrations" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("link", { name: "Teams" })).toHaveAttribute("href", "/teams");
     expect(within(sheet).getByRole("link", { name: "Settings" })).toBeInTheDocument();
     expect(within(sheet).getByRole("link", { name: "Log out" })).toHaveAttribute(
       "href",

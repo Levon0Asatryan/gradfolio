@@ -2005,6 +2005,83 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/teams:
+    get:
+      operationId: getMyTeams
+      tags:
+        - team
+      summary: The caller’s teams in one call
+      description: "Four lists, each on its own cursor: `owned` (projects the caller owns that have members, with every member and status), `member` (projects the caller is an accepted member of, never a draft), `incoming` (invitations waiting for the caller: the project’s title and the inviter only) and `outgoing` (invitations the caller sent that are pending). Everything is the caller’s own; another user’s teams cannot be asked for. Leaving a team is `DELETE /v1/projects/{id}/team/me`. A fixed number of statements however many projects and members there are."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Page size of every list; at most TEAMS_PAGE_MAX (50); 20 when omitted.
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - name: ownedCursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 600
+        - name: memberCursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 600
+        - name: incomingCursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 600
+        - name: outgoingCursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 600
+      responses:
+        "200":
+          description: The four lists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyTeams"
+        "400":
+          description: "VALIDATION_FAILED: a query parameter is invalid (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/activities:
     get:
       operationId: listMyActivities
@@ -3254,6 +3331,50 @@ components:
         - achievements
         - skills
       additionalProperties: false
+    IncomingInvite:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The membership id.
+        project:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+          required:
+            - id
+            - title
+          additionalProperties: false
+          description: "Only the title: a pending invitee does not read the project (answer with /projects/{id}/team/me/accept or reject)."
+        role:
+          nullable: true
+          type: string
+        invitedAt:
+          type: string
+          description: ISO 8601, UTC.
+        invitedBy:
+          type: object
+          properties:
+            id:
+              nullable: true
+              description: The account, for a profile link. null when their profile is not visible to the caller.
+              type: string
+            name:
+              type: string
+          required:
+            - id
+            - name
+          additionalProperties: false
+      required:
+        - id
+        - project
+        - role
+        - invitedAt
+        - invitedBy
+      additionalProperties: false
     InviteMemberRequest:
       type: object
       properties:
@@ -3273,6 +3394,127 @@ components:
       required:
         - userId
       additionalProperties: false
+    MemberTeam:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        isPublic:
+          type: boolean
+        role:
+          nullable: true
+          description: The caller’s role on the team.
+          type: string
+        joinedAt:
+          type: string
+          description: ISO 8601, UTC.
+        owner:
+          type: object
+          properties:
+            id:
+              nullable: true
+              description: The account, for a profile link. null when their profile is not visible to the caller.
+              type: string
+            name:
+              type: string
+            avatarUrl:
+              nullable: true
+              type: string
+          required:
+            - id
+            - name
+            - avatarUrl
+          additionalProperties: false
+        team:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+          description: The accepted members, the caller included.
+      required:
+        - id
+        - title
+        - isPublic
+        - role
+        - joinedAt
+        - owner
+        - team
+      additionalProperties: false
+    MyTeams:
+      type: object
+      properties:
+        owned:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/OwnedTeam"
+            nextCursor:
+              nullable: true
+              description: Pass as this section’s cursor parameter; null on the last page.
+              type: string
+          required:
+            - items
+            - nextCursor
+          additionalProperties: false
+          description: Projects the caller owns that have any membership, newest first.
+        member:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/MemberTeam"
+            nextCursor:
+              nullable: true
+              description: Pass as this section’s cursor parameter; null on the last page.
+              type: string
+          required:
+            - items
+            - nextCursor
+          additionalProperties: false
+          description: Projects the caller is an accepted member of (never a draft), newest join first.
+        incoming:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/IncomingInvite"
+            nextCursor:
+              nullable: true
+              description: Pass as this section’s cursor parameter; null on the last page.
+              type: string
+          required:
+            - items
+            - nextCursor
+          additionalProperties: false
+          description: Invitations waiting for the caller’s answer.
+        outgoing:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/OutgoingInvite"
+            nextCursor:
+              nullable: true
+              description: Pass as this section’s cursor parameter; null on the last page.
+              type: string
+          required:
+            - items
+            - nextCursor
+          additionalProperties: false
+          description: Invitations the caller sent that are still pending.
+      required:
+        - owned
+        - member
+        - incoming
+        - outgoing
+      additionalProperties: false
+      description: "Four lists in one call. Each pages on its own cursor: pass only the cursor of the list you are extending; the others start from their first page."
     Notification:
       type: object
       properties:
@@ -3371,6 +3613,76 @@ components:
         - role
       additionalProperties: false
       description: Names saved when the notification was written, so it still reads after the project or the person is gone. Render the text from `type` and these.
+    OutgoingInvite:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The membership id, for cancelling (DELETE /projects/{id}/team/{memberId}).
+        project:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+          required:
+            - id
+            - title
+          additionalProperties: false
+        invitee:
+          type: object
+          properties:
+            id:
+              nullable: true
+              description: The account, for a profile link. null when their profile is not visible to the caller.
+              type: string
+            name:
+              type: string
+            avatarUrl:
+              nullable: true
+              type: string
+          required:
+            - id
+            - name
+            - avatarUrl
+          additionalProperties: false
+        role:
+          nullable: true
+          type: string
+        invitedAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - id
+        - project
+        - invitee
+        - role
+        - invitedAt
+      additionalProperties: false
+    OwnedTeam:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        isPublic:
+          type: boolean
+        isDraft:
+          type: boolean
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+          description: Every membership of the project, with its status. Never empty here.
+      required:
+        - id
+        - title
+        - isPublic
+        - isDraft
+        - members
+      additionalProperties: false
     Profile:
       type: object
       properties:

@@ -15,6 +15,15 @@ describe("formatDate", () => {
     expect(formatDate("2026-01-15T23:30:00-02:00")).toBe("Jan 16, 2026");
   });
 
+  it("uses the given locale and zone, whatever the machine's", () => {
+    expect(formatDate("2026-01-15T23:30:00-02:00", { locale: "ru-RU", timeZone: "UTC" })).toBe(
+      "16 янв. 2026 г.",
+    );
+    expect(formatDate("2026-01-15T23:30:00Z", { locale: "en-US", timeZone: "Asia/Yerevan" })).toBe(
+      "Jan 16, 2026",
+    );
+  });
+
   it.each(["", "not a date", "2026-13-45"])("returns an empty string for %j", (input) => {
     expect(formatDate(input)).toBe("");
   });
