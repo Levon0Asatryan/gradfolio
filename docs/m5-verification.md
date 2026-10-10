@@ -68,9 +68,10 @@ now). Answering one leaves the other stale until the list reloads; a click on th
 - 429 (`RATE_LIMITED`) and `PROJECT_IS_DRAFT` were not provoked against the real API (a draft cannot
   be created from the UI; 429 needs a burst). Both are unit-tested and mapped; no real example yet.
 - `TEAM_FULL` (20 rows) not provoked.
-- The plan's local two-account journey (§ verification step 4, incl. the draft 409) was NOT run: the local
-  stack (3007) needs the real issuer, so the run used the production API. 5.6 and 5.7 stay pending until
-  that run is done. The production-site run is additional evidence, not a replacement.
+- The plan's local two-account journey (step 4, incl. the draft 409) was NOT run. Recorded deviation (lead's
+  decision, also in `docs/m5-plan.md` section 11): the journey ran against the production API with real tokens;
+  the draft 409, `TEAM_FULL` and 429 codes are covered by the API's integration tests and its 53/53 real-token
+  roundtrip (gradfolio-api #59, #61), not provoked through the FE; the local :3007 FE journey was not run.
 - Console check, exact numbers. The first matrices (rows above) ran with the specs filtering the browser's
   `Failed to load resource` line, so "console clean" there was filtered. Re-run on #75's specs with
   that filter removed (it is removed in #75): the 24 matrix cases (12 bell, 12 team) all passed
@@ -127,7 +128,7 @@ Not verified here:
 
 - The matrices ran before the review fixes (dates, cursor, title); only the title and hydration were re-checked
   in a browser after them. A logged-in re-run on the merged build is pending the sessions' refresh.
-- The local-API two-account journey (section 4) was not run; production API only.
+- The local-API two-account journey was not run (recorded deviation, section 4); production API only.
 - A project with more than 10 team rows or a list past its first page (cursor links) was covered by unit tests,
   not by a real two-page list.
 - The Auth0 refresh-token log (section 4 and the proposed tracker rows) shows on `/teams` as on every page.
@@ -135,7 +136,7 @@ Not verified here:
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 stay pending until the local two-account journey (plan step 4, incl. the draft 409) is run, #75 is merged and the production run is filled in; or the plan is amended in its own PR.
+- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 verified against the production API (through a local dev server; the deployed site run in section 4 is still pending), with the recorded deviation that the local-stack journey was not run (plan section 11, record section 4); 5.9 verified as in section 5.
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
