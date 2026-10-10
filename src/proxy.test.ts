@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { NextRequest, NextResponse } from "next/server";
+import { AccessTokenError, AccessTokenErrorCode } from "@auth0/nextjs-auth0/errors";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sdk = vi.hoisted(() => ({
@@ -108,10 +109,30 @@ describe("proxy renews an expired access token", () => {
     expect(sdk.getAccessToken).not.toHaveBeenCalled();
   });
 
-  it("and a failed renewal does not fail the page: it answers 401 itself", async () => {
+  it("a protected page whose token cannot be renewed is sent to login, not served", async () => {
     sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
-    sdk.getAccessToken.mockRejectedValue(new Error("refresh token revoked"));
+    sdk.getAccessToken.mockRejectedValue(
+      new AccessTokenError(AccessTokenErrorCode.FAILED_TO_REFRESH_TOKEN, "revoked"),
+    );
+    const res = await proxy(request("/projects?sort=oldest"));
+    expect(res.status).toBe(307);
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.pathname).toBe("/auth/login");
+    expect(location.searchParams.get("returnTo")).toBe("/projects?sort=oldest");
+  });
+
+  it("an unexpected renewal failure on a protected page fails closed (503)", async () => {
+    sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
+    sdk.getAccessToken.mockRejectedValue(new TypeError("boom"));
     const res = await proxy(request("/projects"));
+    expect(res.status).toBe(503);
+  });
+
+  it("a public page is still served when renewal fails: it asks for the token itself", async () => {
+    sdk.getAccessToken.mockRejectedValue(
+      new AccessTokenError(AccessTokenErrorCode.FAILED_TO_REFRESH_TOKEN, "revoked"),
+    );
+    const res = await proxy(request("/search"));
     expect(res.status).toBe(200);
     expect(res.headers.get("x-from-sdk")).toBe("1");
   });

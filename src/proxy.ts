@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { AccessTokenError } from "@auth0/nextjs-auth0/errors";
 import { auth0 } from "@/lib/auth0";
 import { isProtectedPath } from "@/lib/auth/routePolicy";
 
@@ -27,14 +28,23 @@ const UNAVAILABLE_MESSAGE = [
  * rotation the second use is refused and the user is signed out. Here the response can carry
  * the cookie, and Next hands it to the page being rendered in the same request.
  *
- * A failure is left for the page: it asks for the token again and answers 401 ("sign in
- * again"). A visitor without a session has nothing to renew.
+ * A session whose token cannot be renewed (revoked or lost refresh token) is no longer a
+ * session. On a protected page that is a redirect to login, never a normal render
+ * (`"reauthenticate"`). Any other failure is thrown, so the caller fails closed (503). On a
+ * public page nothing is lost by carrying on: the page asks for the token itself.
  */
-async function refreshExpiredToken(request: NextRequest, response: NextResponse): Promise<void> {
+async function refreshExpiredToken(
+  request: NextRequest,
+  response: NextResponse,
+  protectedPath: boolean,
+): Promise<"ok" | "reauthenticate"> {
   try {
     await auth0.getAccessToken(request, response);
-  } catch {
-    // MISSING_SESSION for a visitor; an expired session or a lost refresh token for the rest.
+    return "ok";
+  } catch (error) {
+    if (!protectedPath) return "ok";
+    if (error instanceof AccessTokenError) return "reauthenticate";
+    throw error;
   }
 }
 
@@ -50,17 +60,20 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   try {
     const authResponse = await auth0.middleware(request);
     if (!protectedPath) {
-      await refreshExpiredToken(request, authResponse);
+      await refreshExpiredToken(request, authResponse, false);
       return authResponse;
     }
 
-    const session = await auth0.getSession(request);
-    if (!session) {
+    const toLogin = () => {
       const login = new URL("/auth/login", request.nextUrl.origin);
       login.searchParams.set("returnTo", `${pathname}${search}`);
       return NextResponse.redirect(login);
+    };
+    const session = await auth0.getSession(request);
+    if (!session) return toLogin();
+    if ((await refreshExpiredToken(request, authResponse, true)) === "reauthenticate") {
+      return toLogin();
     }
-    await refreshExpiredToken(request, authResponse);
     return authResponse;
   } catch (error) {
     console.error("proxy: session check failed", {
