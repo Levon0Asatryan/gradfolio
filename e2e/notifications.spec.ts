@@ -75,8 +75,7 @@ test.describe("signed in (account A)", () => {
     const found: string[] = [];
     page.on("console", (m) => {
       if (m.type() === "error" || m.type() === "warning") {
-        if (!m.text().startsWith("Failed to load resource") && !DEV_ONLY.test(m.text()))
-          found.push(m.text());
+        if (!DEV_ONLY.test(m.text())) found.push(m.text());
       }
     });
     page.on("pageerror", (e) => found.push(`pageerror: ${e.message}`));
