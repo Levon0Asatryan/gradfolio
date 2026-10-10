@@ -1,7 +1,8 @@
 "use client";
 
 import { FC, memo } from "react";
-import { Chip, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
+import TagLink from "@/components/shared/TagLink";
 import SectionCard from "./shared/SectionCard";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
@@ -21,7 +22,7 @@ const SkillsChips: FC<SkillsChipsProps> = ({ items }) => {
       ) : (
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
           {items.map((s) => (
-            <Chip key={s} label={s} size="small" />
+            <TagLink key={s} name={s} />
           ))}
         </Stack>
       )}

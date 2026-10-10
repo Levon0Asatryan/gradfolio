@@ -8,7 +8,7 @@ import ProjectDescription from "@/components/project/ProjectDescription";
 import AttachmentsGallery from "@/components/project/AttachmentsGallery";
 import ProjectMetadataCard from "@/components/project/ProjectMetadataCard";
 import { TeamSection } from "@/components/team/TeamSection";
-import TechTagsClient from "@/components/project/TechTagsClient";
+import TechTags from "@/components/project/TechTags";
 import { OwnerBar } from "@/components/project/OwnerBar";
 import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
@@ -118,7 +118,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
         </Box>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
           <ProjectMetadataCard metadata={project.metadata} category={project.category} />
-          <TechTagsClient items={project.technologies} />
+          <TechTags items={project.technologies} />
           <TeamSection
             projectId={project.id}
             projectTitle={project.title}
