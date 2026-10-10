@@ -312,4 +312,56 @@ test.describe("behaviour", () => {
       expect(r.headers["x-gradfolio-proxy-secret"]).toBe("e2e-proxy-secret");
     }
   });
+
+  // "slow..." is answered 700 ms late by the stub. The pause lets the debounced search start;
+  // the rest is typed while it is still in flight, and its answer must not erase it.
+  for (const [language, rest] of [
+    ["en", " query go"],
+    ["ru", " запрос поиск"],
+    ["am", " Արմեն Գրիգորյան"],
+  ] as const) {
+    for (const size of SIZES) {
+      test(`typing while a search is in flight keeps every character and the focus (${language}, ${size.name})`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: size.width, height: size.height });
+        await preferences(page, language, "light");
+        await page.goto("/search");
+        const box = page.getByRole("searchbox");
+        await box.click();
+        await page.keyboard.type("slow", { delay: 40 });
+        await page.waitForTimeout(450);
+        await page.keyboard.type(rest, { delay: 40 });
+        await page.waitForTimeout(1800);
+        await expect(box).toHaveValue(`slow${rest}`);
+        await expect(box).toBeFocused();
+        // The URL catches up to what was typed.
+        await expect(page).toHaveURL(
+          new RegExp(`q=slow\\+${encodeURIComponent(rest.trim().split(" ")[0] ?? "")}`),
+        );
+      });
+    }
+  }
+
+  test("fast typing, then clearing and retyping, ends with what was typed", async ({ page }) => {
+    await page.goto("/search?q=iot");
+    const box = page.getByRole("searchbox");
+    await box.click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("machine learning", { delay: 10 });
+    await expect(box).toHaveValue("machine learning");
+    await page.waitForTimeout(1200);
+    await expect(box).toHaveValue("machine learning");
+    await expect(box).toBeFocused();
+  });
+
+  test("Back restores the earlier query in the box", async ({ page }) => {
+    await page.goto("/search?q=iot");
+    await page.getByRole("link", { name: "See all people" }).click();
+    await expect(page).toHaveURL(/type=people/);
+    await page.goBack();
+    await expect(page.getByRole("searchbox")).toHaveValue("iot");
+    await page.goto("/search?q=ml");
+    await expect(page.getByRole("searchbox")).toHaveValue("ml");
+  });
 });

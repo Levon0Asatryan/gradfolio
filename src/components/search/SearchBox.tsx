@@ -24,22 +24,42 @@ export const SearchBox: FC<{ initialQuery: string }> = ({ initialQuery }) => {
   const router = useRouter();
   const [value, setValue] = useState(initialQuery);
   const [pending, startTransition] = useTransition();
-  const current = useRef(initialQuery);
+  /** The query the URL shows, as far as this box knows. */
+  const shown = useRef(initialQuery);
+  /** Queries this box put in the URL that the page has not echoed back yet, oldest first. */
+  const inFlight = useRef<string[]>([]);
+  /** An input method is composing: the text is not final, so nothing is searched yet. */
+  const composing = useRef(false);
+  const [composedTick, setComposedTick] = useState(0);
 
+  // The page re-rendered with `initialQuery`. If it is the echo of a search this box started,
+  // the box already shows (or has moved past) it: writing it back would erase what was typed
+  // while the search was in flight. Anything else is a navigation from outside (Back, a link):
+  // then the box follows the URL.
   useEffect(() => {
-    current.current = initialQuery;
+    const echoed = inFlight.current.indexOf(initialQuery);
+    if (echoed !== -1) {
+      inFlight.current.splice(0, echoed + 1);
+      shown.current = initialQuery;
+      return;
+    }
+    if (initialQuery === shown.current) return;
+    inFlight.current = [];
+    shown.current = initialQuery;
     setValue(initialQuery);
   }, [initialQuery]);
 
   useEffect(() => {
+    if (composing.current) return;
     const next = cleanQuery(value);
-    if (next === current.current) return;
+    if (next === shown.current) return;
     const timer = setTimeout(() => {
-      current.current = next;
+      shown.current = next;
+      inFlight.current.push(next);
       startTransition(() => router.replace(searchHref({ q: next })));
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [value, router]);
+  }, [value, composedTick, router]);
 
   return (
     <Box
@@ -55,6 +75,22 @@ export const SearchBox: FC<{ initialQuery: string }> = ({ initialQuery }) => {
         name="q"
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onCompositionStart={() => {
+          composing.current = true;
+        }}
+        onBlur={() => {
+          // A keyboard that never ends its composition must not leave the search stuck.
+          if (composing.current) {
+            composing.current = false;
+            setComposedTick((n) => n + 1);
+          }
+        }}
+        onCompositionEnd={(e) => {
+          composing.current = false;
+          setValue((e.target as HTMLInputElement).value);
+          // The text may equal the last value: run the debounce for it all the same.
+          setComposedTick((n) => n + 1);
+        }}
         placeholder={t.search.placeholder}
         slotProps={{
           htmlInput: {

@@ -1,5 +1,7 @@
 import { act, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LanguageProvider } from "@/components/i18n/LanguageContext";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { renderInApp } from "@/testing/render";
 import { SearchBox } from "./SearchBox";
 
@@ -47,5 +49,72 @@ describe("SearchBox", () => {
     renderInApp(<SearchBox initialQuery="ml" />);
     await act(async () => vi.advanceTimersByTime(1000));
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("keeps what was typed while a search is in flight: the echo of an older query changes nothing", async () => {
+    const view = renderInApp(<SearchBox initialQuery="" />);
+    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    fireEvent.change(box, { target: { value: "slow" } });
+    await act(async () => vi.advanceTimersByTime(300));
+    expect(router.replace).toHaveBeenCalledWith("/search?q=slow");
+    // The user goes on typing while "slow" is being fetched...
+    fireEvent.change(box, { target: { value: "slow query" } });
+    // ...and the page re-renders with the query it was asked for.
+    view.rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider>
+          <SearchBox initialQuery="slow" />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(box.value).toBe("slow query");
+    await act(async () => vi.advanceTimersByTime(300));
+    expect(router.replace).toHaveBeenLastCalledWith("/search?q=slow+query");
+    // Its echo, then a stale one arriving late: still nothing is erased.
+    view.rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider>
+          <SearchBox initialQuery="slow query" />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(box.value).toBe("slow query");
+  });
+
+  it("follows a navigation from outside (Back, a link): the box shows the URL's query", () => {
+    const view = renderInApp(<SearchBox initialQuery="iot" />);
+    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    view.rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider>
+          <SearchBox initialQuery="ml" />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    expect(box.value).toBe("ml");
+  });
+
+  it("does not search in the middle of an input-method composition, and searches when it ends", async () => {
+    renderInApp(<SearchBox initialQuery="" />);
+    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    fireEvent.compositionStart(box);
+    fireEvent.change(box, { target: { value: "Արմ" } });
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(router.replace).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(box, { target: { value: "Արմ" } });
+    await act(async () => vi.advanceTimersByTime(300));
+    expect(router.replace).toHaveBeenCalledWith(`/search?q=${encodeURIComponent("Արմ")}`);
+  });
+
+  it("a composition that never ends does not leave the search stuck: leaving the box releases it", async () => {
+    renderInApp(<SearchBox initialQuery="" />);
+    const box = screen.getByRole("searchbox") as HTMLInputElement;
+    fireEvent.compositionStart(box);
+    fireEvent.change(box, { target: { value: "ml" } });
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(router.replace).not.toHaveBeenCalled();
+    fireEvent.blur(box);
+    await act(async () => vi.advanceTimersByTime(300));
+    expect(router.replace).toHaveBeenCalledWith("/search?q=ml");
   });
 });
