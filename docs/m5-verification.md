@@ -78,15 +78,23 @@ afterwards (0 left in either account).
 | DeleteProjectDialog opens with Cancel focused (real browser)                                                                                                                                                                                                                                                                                         | pass                                                                                                                |
 | `/teams` and `/projects`, en/ru/am, account B, loaded cold: hydration errors                                                                                                                                                                                                                                                                         | 0                                                                                                                   |
 
-**Hydration error, reproduced and fixed in #80.** The deployed-site `/teams` matrix logged one
-`Minified React error #418` on account B, so 5.9 is **not** marked verified by this run. On the dev server
+**Hydration error, reproduced and fixed in #80.** The first deployed-site `/teams` matrix logged one
+`Minified React error #418` on account B, so that run could not verify 5.9. On the dev server
 (unminified React) the same journey shows the exact mismatch: an incoming invite's date, in Armenian, is
 `10 հոկ, 2026 թ.` on the server and `Oct 10, 2026` in the browser. The Chromium used by Playwright ships no
 Armenian ICU data and falls back to English; the server's Node formats it. #80 keeps the server's text (`<time
 suppressHydrationWarning>`) with a hydration test that fails without it; the dev-server matrix then shows an
-empty console and axe 0 serious or critical. **5.9 becomes verified when the full 36-view matrix (plus the
-journey) is re-run with zero hydration and console errors on the deployed build after #80 deploys.** Result of
-that re-run: PENDING.
+empty console and axe 0 serious or critical. 5.9 was held back until the matrix re-ran clean on the deployed
+build after #80 deployed; that re-run is below.
+
+**Re-run after #80 deployed** (2026-10-10, `https://gradfolio-navy.vercel.app`, main at 6349438, fresh sessions
+for A and B): the `/teams` journey and the full matrix. Matrix: owner/outgoing view (A), incoming view (B, with a
+real incoming invite, so the Armenian date that failed before is on screen), member view (B): 3 views x
+en/ru/am x light/dark x 390/1440 = 36 views, in all of them axe 0 serious or critical, and 0 console errors,
+warnings and page errors in the whole run (including 0 hydration errors). The only message the script ignores is
+Next's dev-only LCP hint, which a production build does not print. Journey steps all passed (accept on
+`/teams`, keyboard to Leave with Cancel focused, leave, decline, cancel a sent invite). Test data deleted: 0 left.
+Result: **5.9 verified on the deployed site.**
 
 ## 4. Not verified, known gaps
 
@@ -162,7 +170,7 @@ Not verified here:
 
 ## 6. Proposed tracker changes
 
-- 4.6-4.10 done (merged #61-#64); 5.6 and 5.7 verified on the deployed production site (section 3b) and the production API, with the recorded deviation that the local-stack journey (plan section 11, item 4) was not run. 5.9: verified only after #80 deploys and the 36-view matrix re-runs clean on the deployed build (section 3b).
+- 4.6-4.10 done (merged #61-#64); 5.6, 5.7 and 5.9 verified on the deployed production site (section 3b), with the recorded deviation that the local-stack journey (plan section 11, item 4) was not run.
 - Follow-ups: native ru/am review; `/notifications` full page if Load more proves too small; hydration
   warning on `/projects` (am); the `autoFocus` pattern in `DeleteAccount` and `DeleteProjectDialog`;
   duplicate invite notifications for one project (collapse or hide stale ones).
