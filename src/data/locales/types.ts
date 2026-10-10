@@ -432,21 +432,36 @@ export interface Dictionary {
     noData: string;
     stats: {
       totalProjects: string;
+      published: string;
+      drafts: string;
+      private: string;
       githubStars: string;
-      linkedinConnections: string;
       recentActivities: string;
     };
     activity: {
-      projectUpdated: string;
-      profileViewed: string;
-      newConnection: string;
-      newFollower: string;
+      projectCreated: string;
+      projectPublished: string;
+      projectDeleted: string;
       newSkill: string;
+      teamInvited: string;
+      teamMemberJoined: string;
+      teamMemberDeclined: string;
+      teamLeft: string;
+      teamJoined: string;
     };
-    activityTypes: {
-      project: string;
-      profile: string;
-    };
+    activityUnknown: string;
+    activityLoadMore: string;
+    activityLoadError: string;
+    activityMoreError: string;
+    dashboardLoadError: string;
+    statsLoadError: string;
+    projectsLoadError: string;
+    noRecentProjects: string;
+    roleMember: string;
+    statusDraft: string;
+    statusPrivate: string;
+    viewAllProjects: string;
+    tryAgainShort: string;
   };
   search: {
     title: string;

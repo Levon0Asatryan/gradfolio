@@ -1,4 +1,4 @@
-import type { Profile, ProjectDetail, ProjectSummary } from "@/lib/api/types";
+import type { Dashboard, Profile, ProjectDetail, ProjectSummary } from "@/lib/api/types";
 
 /** A profile shaped like the API's answer (`getProfile`), for tests only. */
 export const PROFILE: Profile = {
@@ -109,6 +109,41 @@ export function projectDetail(over: Partial<ProjectDetail> = {}): ProjectDetail 
     team: [],
     owner: { id: PROFILE.id, name: "Ani Petrosyan", avatarUrl: null },
     source: "manual",
+    ...over,
+  };
+}
+
+/** The dashboard as the API answers it (`getDashboard`), for tests only. */
+export function dashboard(over: Partial<Dashboard> = {}): Dashboard {
+  return {
+    stats: {
+      projects: { total: 4, published: 2, private: 1, draft: 1 },
+      githubStars: null,
+      recentActivities: 3,
+    },
+    recentProjects: [
+      {
+        id: PROJECT_ID,
+        title: "EcoRoute",
+        summary: "Routes with less CO2.",
+        category: "personal",
+        status: "ongoing",
+        technologies: ["Next.js"],
+        role: "owner",
+        isPublic: true,
+        isDraft: false,
+        updatedAt: "2026-10-09T12:00:00.000Z",
+      },
+    ],
+    activities: [
+      {
+        id: "a1",
+        type: "project",
+        translationKey: "projectCreated",
+        translationParams: { projectId: PROJECT_ID, projectName: "EcoRoute" },
+        timestamp: "2026-10-09T12:00:00.000Z",
+      },
+    ],
     ...over,
   };
 }

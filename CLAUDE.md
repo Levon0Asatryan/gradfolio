@@ -329,7 +329,7 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; browse, facets and the tag cloud included). Still mock until their milestones: dashboard, integrations.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; browse, facets and the tag cloud included). The dashboard is on the API too. Still mock until their milestones: integrations.
 
 ## Environment variables
 
@@ -358,7 +358,7 @@ mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` firs
 
 | Route                                | What it does                                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`                                  | Dashboard (client): header, stats, recent projects, quick actions, activity feed. `/dashboard` → `/`                                       |
+| `/`                                  | Dashboard on the API (`GET /v1/me/dashboard`): counts, recent projects, feed from i18n keys; each section fails alone. `/dashboard` → `/`  |
 | `/profile/[id]`                      | Server page on `getProfile`: loading, error and 404 states; `ProfileView`; owner edits the header                                          |
 | `/profile`, `/profile/edit`          | Redirect to your own `/profile/<id>` (from `getMe`) and `/profile`                                                                         |
 | `/projects`                          | Your projects from `GET /v1/me/projects`: filters and sort in the URL, "Load more" (keyset cursor)                                         |

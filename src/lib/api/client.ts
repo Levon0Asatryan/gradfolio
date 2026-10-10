@@ -30,6 +30,8 @@ import type {
   Suggestions,
   TagCloud,
   UserFacets,
+  Dashboard,
+  ActivityPage,
 } from "./types";
 
 /**
@@ -524,5 +526,20 @@ export function getSuggestions(q: string): Promise<Suggestions> {
     method: "GET",
     path: `/v1/search/suggestions${qs({ q })}`,
     auth: "none",
+  });
+}
+
+/** The signed-in user's dashboard in one call: counts, recent projects, newest activities. */
+export function getDashboard(): Promise<Dashboard> {
+  return request<Dashboard>({ method: "GET", path: "/v1/me/dashboard" });
+}
+
+/** The caller's own activity feed, newest first; one keyset page. */
+export function listMyActivities(
+  query: { limit?: number; cursor?: string } = {},
+): Promise<ActivityPage> {
+  return request<ActivityPage>({
+    method: "GET",
+    path: `/v1/me/activities${qs({ limit: query.limit, cursor: query.cursor })}`,
   });
 }

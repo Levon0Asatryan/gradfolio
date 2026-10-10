@@ -82,3 +82,10 @@ export type UserFacets = components["schemas"]["UserFacets"];
 
 // Search suggestions (typeahead): `GET /v1/search/suggestions`.
 export type Suggestions = components["schemas"]["Suggestions"];
+
+// Dashboard (M6 6.5, 6.10).
+export type Dashboard = components["schemas"]["Dashboard"];
+export type DashboardProject = components["schemas"]["DashboardProject"];
+export type DashboardStats = components["schemas"]["DashboardStats"];
+export type Activity = components["schemas"]["Activity"];
+export type ActivityPage = components["schemas"]["ActivityPage"];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activitiesMock } from "@/data/dashboard.mock";
+import { ACTIVITY_PARAMS } from "@/lib/dashboard/activityKeys";
 import { am } from "./am";
 import { en } from "./en";
 import { ru } from "./ru";
@@ -48,14 +48,25 @@ describe.each([
 });
 
 describe("activity feed keys", () => {
-  // ActivityFeed looks these up with a cast (`as keyof …`), so the compiler
-  // cannot see a key that does not exist; the feed would show the raw key.
-  it.each(activitiesMock.map((a) => [a.translationKey, a.translationParams] as const))(
-    "%s exists and its params fill every placeholder",
+  // The API writes exactly these keys (its ACTIVITY_REGISTRY). Each has a string in every
+  // language that fills exactly the placeholders the API sends for it: a missing key would show
+  // the neutral line, a wrong placeholder would print a hole.
+  it.each(Object.entries(ACTIVITY_PARAMS))(
+    "%s exists in en, ru and am with its placeholders",
     (key, params) => {
-      const template = (en.dashboard.activity as Record<string, string>)[key];
-      expect(template).toBeDefined();
-      expect(placeholders(template ?? "")).toEqual(Object.keys(params ?? {}).sort());
+      for (const [name, dictionary] of [
+        ["en", en],
+        ["ru", ru],
+        ["am", am],
+      ] as const) {
+        const template = (dictionary.dashboard.activity as Record<string, string>)[key];
+        expect(template, `${name}.${key}`).toBeDefined();
+        expect(placeholders(template ?? ""), `${name}.${key}`).toEqual([...params].sort());
+      }
     },
   );
+
+  it("has no string for a key the API does not write", () => {
+    expect(Object.keys(en.dashboard.activity).sort()).toEqual(Object.keys(ACTIVITY_PARAMS).sort());
+  });
 });

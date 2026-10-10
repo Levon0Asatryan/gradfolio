@@ -12,6 +12,8 @@ import RecentProjects from "@/components/dashboard/RecentProjects";
 import ProjectCard from "@/components/projects/ProjectCard";
 import { projectSummary } from "@/testing/fixtures";
 
+vi.mock("@/lib/dashboard/actions", () => ({ loadMoreActivitiesAction: vi.fn() }));
+
 /**
  * The server's Node ships Armenian ICU data and a browser (Playwright's Chromium, some
  * Safari builds) may not, so the same date prints differently on the two sides (M5 #80, and
@@ -53,7 +55,7 @@ const cases: Array<[string, React.ReactElement]> = [
           id: "a1",
           type: "project",
           translationKey: "projectCreated",
-          translationParams: { title: "X" },
+          translationParams: { projectName: "X" },
           timestamp: "2026-10-09T12:00:00.000Z",
         },
       ]}
@@ -68,11 +70,14 @@ const cases: Array<[string, React.ReactElement]> = [
         {
           id: "p1",
           title: "EcoRoute",
-          description: "Routes",
+          summary: "Routes",
           category: "personal",
           status: "ongoing",
           technologies: ["Next.js"],
-          lastUpdated: "2026-10-09T12:00:00.000Z",
+          role: "owner",
+          isPublic: true,
+          isDraft: false,
+          updatedAt: "2026-10-09T12:00:00.000Z",
         },
       ]}
     />,
