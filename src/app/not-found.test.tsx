@@ -15,4 +15,10 @@ describe("404 page", () => {
     expect(screen.getByRole("link", { name: "Перейти на дашборд" })).toHaveAttribute("href", "/");
     expect(screen.queryByText(/Page not found/)).not.toBeInTheDocument();
   });
+
+  it("hides the navigation in the server HTML, so it is never painted and the page does not shift (M4 F4)", () => {
+    const { container } = renderInApp(<NotFound />);
+    const css = Array.from(container.querySelectorAll("style")).map((n) => n.textContent ?? "");
+    expect(css.some((c) => /\[data-app-nav\]\s*\{\s*display:\s*none/.test(c))).toBe(true);
+  });
 });

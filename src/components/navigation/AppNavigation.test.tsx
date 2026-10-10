@@ -44,6 +44,11 @@ beforeEach(() => {
 });
 
 describe("AppNavigation (tracker 2.13)", () => {
+  it("is marked so the 404 page can hide it before the first paint (M4 F4)", () => {
+    show(null);
+    expect(document.querySelector("nav")).toHaveAttribute("data-app-nav");
+  });
+
   it("names the logout link", () => {
     show({ name: "Ani" });
     expect(screen.getByRole("link", { name: "Log out" })).toHaveAttribute("href", "/auth/logout");

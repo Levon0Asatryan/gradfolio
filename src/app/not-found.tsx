@@ -19,6 +19,12 @@ export default function NotFound() {
 
   return (
     <Stack sx={{ p: 3, minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
+      {/*
+        The layout renders the navigation before this page can ask to hide it, and the effect
+        above runs after the first paint: at 1440 the page shifted 0.172 (M4 F4). The rule is
+        in the server HTML, so the navigation is never painted. It goes away with this page.
+      */}
+      <style>{"[data-app-nav]{display:none !important}"}</style>
       <Noise patternRefreshInterval={2} />
       <Box sx={{ textAlign: "center", maxWidth: 720 }}>
         <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
@@ -57,7 +63,7 @@ export default function NotFound() {
           <Button
             variant="contained"
             color="primary"
-            LinkComponent={Link}
+            // A full page load: "/" is protected, and a visitor is redirected to Auth0 (M4 F3).
             href="/"
             sx={{ borderRadius: 9999 }}
           >

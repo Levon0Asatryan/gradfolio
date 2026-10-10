@@ -73,6 +73,7 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
       <Box
         component="nav"
         aria-label={t.common.mainMenu}
+        data-app-nav
         sx={(theme) => ({
           display: { xs: "grid", sm: "none" },
           gridTemplateColumns: "repeat(5, minmax(0, 1fr))",

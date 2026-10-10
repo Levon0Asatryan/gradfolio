@@ -60,6 +60,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
     <Box
       component="nav"
       aria-label={t.common.mainMenu}
+      data-app-nav
       sx={(theme) => ({
         display: { xs: "none", sm: "flex" },
         flexDirection: "column",
