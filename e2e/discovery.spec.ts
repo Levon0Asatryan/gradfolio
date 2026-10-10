@@ -132,20 +132,20 @@ for (const language of LANGUAGES) {
 test.describe("behaviour", () => {
   test("typing searches without a button, and the URL is shareable", async ({ page }) => {
     await page.goto("/search");
-    await page.getByRole("searchbox").fill("iot");
+    await page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ }).fill("iot");
     await expect(page).toHaveURL(/\/search\?q=iot$/);
     await expect(page.getByRole("heading", { level: 2, name: "People" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Projects" })).toBeVisible();
     // The same URL opened cold shows the same results (the "shareable" requirement).
     await page.goto(page.url());
-    await expect(page.getByRole("searchbox")).toHaveValue("iot");
+    await expect(page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ })).toHaveValue("iot");
     await expect(page.getByRole("heading", { level: 2, name: "People" })).toBeVisible();
   });
 
   test("an anonymous visitor is never sent to login by typing", async ({ page }) => {
     const problems = watch(page);
     await page.goto("/search");
-    await page.getByRole("searchbox").fill("ml");
+    await page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ }).fill("ml");
     await expect(page).toHaveURL(/\/search\?q=ml$/);
     expect(new URL(page.url()).pathname).toBe("/search");
     expect(problems).toEqual([]);
@@ -196,7 +196,7 @@ test.describe("behaviour", () => {
 
   test("a card is one stop: Tab moves from the box to the first result", async ({ page }) => {
     await page.goto("/search?q=iot");
-    await page.getByRole("searchbox").focus();
+    await page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ }).focus();
     await page.keyboard.press("Tab"); // the Search button
     await page.keyboard.press("Tab"); // See all people (the people group's link)
     const focused = page.locator(":focus-visible");
@@ -327,7 +327,7 @@ test.describe("behaviour", () => {
         await page.setViewportSize({ width: size.width, height: size.height });
         await preferences(page, language, "light");
         await page.goto("/search");
-        const box = page.getByRole("searchbox");
+        const box = page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ });
         await box.click();
         await page.keyboard.type("slow", { delay: 40 });
         await page.waitForTimeout(450);
@@ -345,7 +345,7 @@ test.describe("behaviour", () => {
 
   test("fast typing, then clearing and retyping, ends with what was typed", async ({ page }) => {
     await page.goto("/search?q=iot");
-    const box = page.getByRole("searchbox");
+    const box = page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ });
     await box.click();
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.type("machine learning", { delay: 10 });
@@ -360,8 +360,93 @@ test.describe("behaviour", () => {
     await page.getByRole("link", { name: "See all people" }).click();
     await expect(page).toHaveURL(/type=people/);
     await page.goBack();
-    await expect(page.getByRole("searchbox")).toHaveValue("iot");
+    await expect(page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ })).toHaveValue("iot");
     await page.goto("/search?q=ml");
-    await expect(page.getByRole("searchbox")).toHaveValue("ml");
+    await expect(page.getByRole("combobox", { name: /Search|Поиск|Որոնել/ })).toHaveValue("ml");
+  });
+
+  test("suggestions: type, arrow to an option, Enter goes there; the list is a combobox", async ({
+    page,
+  }) => {
+    await page.goto("/search");
+    const box = page.getByRole("combobox", { name: /Search people/ });
+    await expect(box).toHaveAttribute("aria-expanded", "false");
+    await box.click();
+    await page.keyboard.type("io", { delay: 30 });
+    const list = page.getByRole("listbox", { name: "Suggestions" });
+    await expect(list).toBeVisible();
+    await expect(box).toHaveAttribute("aria-expanded", "true");
+    await expect(list.getByRole("group", { name: "Tags" })).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "suggestions available" }),
+    ).toBeAttached();
+    await page.keyboard.press("ArrowDown");
+    await expect(box).toHaveAttribute("aria-activedescendant", /-opt-0$/);
+    await page.keyboard.press("Escape");
+    await expect(list).toBeHidden();
+    await expect(box).toHaveValue("io");
+    await page.keyboard.press("ArrowDown");
+    await expect(list).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/(profile|projects|tags)\//);
+  });
+
+  test("typing on while a search is in flight and the list is open keeps every character", async ({
+    page,
+  }) => {
+    // "slow..." is answered late, for the search and for the suggestions: the dropdown is
+    // open or loading while the page's own search comes back with an older query.
+    await page.goto("/search");
+    const box = page.getByRole("combobox", { name: /Search people/ });
+    await box.click();
+    await page.keyboard.type("slow", { delay: 40 });
+    await page.waitForTimeout(450);
+    await page.keyboard.type(" query go", { delay: 40 });
+    await page.waitForTimeout(1800);
+    await expect(box).toHaveValue("slow query go");
+    await expect(box).toBeFocused();
+    await expect(page).toHaveURL(/q=slow\+query\+go/);
+  });
+
+  test("Enter with nothing chosen is the plain search", async ({ page }) => {
+    await page.goto("/search");
+    const box = page.getByRole("combobox", { name: /Search people/ });
+    await box.click();
+    await page.keyboard.type("ml", { delay: 30 });
+    await expect(page.getByRole("listbox", { name: "Suggestions" })).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/search\?q=ml/);
+  });
+
+  test("no suggestions for a query nothing starts with: just the search option", async ({
+    page,
+  }) => {
+    await page.goto("/search");
+    await page.getByRole("combobox", { name: /Search people/ }).click();
+    await page.keyboard.type("zzzz", { delay: 30 });
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await expect(page.getByRole("status").filter({ hasText: "No suggestions" })).toBeAttached();
   });
 });
+
+for (const language of LANGUAGES) {
+  for (const theme of THEMES) {
+    for (const size of SIZES) {
+      test(`suggestions open: axe, clean console (${language} ${theme} ${size.name})`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: size.width, height: size.height });
+        await preferences(page, language, theme);
+        const problems = watch(page);
+        await page.goto("/search");
+        await page.getByRole("combobox").click();
+        await page.keyboard.type("io", { delay: 30 });
+        await expect(page.getByRole("listbox")).toBeVisible();
+        await page.keyboard.press("ArrowDown");
+        await settled(page);
+        expect(await seriousAxe(page)).toEqual([]);
+        expect(problems).toEqual([]);
+      });
+    }
+  }
+}

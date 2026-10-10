@@ -10,6 +10,10 @@ export const MAX_QUERY_TOKENS = 6;
 export const MAX_TOKEN_LENGTH = 50;
 export const MAX_CURSOR_LENGTH = 600;
 const MAX_TAG_LENGTH = 255;
+/** The API matches the start of a word, so one letter is a valid suggestion query. */
+export const MIN_SUGGEST_LENGTH = 1;
+/** The API takes 1 to 50 characters for a suggestion (search takes 100). */
+export const MAX_SUGGEST_LENGTH = 50;
 /** Cards per page in a full list; the grouped view uses the API's own group size. */
 export const SEARCH_PAGE_SIZE = 12;
 

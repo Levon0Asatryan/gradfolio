@@ -79,3 +79,6 @@ export type TagSummary = components["schemas"]["TagSummary"];
 export type TagCloud = components["schemas"]["TagCloud"];
 export type TagCloudItem = components["schemas"]["TagCloudItem"];
 export type UserFacets = components["schemas"]["UserFacets"];
+
+// Search suggestions (typeahead): `GET /v1/search/suggestions`.
+export type Suggestions = components["schemas"]["Suggestions"];

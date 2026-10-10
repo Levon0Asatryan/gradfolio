@@ -586,6 +586,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s dashboard
+         * @description Counts of the caller’s projects by state, the sum of stored GitHub stars (null until an import stores any), the three most recently changed projects (own, plus non-draft ones they are an accepted member of), the number of feed entries in the last 30 days and the five newest feed entries, in one call. Only the caller’s own data. Render the feed from `translationKey` and `translationParams`.
+         */
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/search": {
         parameters: {
             query?: never;
@@ -598,6 +618,26 @@ export interface paths {
          * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Each group is the best few matches, in relevance order, with `hasMore`; page one group with `/v1/search/people` or `/v1/search/projects`. Words of two characters or fewer (`AI`, `ML`, `Go`), and `C#`-style words, match whole skills, technologies and tags exactly and the start of words in names and titles. Common English words (`the`, `an`) are ignored when other words remain.
          */
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Typeahead: a few people, projects and terms that start with the text
+         * @description Only published projects of public profiles, and public profiles: private and draft work never appears, **for anyone, the owner included** (use `/v1/me/projects` for your own). Needs no token; one that is sent is verified and only changes whose rate budget is used. Matches the start of the text or of any word in it, so a single letter works; at most 5 of each. Tags are skills, technologies and tags that a public project or profile uses, in the site-wide spelling. Has its own, larger rate budget for debounced bursts. Use `/v1/search` for results.
+         */
+        get: operations["searchSuggestions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -997,6 +1037,50 @@ export interface components {
              */
             date: string;
             credentialUrl: string | null;
+        };
+        /** @description Everything the caller’s dashboard shows, in one call. Only the caller’s own data; a second user’s token gets their own. */
+        Dashboard: {
+            stats: components["schemas"]["DashboardStats"];
+            /** @description The caller’s most recently changed projects: their own, and non-draft ones they are an accepted member of. */
+            recentProjects: components["schemas"]["DashboardProject"][];
+            /** @description The newest entries of the caller’s own feed (the `/v1/me/activities` shape). */
+            activities: components["schemas"]["Activity"][];
+        };
+        DashboardProject: {
+            id: string;
+            title: string;
+            /** @description The author’s own text. Plain text. */
+            summary: string | null;
+            /** @enum {string} */
+            category: "academic" | "personal" | "research" | "hackathon" | "course" | "other";
+            /** @enum {string} */
+            status: "ongoing" | "completed" | "archived";
+            technologies: string[];
+            /**
+             * @description owner: the caller created it; member: the caller is an accepted team member (never a draft).
+             * @enum {string}
+             */
+            role: "owner" | "member";
+            isPublic: boolean;
+            isDraft: boolean;
+            /** @description ISO 8601, UTC. */
+            updatedAt: string;
+        };
+        /** @description The caller’s own projects, by state (team projects of others are not counted). */
+        DashboardProjectCounts: {
+            total: number;
+            /** @description Public and not a draft. */
+            published: number;
+            /** @description Not public and not a draft. */
+            private: number;
+            draft: number;
+        };
+        DashboardStats: {
+            projects: components["schemas"]["DashboardProjectCounts"];
+            /** @description Sum of the stars stored on the caller’s non-draft projects; null until an import has stored any (M7). */
+            githubStars: number | null;
+            /** @description Entries in the caller’s feed from the last DASHBOARD_ACTIVITY_DAYS (30) days. */
+            recentActivities: number;
         };
         DiscoveryProjectPage: {
             items: components["schemas"]["ProjectCard"][];
@@ -1419,6 +1503,22 @@ export interface components {
             query: string;
             people: components["schemas"]["PersonGroup"];
             projects: components["schemas"]["ProjectGroup"];
+        };
+        Suggestion: {
+            /** @description The person’s or project’s id, for a link. */
+            id: string;
+            /** @description The name or title to show. */
+            label: string;
+            /** @description People only; null for projects. */
+            avatarUrl: string | null;
+        };
+        Suggestions: {
+            /** @description The text as normalized. */
+            query: string;
+            people: components["schemas"]["Suggestion"][];
+            projects: components["schemas"]["Suggestion"][];
+            /** @description Skills, technologies and tags in the site-wide spelling that a public project or profile uses. */
+            tags: string[];
         };
         TagCloud: {
             items: components["schemas"]["TagCloudItem"][];
@@ -3765,6 +3865,53 @@ export interface operations {
             };
         };
     };
+    getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -3783,6 +3930,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: a token was sent and is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    searchSuggestions: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The suggestions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
                 };
             };
             /** @description VALIDATION_FAILED: a query parameter is invalid (see `details`) */

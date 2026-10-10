@@ -493,6 +493,10 @@ export const ru: Dictionary = {
     projectCount: "Проектов: {count}",
     byOwner: "автор: {name}",
     verified: "Подтверждённый аккаунт",
+    suggestionsLabel: "Подсказки",
+    suggestionsCount: "Доступно подсказок: {count}. Выберите стрелками.",
+    suggestionsNone: "Подсказок нет",
+    suggestionSearchFor: "Искать «{query}»",
   },
   browse: {
     projectsTitle: "Обзор проектов",
