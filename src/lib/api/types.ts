@@ -74,3 +74,6 @@ export type SearchResults = components["schemas"]["SearchResults"];
 export type PersonPage = components["schemas"]["PersonPage"];
 export type DiscoveryProjectPage = components["schemas"]["DiscoveryProjectPage"];
 export type TagSummary = components["schemas"]["TagSummary"];
+
+// Browse and the tag cloud (M6 6.3, 6.4). Provisional until the contract is pinned.
+export type { FacetValue, TagCloud, TagCloudItem, UserFacets } from "./discoveryBrowseTypes";
