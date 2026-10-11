@@ -512,3 +512,98 @@ LinkedIn ZIP's content type and the bucket CORS for it; the cap in bytes.
 - Native review of ru and am strings (OR-T6).
 - Vercel production differs from local: the specs run with `--no-experimental-require-module`
   as the others do; new dependencies are checked against it before use. This plan adds none.
+
+## 15. Addendum: suggestions inbox, and GitHub through Auth0 (proposal)
+
+Added 2026-10-11 at Levon's request. The API plan will add **suggestions**: a change found by a
+sync (a GitHub repo changed; LinkedIn, education or experience hints) is stored as a suggestion the
+user accepts or dismisses, never applied silently. Levon also wants GitHub connected **through
+Auth0**. Contract details come from the API plan; everything here is a proposal for it and changes
+with it.
+
+### 15.1 What this changes in sections 3 to 5
+
+- **Re-sync (5).** A field kept because the user edited it becomes a **suggestion** ("GitHub now
+  says ...") the user may accept, instead of a line in a one-off dialog. D5 ("no use GitHub's
+  version") is superseded only through this explicit accept; nothing is overwritten without a click.
+  The re-sync result dialog links to the inbox with the count of new suggestions.
+- **Connect (3.3, 3.4).** If the token comes from Auth0's GitHub connection (7.1 option A), the
+  `authorizeUrl` points at the Auth0 tenant, so the host allow-list is the tenant host, not
+  `github.com`. The return and the hint toast (3.4) are unchanged. A user who **signed in with
+  GitHub** is already connected: the card shows it from the API's status, no connect step.
+- **Risk to run, not assume.** Today a plain `/auth/login?connection=github` creates a **second**
+  Auth0 user and a second Gradfolio account (m2-plan 2.3(b): no automatic linking). The FE must not
+  offer "Connect GitHub" as a login link. Whether `@auth0/nextjs-auth0` 4.30.0 has a usable
+  account-linking or connected-accounts flow, or the API links server-side with the Management API,
+  is run in PR 2 against the pinned version; the page copy and the "already linked to another
+  account" state follow the result. The token never reaches the browser either way (Q11).
+- **Disconnect (3.5)** means unlinking the identity (API side). The dialog says what happens to the
+  Auth0 login: it stays, and signing in with GitHub still works, if that is the API's behaviour.
+
+### 15.2 The inbox
+
+- **Where.** A "Suggestions" section above the cards on `/integrations`, with its count; an empty
+  inbox renders one line ("Nothing to review"), not an empty box. A load failure is an error panel
+  with Retry, never "Nothing to review".
+- **Nav badge.** A count on the Integrations item in the sidebar, rail and More sheet, hidden at
+  zero. Accessible name carries the number in words ("Integrations, {count} to review"), so it is
+  not colour or a dot alone; the number is capped at "99+". The count uses the M5 bell's mechanism
+  (a route handler, a 60 s poll while the tab is visible, a refresh on navigation and focus), no new
+  mechanism, no SSE.
+- **A suggestion** is a card: a source chip with text (GitHub, LinkedIn), a title naming the target
+  ("{project} changed on GitHub", "New position: {title}"), a date, a diff (15.3), and **Accept**
+  and **Dismiss**. Cards are list items; the list is a `<ul>` with a heading.
+- **Accept.** Server action, no user id, `suggestionId` validated as a UUID, optional `fields`
+  (the ticked ones, from the list the API sent). On success the row is removed, a live region says
+  "Accepted", focus moves to the next card's heading (or the section heading when it was the last),
+  and `router.refresh()` updates the page's own data. A failure keeps the row and says why.
+- **Dismiss.** Same, with no confirmation (it is reversible). Reversal needs the API: a
+  "Dismissed" filter with Restore, or an undo toast. If the API offers neither, a confirmation
+  dialog is added instead. Open question (section 15.5).
+- **Several fields.** Each field has a checkbox, all ticked by default, same pattern as the LinkedIn
+  preview (6.1). Accept applies the ticked ones; Dismiss drops the suggestion. A single-field
+  suggestion shows no checkbox.
+- **Stale and gone.** `SUGGESTION_STALE` (409: the target changed since the suggestion was made)
+  refreshes the card with the new "from" value and applies nothing; a deleted target (404) removes
+  the card with a message. Nothing is applied against a value the user did not see.
+
+### 15.3 The diff
+
+What changed is shown per field as **Yours** and **Suggested**, each labelled in text, with the
+markers "-" and "+" read as "removed" and "added" by a screen reader (no information by colour
+alone, AA contrast in both themes).
+
+| Field kind                       | Rendering                                                                                    |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Number (stars, forks)            | `120 -> 134`, one line                                                                       |
+| Short text (title, language)     | Two lines, **Yours** over **Suggested**, changed words emphasised (bold plus underline)      |
+| Long text and HTML (description) | Plain-text excerpt of each side through the sanitiser, 4 lines then "Show full"; no raw HTML |
+| List (technologies, tags)        | Added and removed items as chips with "+" and "-" text                                       |
+| New item (a position)            | The item's fields, not a diff, headed "New"                                                  |
+
+Phone: the two sides stack. Cropped text uses the shared `TruncatedText` (tooltip with the full text
+when cropped), so no value is only visible on hover. Dates go through the hydration-tested helper.
+
+### 15.4 Security, i18n, tests
+
+- Suggestion values originate outside the app (GitHub, LinkedIn exports): rendered as text or
+  through the existing sanitiser path in a server component; never `dangerouslySetInnerHTML`
+  directly. Server actions are public endpoints and trust nothing but the session.
+- Strings in en, ru and am: `integrations.suggestions` (headings, kinds, field labels, actions,
+  states, stale and gone messages), no counted nouns; error codes mapped in one table with a test
+  that each has all three languages.
+- Tests: card per kind and per field kind; accept, dismiss, partial accept, stale, gone, failure
+  keeps the row; focus after accept; badge hidden at zero and capped; hydration case for the card's
+  date in Armenian; stub endpoints with magic ids; matrix (390 and 1440, light and dark, en/ru/am,
+  axe, console, CLS 0) for inbox states and the nav badge; keyboard walkthrough of the inbox.
+  Guards proven by removal: stale refuses to apply; only ticked fields are sent; the badge name
+  carries the number; a failure does not remove the row.
+- PR placement: the inbox is a **PR 3b**, after the API's suggestions PR is live; PR 2 and 3 do not
+  depend on it, and re-sync keeps the 5 behaviour until it lands.
+
+### 15.5 Questions to the API plan
+
+Suggestion kinds and their target shapes; per-field accept; dismissed visibility and restore;
+count endpoint (or the count inside `GET /v1/me/integrations`); staleness code; whether accept
+returns the updated target; retention; and, for Auth0, the link/unlink flow and what the status
+reports for a GitHub sign-in user.
