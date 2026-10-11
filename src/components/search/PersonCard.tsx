@@ -10,6 +10,7 @@ import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import VerifiedBadge from "@/components/profile/shared/Badge";
 import HighlightedText from "@/components/shared/HighlightedText";
+import TruncatedText from "@/components/shared/TruncatedText";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
 import type { PersonSummary } from "@/lib/api/types";
@@ -54,19 +55,15 @@ const PersonCard: FC<{ person: PersonSummary; highlightQuery?: string }> = ({
               <VerifiedBadge visible={verified} label={t.search.verified} />
             </Box>
             {headline && (
-              <Typography
+              <TruncatedText
                 variant="body2"
                 color="text.secondary"
-                sx={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  overflowWrap: "anywhere",
-                }}
+                lines={2}
+                text={headline}
+                sx={{ overflowWrap: "anywhere" }}
               >
                 <HighlightedText text={headline} query={highlightQuery} />
-              </Typography>
+              </TruncatedText>
             )}
             {location && (
               <Typography

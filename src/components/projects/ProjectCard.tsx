@@ -10,6 +10,7 @@ import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
+import TruncatedText from "@/components/shared/TruncatedText";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectSummary } from "@/lib/api/types";
 import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
@@ -101,20 +102,16 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
               </Typography>
             )}
           </Box>
-          <Typography
+          <TruncatedText
             id={titleId}
             variant="h6"
             component="h3"
-            sx={{
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              overflowWrap: "anywhere",
-            }}
+            lines={2}
+            text={title}
+            sx={{ overflowWrap: "anywhere" }}
           >
             <HighlightedText text={title} query={highlightQuery} />
-          </Typography>
+          </TruncatedText>
           <Typography variant="body2" color="text.secondary">
             {truncate(summary ?? "", 170)}
           </Typography>

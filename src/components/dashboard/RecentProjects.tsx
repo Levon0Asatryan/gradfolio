@@ -13,6 +13,7 @@ import type { DashboardProject } from "@/lib/api/types";
 import Alert from "@mui/material/Alert";
 import { formatDay } from "@/utils/helpers/formatDay";
 import { CategoryChip } from "@/components/shared/CategoryChip";
+import TruncatedText from "@/components/shared/TruncatedText";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface RecentProjectsProps {
@@ -50,18 +51,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
         <Typography id={titleId} variant="subtitle1" component="h3" sx={{ fontWeight: 800 }}>
           {p.title}
         </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {p.summary}
-        </Typography>
+        <TruncatedText variant="body2" color="text.secondary" lines={2} text={p.summary ?? ""} />
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: "auto" }}>
           {p.technologies.slice(0, 3).map((tech) => (
             <Chip key={tech} size="small" label={tech} variant="outlined" />

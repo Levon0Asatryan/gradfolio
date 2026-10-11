@@ -6,8 +6,9 @@
  * instead of the browser run. The real API is exercised by the verification record's runs.
  *
  * Magic queries: `iot` has results in both groups and more in people; `ml` has a short
- * list; `nothing` is empty; `limited` is a 429; `boom` is a 503. Any path it does not know
- * answers 503, so a page that depends on another endpoint shows its error state.
+ * list; `nothing` is empty; `limited` is a 429; `boom` is a 503; `long` has a project title, a
+ * summary and a headline too long for their cards (cropped text) beside short ones. Any path it
+ * does not know answers 503, so a page that depends on another endpoint shows its error state.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
@@ -57,6 +58,16 @@ const people = (count: number, offset = 0) =>
   Array.from({ length: count }, (_, i) => person(offset + i));
 const projects = (count: number, offset = 0) =>
   Array.from({ length: count }, (_, i) => project(offset + i));
+
+/** Longer than two lines of a card title, three of a summary, two of a headline, at any width. */
+const LONG = {
+  title:
+    "Distributed soil moisture monitoring for terraced vineyards in the Ararat valley, with LoRa sensor nodes and a solar-powered gateway",
+  summary:
+    "Forty sensor nodes report soil moisture, temperature and salinity every ten minutes over LoRa to a solar-powered gateway, which forwards them over MQTT to a dashboard that warns the farmer before a terrace dries out, and keeps a season of history for comparing irrigation schedules.",
+  headline:
+    "Embedded systems student building low-power sensor networks for agriculture, with a side interest in long-range radio, MQTT brokers and solar power budgets",
+};
 
 const TAGS: Record<string, TagSummary> = {
   iot: { name: "IoT", projectCount: 14, peopleCount: 9 },
@@ -148,17 +159,29 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
   if (url.pathname === "/v1/search") {
     const body: SearchResults =
-      q === "nothing"
+      q === "long"
         ? {
             query: q,
-            people: { items: [], hasMore: false },
-            projects: { items: [], hasMore: false },
+            people: {
+              items: [person(0, { headline: LONG.headline }), person(1)],
+              hasMore: false,
+            },
+            projects: {
+              items: [project(0, { title: LONG.title, summary: LONG.summary }), project(1)],
+              hasMore: false,
+            },
           }
-        : {
-            query: q,
-            people: { items: people(Math.min(limit, 6)), hasMore: q === "iot" },
-            projects: { items: projects(q === "ml" ? 2 : 4), hasMore: false },
-          };
+        : q === "nothing"
+          ? {
+              query: q,
+              people: { items: [], hasMore: false },
+              projects: { items: [], hasMore: false },
+            }
+          : {
+              query: q,
+              people: { items: people(Math.min(limit, 6)), hasMore: q === "iot" },
+              projects: { items: projects(q === "ml" ? 2 : 4), hasMore: false },
+            };
     return send(res, 200, body);
   }
   if (url.pathname === "/v1/search/people" || url.pathname === "/v1/tags/people") {
