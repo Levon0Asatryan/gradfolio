@@ -162,16 +162,14 @@ describe("TruncatedText", () => {
     expect(tooltip()).toBeNull();
   });
 
-  it("keeps the theme's focus ring (3px, ui-plan): its own focus rule sets no outline", () => {
+  it("shows the theme's focus ring when focused: 3px, 2px offset (ui-plan)", () => {
     overflowsWidth();
     renderInApp(<TruncatedText text={LONG} />);
-    const classes = [...text().classList].filter((c) => c.startsWith("css-"));
-    const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
-    const ownFocusRules = css
-      .split("}")
-      .filter((rule) => rule.includes(":focus-visible") && classes.some((c) => rule.includes(c)));
-    expect(ownFocusRules.length).toBeGreaterThan(0);
-    expect(ownFocusRules.join("}")).not.toMatch(/outline/);
+    tabTo(text());
+    expect(text()).toHaveFocus();
+    const style = getComputedStyle(text());
+    expect(style.outline).toMatch(/^3px solid /);
+    expect(style.outlineOffset).toBe("2px");
   });
 
   it("adds no name or description: the visible text already carries the full string", async () => {
