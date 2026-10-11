@@ -597,14 +597,16 @@ when cropped), so no value is only visible on hover. Dates go through the hydrat
   keeps the row; focus after accept; badge hidden at zero and capped; hydration case for the card's
   date in Armenian; stub endpoints with magic ids; matrix (390 and 1440, light and dark, en/ru/am,
   axe, console, CLS 0) for inbox states and the nav badge; keyboard walkthrough of the inbox.
-  Guards proven by removal: stale refuses to apply; only ticked fields are sent; the badge name
-  carries the number; a failure does not remove the row.
+  Guards proven by removal: on a stale answer the card shows the new "from" value and keeps its
+  Accept; only ticked fields are sent; the badge name carries the number; a failure does not
+  remove the row. That a stale accept changes nothing is the API's guard and is proved in the
+  API's own tests (15.5); the stub cannot prove it, since it decides the 409 itself.
 - PR placement: the inbox is a **PR 3b**, after the API's suggestions PR is live; PR 2 and 3 do not
   depend on it, and re-sync keeps the 5 behaviour until it lands.
 
 ### 15.5 Questions to the API plan
 
 Suggestion kinds and their target shapes; per-field accept; dismissed visibility and restore;
-count endpoint (or the count inside `GET /v1/me/integrations`); staleness code; whether accept
-returns the updated target; retention; and, for Auth0, the link/unlink flow and what the status
-reports for a GitHub sign-in user.
+count endpoint (or the count inside `GET /v1/me/integrations`); staleness code, with an API test
+that a stale accept writes nothing; whether accept returns the updated target; retention; and, for
+Auth0, the link/unlink flow and what the status reports for a GitHub sign-in user.
