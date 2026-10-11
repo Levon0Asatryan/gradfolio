@@ -11,6 +11,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useLanguage } from "@/components/i18n/LanguageContext";
+import TruncatedText from "@/components/shared/TruncatedText";
 import type { Dictionary } from "@/data/locales/types";
 import { AccountCard } from "./AccountCard";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -115,13 +116,9 @@ export const AccountSummary: FC<{ result: AccountResult }> = ({ result }) => {
                 sx={{ width: 64, height: 64, fontSize: 24, bgcolor: "primary.main" }}
               />
               <Stack data-testid="account-name" sx={{ minWidth: 160, flex: 1 }}>
-                <Typography variant="h6" component="p" noWrap>
-                  {result.me.name}
-                </Typography>
+                <TruncatedText variant="h6" component="p" text={result.me.name} />
                 {result.me.email !== result.me.name && (
-                  <Typography color="text.secondary" noWrap>
-                    {result.me.email ?? text.noEmail}
-                  </Typography>
+                  <TruncatedText color="text.secondary" text={result.me.email ?? text.noEmail} />
                 )}
               </Stack>
               <Chip

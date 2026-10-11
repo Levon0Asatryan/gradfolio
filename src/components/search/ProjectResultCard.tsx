@@ -9,6 +9,7 @@ import CardActionArea from "@mui/material/CardActionArea";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import HighlightedText from "@/components/shared/HighlightedText";
+import TruncatedText from "@/components/shared/TruncatedText";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
@@ -76,34 +77,26 @@ const ProjectResultCard: FC<{ project: DiscoveryProject; highlightQuery?: string
               {t.projects.status[project.status] ?? project.status}
             </Typography>
           </Box>
-          <Typography
+          <TruncatedText
             id={titleId}
             variant="h6"
             component="h3"
-            sx={{
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              overflowWrap: "anywhere",
-            }}
+            lines={2}
+            text={title}
+            sx={{ overflowWrap: "anywhere" }}
           >
             <HighlightedText text={title} query={highlightQuery} />
-          </Typography>
+          </TruncatedText>
           {summary && (
-            <Typography
+            <TruncatedText
               variant="body2"
               color="text.secondary"
-              sx={{
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                overflowWrap: "anywhere",
-              }}
+              lines={3}
+              text={summary}
+              sx={{ overflowWrap: "anywhere" }}
             >
               <HighlightedText text={summary} query={highlightQuery} />
-            </Typography>
+            </TruncatedText>
           )}
           {shown.length > 0 && (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
