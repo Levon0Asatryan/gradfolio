@@ -41,6 +41,20 @@ const PAGES = [
   },
 ] as const;
 
+/**
+ * The robots policy of the page now shown, read from the server's HTML for its URL: that is
+ * what a crawler gets, since it loads every URL fresh. After a client-side navigation Next
+ * 16.3.8 (and 16.4.0) sometimes leaves the previous page's metadata in <head> beside the new
+ * one (run 2026-10-11: title, description, canonical and robots all doubled), so the live DOM
+ * would test Next's head handling, not this page's policy. Exactly one tag is required.
+ */
+async function serverRobots(page: Page): Promise<string> {
+  const html = await (await page.request.get(page.url())).text();
+  const tags = [...html.matchAll(/<meta name="robots" content="([^"]*)"/g)].map((m) => m[1]);
+  expect(tags).toHaveLength(1);
+  return tags[0] ?? "";
+}
+
 const settled = (page: Page) =>
   page.evaluate(() =>
     Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
@@ -264,10 +278,10 @@ test.describe("behaviour", () => {
     );
     await page.getByRole("link", { name: "Next page" }).click();
     await expect(page).toHaveURL(/category=course&cursor=page-2/);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    expect(await serverRobots(page)).toMatch(/noindex/);
     await page.getByRole("link", { name: "First page" }).click();
     await expect(page).toHaveURL(/category=course$/);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /^index/);
+    expect(await serverRobots(page)).toMatch(/^index/);
   });
 
   test("an empty gallery says so, and is not an error", async ({ page }) => {
@@ -283,7 +297,7 @@ test.describe("behaviour", () => {
     await page.getByRole("button", { name: "Apply filters" }).click();
     await expect(page).toHaveURL(/school=NPUA/);
     await expect(page.getByRole("link", { name: "Clear filters" })).toBeVisible();
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    expect(await serverRobots(page)).toMatch(/noindex/);
   });
 
   test("an unknown tag is a real 404 and not indexed", async ({ page }) => {
