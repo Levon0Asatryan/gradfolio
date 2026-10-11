@@ -120,14 +120,8 @@ const TruncatedText: FC<TruncatedTextProps> = ({ text, children, lines = 1, sx, 
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
           },
-          {
-            "&:focus-visible": {
-              outline: "2px solid",
-              outlineColor: "primary.main",
-              outlineOffset: 2,
-              borderRadius: 0.5,
-            },
-          },
+          // The ring itself is the theme's (3px, every :focus-visible); only the corner is ours.
+          { "&:focus-visible": { borderRadius: 0.5 } },
           ...own,
         ]}
       >

@@ -162,6 +162,18 @@ describe("TruncatedText", () => {
     expect(tooltip()).toBeNull();
   });
 
+  it("keeps the theme's focus ring (3px, ui-plan): its own focus rule sets no outline", () => {
+    overflowsWidth();
+    renderInApp(<TruncatedText text={LONG} />);
+    const classes = [...text().classList].filter((c) => c.startsWith("css-"));
+    const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
+    const ownFocusRules = css
+      .split("}")
+      .filter((rule) => rule.includes(":focus-visible") && classes.some((c) => rule.includes(c)));
+    expect(ownFocusRules.length).toBeGreaterThan(0);
+    expect(ownFocusRules.join("}")).not.toMatch(/outline/);
+  });
+
   it("adds no name or description: the visible text already carries the full string", async () => {
     overflowsWidth();
     renderInApp(<TruncatedText text={LONG} />);
