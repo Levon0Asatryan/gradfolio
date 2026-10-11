@@ -27,7 +27,7 @@ plan, **the API plan wins and this one changes**.
 | Plurals                          | No plural machinery in the dictionaries; Russian has three forms.                                                                                                                                                                                                                                             | No sentence with a counted noun. Counts use the "label: number" form (`Selected: {count}`); the `locales.test.ts` placeholder check covers them.                                                    |
 | `source` and repo data on the FE | `ProjectDetail` already has `source: "manual" \| "github"` and `repo { url, stars, forks, language, latestCommitDate, readmeUrl }`. `ProjectSummary` (list cards) has neither. `DiscoveryProject` is documented as "never repository data".                                                                   | The detail page and the owner's `/projects` cards can badge GitHub-sourced projects; `ProjectSummary` needs `source` from the API (2). Public discovery cards get no badge unless the API adds one. |
 | Stepper component                | `Stepper` takes `canProceed(step)` and fixed Back/Next; it cannot express "Next is Upload, and only after the file is verified", or an async step.                                                                                                                                                            | The wizards are a small state machine (`useReducer`) rendered with the existing `StepIndicator` and visual language; `Stepper` itself stays for the onboarding flow only (7).                       |
-| Testing a logged-in page in CI   | The e2e job never logs in; logged-in specs are skipped without a `storageState` (M4-M6). The M5 follow-up "seeded-session CI job" is open.                                                                                                                                                                    | Section 11.2: mint a session cookie with the SDK's `generateSessionCookie` (`@auth0/nextjs-auth0/testing`, 4.30.0) and a canned API stub. **A claim to run first, not assume.**                     |
+| Testing a logged-in page in CI   | The e2e job never logs in; logged-in specs are skipped without a `storageState` (M4-M6). The M5 follow-up "seeded-session CI job" is open.                                                                                                                                                                    | Section 11.2: mint a session cookie with the SDK's `generateSessionCookie` (`@auth0/nextjs-auth0/testing`, 4.31.0) and a canned API stub. **A claim to run first, not assume.**                     |
 | Comparable apps                  | GitHub's own import-from-repo pickers (searchable list, "already imported" rows disabled); Vercel's "Import Git Repository" (list, one button per row, then a progress page); LinkedIn's own "Download your data" page (request, wait, email, download).                                                      | Pick -> import -> review as three visible steps; LinkedIn instructions say plainly that the file arrives later (6.1).                                                                               |
 
 ## 2. Contract needed from the API (proposal for `gradfolio-api/docs/m7-plan.md`)
@@ -405,7 +405,7 @@ projects; preview not written to storage; every error code has a message.
   `already-imported`; an export size marker for too-large; a preview with duplicates and problems.
   Synthetic data only; **no real personal data and no real export** is ever committed.
 - **Logged-in specs in CI** by minting a session cookie with `generateSessionCookie` from
-  `@auth0/nextjs-auth0/testing` (4.30.0, in `package-lock.json`) with the e2e job's throwaway
+  `@auth0/nextjs-auth0/testing` (4.31.0, in `package-lock.json`) with the e2e job's throwaway
   `AUTH0_SECRET`, a far-future `tokenSet.expiresAt` and a fake access token the stub accepts. **To be
   run in PR 2 before anything relies on it**; if it fails, the logged-in specs stay behind
   `storageState` like M4-M6 and CI keeps the component tests plus the anonymous redirect checks.
@@ -533,10 +533,11 @@ with it.
   GitHub** is already connected: the card shows it from the API's status, no connect step.
 - **Risk to run, not assume.** Today a plain `/auth/login?connection=github` creates a **second**
   Auth0 user and a second Gradfolio account (m2-plan 2.3(b): no automatic linking). The FE must not
-  offer "Connect GitHub" as a login link. Whether `@auth0/nextjs-auth0` 4.30.0 has a usable
-  account-linking or connected-accounts flow, or the API links server-side with the Management API,
-  is run in PR 2 against the pinned version; the page copy and the "already linked to another
-  account" state follow the result. The token never reaches the browser either way (Q11).
+  offer "Connect GitHub" as a login link. Whether `@auth0/nextjs-auth0` 4.31.0 (the version
+  `package-lock.json` resolves) has a usable account-linking or connected-accounts flow, or the API
+  links server-side with the Management API, is run in PR 2 against that version; the page copy and
+  the "already linked to another account" state follow the result. The token never reaches the
+  browser either way (Q11).
 - **Disconnect (3.5)** means unlinking the identity (API side). The dialog says what happens to the
   Auth0 login: it stays, and signing in with GitHub still works, if that is the API's behaviour.
 
