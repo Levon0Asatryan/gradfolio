@@ -5,9 +5,15 @@ const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
   disconnect: vi.fn(),
   set: vi.fn(),
+  requestHeaders: {} as Record<string, string>,
 }));
 vi.mock("server-only", () => ({}));
-vi.mock("next/headers", () => ({ cookies: async () => ({ set: mocks.set }) }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ set: mocks.set }),
+  headers: async () => ({
+    get: (name: string) => mocks.requestHeaders[name.toLowerCase()] ?? null,
+  }),
+}));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
     constructor(
@@ -32,6 +38,7 @@ beforeEach(() => {
   vi.stubEnv("AUTH0_CLIENT_ID", "cid");
   vi.stubEnv("APP_BASE_URL", "https://app.example");
   vi.stubEnv("VERCEL_ENV", "");
+  mocks.requestHeaders = {};
 });
 
 describe("startGithubConnectAction", () => {
@@ -78,13 +85,81 @@ describe("startGithubConnectAction", () => {
     expect(mocks.set).not.toHaveBeenCalled();
   });
 
-  it("without Auth0 configuration it fails before asking the API for a nonce", async () => {
-    vi.stubEnv("AUTH0_DOMAIN", "https://tenant.us.auth0.com");
+  it.each([
+    ["a bare host", "tenant.us.auth0.com"],
+    ["a host with https://", "https://tenant.us.auth0.com"],
+    ["a host with https:// and a slash", "https://tenant.us.auth0.com/"],
+    ["a host with surrounding space", " tenant.us.auth0.com "],
+    ["a host in capitals", "TENANT.us.auth0.com"],
+  ])("accepts AUTH0_DOMAIN as %s, as a production deployment would have it", async (_n, value) => {
+    vi.stubEnv("AUTH0_DOMAIN", value);
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const result = await startGithubConnectAction();
+    if (!result.ok || result.state !== "redirect")
+      throw new Error(`refused: ${JSON.stringify(result)}`);
+    expect(new URL(result.url).origin).toBe("https://tenant.us.auth0.com");
+  });
+
+  it("accepts the exact AUTH0_DOMAIN production holds (scheme included), regression for the Connect that said 'not available'", async () => {
+    vi.stubEnv("AUTH0_DOMAIN", "https://dev-wkthnyn8b8mjn5ae.us.auth0.com");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("APP_BASE_URL", "https://gradfolio-navy.vercel.app");
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const result = await startGithubConnectAction();
+    if (!result.ok || result.state !== "redirect") throw new Error("refused");
+    expect(mocks.connect).toHaveBeenCalledTimes(1);
+    expect(new URL(result.url).origin).toBe("https://dev-wkthnyn8b8mjn5ae.us.auth0.com");
+  });
+
+  it.each([
+    ["https://gradfolio-navy.vercel.app"],
+    ["https://gradfolio-navy.vercel.app/"],
+    ["gradfolio-navy.vercel.app"],
+    [" https://gradfolio-navy.vercel.app/ "],
+    ["https://gradfolio-navy.vercel.app,http://localhost:3000"],
+  ])("builds the callback URL from APP_BASE_URL %j", async (value) => {
+    vi.stubEnv("APP_BASE_URL", value);
+    vi.stubEnv("VERCEL_ENV", "production");
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const result = await startGithubConnectAction();
+    if (!result.ok || result.state !== "redirect") throw new Error("refused");
+    expect(new URL(result.url).searchParams.get("redirect_uri")).toBe(
+      "https://gradfolio-navy.vercel.app/integrations/github/callback",
+    );
+  });
+
+  it("without APP_BASE_URL it uses the host the request arrived on, as the SDK does", async () => {
+    vi.stubEnv("APP_BASE_URL", "");
+    mocks.requestHeaders = {
+      "x-forwarded-host": "gradfolio-navy.vercel.app",
+      "x-forwarded-proto": "https",
+    };
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const result = await startGithubConnectAction();
+    if (!result.ok || result.state !== "redirect") throw new Error("refused");
+    expect(new URL(result.url).searchParams.get("redirect_uri")).toBe(
+      "https://gradfolio-navy.vercel.app/integrations/github/callback",
+    );
+  });
+
+  it("its own misconfiguration is its own code, logged by name and never by value, with no API call", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubEnv("AUTH0_DOMAIN", "evil.example/path");
+    vi.stubEnv("AUTH0_CLIENT_ID", "");
+    vi.stubEnv("APP_BASE_URL", "");
     expect(await startGithubConnectAction()).toEqual({
       ok: false,
-      code: "INTEGRATION_UNAVAILABLE",
+      code: "INTEGRATION_NOT_CONFIGURED_FE",
     });
     expect(mocks.connect).not.toHaveBeenCalled();
+    const line = String(log.mock.calls[0]?.[0]);
+    expect(JSON.parse(line)).toEqual({
+      event: "github_connect_not_configured",
+      unusable: ["AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "APP_BASE_URL"],
+    });
+    expect(line).not.toMatch(/evil/);
+    log.mockRestore();
   });
 
   it("passes the API's code and Retry-After through", async () => {

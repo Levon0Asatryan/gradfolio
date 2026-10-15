@@ -203,6 +203,8 @@ export const en: Dictionary = {
       AUTH_UNAVAILABLE: "The sign-in service is not responding. Try again in a moment.",
       UNAUTHENTICATED: "Your session has expired. Please sign in again.",
       UNKNOWN: "Something went wrong. Try again.",
+      INTEGRATION_NOT_CONFIGURED_FE:
+        "GitHub connect is not configured on this site yet. Nothing was sent to GitHub or the API.",
       GITHUB_REVOKE_FAILED:
         "GitHub did not confirm that access was removed. It may or may not have been removed already: this card shows the current state. Try again in a minute; until it settles, a retry can answer that a change is still finishing.",
       API_UNREACHABLE: "The Gradfolio API is not responding. Please try again in a moment.",

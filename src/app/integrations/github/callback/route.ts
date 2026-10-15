@@ -10,6 +10,7 @@ import {
   returnTarget,
   appOrigin,
   isDomain,
+  normalizeDomain,
   sameState,
   toReturnReason,
   type ReturnReason,
@@ -37,8 +38,13 @@ export const dynamic = "force-dynamic";
 
 const EXCHANGE_TIMEOUT_MS = 10_000;
 
+/** The OAuth error fields only, as text, cut short: never a code, a token or a secret. */
+const oauthFields = (value: unknown): string =>
+  typeof value === "string" ? value.slice(0, 200) : "";
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = appOrigin(process.env, previewAppBaseUrl()) ?? request.nextUrl.origin;
+  const origin =
+    appOrigin(process.env, previewAppBaseUrl(), request.nextUrl.origin) ?? request.nextUrl.origin;
 
   const back = RETURN_TARGETS[returnTarget(request.cookies.get(RETURN_COOKIE)?.value)];
 
@@ -56,23 +62,43 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return response;
   };
 
+  /**
+   * The user sees one message (`EXCHANGE_FAILED`); the log says which branch it was, so a
+   * configuration problem (a connection not enabled for the app, a wrong client
+   * authentication method, a redirect_uri that differs) is found from the log line.
+   */
+  const failed = (branch: string, details: Record<string, unknown>): NextResponse => {
+    console.error(JSON.stringify({ event: "github_link_exchange_failed", branch, ...details }));
+    return finish({ reason: "EXCHANGE_FAILED" });
+  };
+
   const params = request.nextUrl.searchParams;
   const expected = request.cookies.get(LINK_STATE_COOKIE)?.value;
   if (!sameState(expected, params.get("state"))) return finish({ reason: "STATE_MISMATCH" });
 
   // The student cancelled at GitHub, or Auth0 refused.
-  if (params.get("error")) {
-    return finish({
-      reason: params.get("error") === "access_denied" ? "ACCESS_DENIED" : "EXCHANGE_FAILED",
+  const oauthError = params.get("error");
+  if (oauthError) {
+    if (oauthError === "access_denied") return finish({ reason: "ACCESS_DENIED" });
+    return failed("auth0_error", {
+      error: oauthFields(oauthError),
+      error_description: oauthFields(params.get("error_description")),
     });
   }
 
   const code = params.get("code");
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = normalizeDomain(process.env.AUTH0_DOMAIN);
   const clientId = process.env.AUTH0_CLIENT_ID;
   const clientSecret = process.env.AUTH0_CLIENT_SECRET;
-  if (!code || code.length > 2048 || !isDomain(domain) || !clientId || !clientSecret) {
-    return finish({ reason: "EXCHANGE_FAILED" });
+  if (!code || code.length > 2048) return failed("no_code", {});
+  if (!isDomain(domain) || !clientId || !clientSecret) {
+    return failed("not_configured", {
+      unusable: [
+        !isDomain(domain) && "AUTH0_DOMAIN",
+        !clientId && "AUTH0_CLIENT_ID",
+        !clientSecret && "AUTH0_CLIENT_SECRET",
+      ].filter(Boolean),
+    });
   }
 
   let idToken: string | undefined;
@@ -90,14 +116,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       cache: "no-store",
       signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MS),
     });
-    if (!response.ok) return finish({ reason: "EXCHANGE_FAILED" });
-    const body: unknown = await response.json();
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      const fields = (body ?? {}) as { error?: unknown; error_description?: unknown };
+      return failed("exchange_rejected", {
+        status: response.status,
+        error: oauthFields(fields.error),
+        error_description: oauthFields(fields.error_description),
+      });
+    }
     const candidate = (body as { id_token?: unknown } | null)?.id_token;
     if (typeof candidate === "string" && candidate.length > 0) idToken = candidate;
-  } catch {
-    return finish({ reason: "EXCHANGE_FAILED" });
+    else return failed("no_id_token", { status: response.status });
+  } catch (error) {
+    // Only the kind of failure (TimeoutError, TypeError for a network error): never a message
+    // that might carry a URL.
+    return failed("exchange_threw", { name: error instanceof Error ? error.name : "unknown" });
   }
-  if (!idToken) return finish({ reason: "EXCHANGE_FAILED" });
 
   try {
     await linkGithub(idToken);
