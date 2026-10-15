@@ -1,5 +1,6 @@
 "use client";
 
+import TruncatedText from "@/components/shared/TruncatedText";
 import { FC } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -141,9 +142,14 @@ export const SuggestionList: FC<{
                   </Typography>
                 </Box>
                 {option.secondary && (
-                  <Typography variant="caption" color="text.secondary" noWrap>
+                  <TruncatedText
+                    text={option.secondary}
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block" }}
+                  >
                     {option.secondary}
-                  </Typography>
+                  </TruncatedText>
                 )}
               </Box>
             ))}

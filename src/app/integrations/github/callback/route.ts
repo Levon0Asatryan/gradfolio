@@ -5,7 +5,9 @@ import {
   CALLBACK_PATH,
   LINK_COOKIE_PATH,
   LINK_STATE_COOKIE,
-  RETURN_PATH,
+  RETURN_COOKIE,
+  RETURN_TARGETS,
+  returnTarget,
   appOrigin,
   isDomain,
   sameState,
@@ -23,10 +25,12 @@ import {
  *    leaves the server);
  * 3. hands the `id_token` to the API once, which verifies it (signature, audience, nonce,
  *    freshness) and links GitHub;
- * 4. redirects to `/integrations` with a result word from a closed list.
+ * 4. redirects to the page that started the flow (a closed list) with a result word from a
+ *    closed list.
  *
  * The `id_token` and the exchange's access token are never stored, logged, rendered or put
- * in a URL. The redirect target is fixed: nothing in the request chooses it (no open redirect).
+ * in a URL. The redirect target is one of our own paths from a closed list, named by an HttpOnly cookie:
+ * nothing in the query string chooses it (no open redirect).
  * The route is under `/integrations`, so the proxy requires a session before it runs.
  */
 export const dynamic = "force-dynamic";
@@ -36,8 +40,10 @@ const EXCHANGE_TIMEOUT_MS = 10_000;
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const origin = appOrigin(process.env, previewAppBaseUrl()) ?? request.nextUrl.origin;
 
+  const back = RETURN_TARGETS[returnTarget(request.cookies.get(RETURN_COOKIE)?.value)];
+
   const finish = (result: "connected" | { reason: ReturnReason }): NextResponse => {
-    const url = new URL(RETURN_PATH, origin);
+    const url = new URL(back, origin);
     if (result === "connected") url.searchParams.set("github", "connected");
     else {
       url.searchParams.set("github", "error");
@@ -45,6 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     const response = NextResponse.redirect(url);
     response.cookies.set(LINK_STATE_COOKIE, "", { path: LINK_COOKIE_PATH, maxAge: 0 });
+    response.cookies.set(RETURN_COOKIE, "", { path: LINK_COOKIE_PATH, maxAge: 0 });
     response.headers.set("cache-control", "no-store");
     return response;
   };

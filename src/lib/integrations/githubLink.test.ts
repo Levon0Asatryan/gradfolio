@@ -6,6 +6,8 @@ import {
   authorizeUrl,
   isDomain,
   newState,
+  RETURN_TARGETS,
+  returnTarget,
   sameState,
   toReturnReason,
 } from "./githubLink";
@@ -91,5 +93,16 @@ describe("config", () => {
     );
     expect(appOrigin({}, undefined)).toBeNull();
     expect(appOrigin({ APP_BASE_URL: "not a url" }, undefined)).toBeNull();
+  });
+});
+
+describe("return target", () => {
+  it("is one of our own paths, whatever it is given", () => {
+    expect(returnTarget("connections")).toBe("connections");
+    expect(returnTarget("integrations")).toBe("integrations");
+    for (const bad of ["https://evil.example", "/admin", "toString", "__proto__", undefined, 7]) {
+      expect(returnTarget(bad)).toBe("integrations");
+    }
+    expect(RETURN_TARGETS.connections).toBe("/integrations/connections");
   });
 });

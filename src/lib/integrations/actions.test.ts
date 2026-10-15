@@ -59,6 +59,15 @@ describe("startGithubConnectAction", () => {
     });
   });
 
+  it("remembers which page started the flow, from a closed list", async () => {
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    await startGithubConnectAction("connections");
+    expect(mocks.set).toHaveBeenCalledWith("gh_link_return", "connections", expect.any(Object));
+    mocks.set.mockClear();
+    await startGithubConnectAction("https://evil.example");
+    expect(mocks.set).toHaveBeenCalledWith("gh_link_return", "integrations", expect.any(Object));
+  });
+
   it("does not leave the page when GitHub is already connected", async () => {
     mocks.connect.mockResolvedValue({ state: "connected", login: "ani-p" });
     expect(await startGithubConnectAction()).toEqual({

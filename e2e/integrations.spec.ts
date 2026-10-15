@@ -215,6 +215,45 @@ test.describe("behaviour", () => {
     ).toBeVisible();
   });
 
+  test("onboarding: a failed connect is shown inside the step, not clipped", async ({ page }) => {
+    await signIn(page, "e2e-inuse");
+    await page.goto("/integrations/connections");
+    await page.getByRole("button", { name: "Connect" }).click();
+    const alert = page
+      .getByRole("alert")
+      .filter({ hasText: "already belongs to another Gradfolio account" });
+    await expect(alert).toBeVisible();
+    // The stepper clips its content (overflow hidden); the alert must end inside that box.
+    await expect
+      .poll(() =>
+        alert.evaluate((el) => {
+          let parent = el.parentElement;
+          while (parent && getComputedStyle(parent).overflow !== "hidden") {
+            parent = parent.parentElement;
+          }
+          return parent
+            ? parent.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom
+            : 0;
+        }),
+      )
+      .toBeGreaterThanOrEqual(-1);
+  });
+
+  test("onboarding: the callback returns to the stepper that started the flow", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-off");
+    await page.context().addCookies([
+      { name: "gh_link_state", value: "S", url: `${BASE}/integrations/github` },
+      { name: "gh_link_return", value: "connections", url: `${BASE}/integrations/github` },
+    ]);
+    await page.goto("/integrations/github/callback?code=abc&state=forged");
+    await expect(page).toHaveURL(`${BASE}/integrations/connections`);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "did not start from this browser" }),
+    ).toBeVisible();
+  });
+
   test("the callback needs a session", async ({ request }) => {
     const response = await request.get("/integrations/github/callback?code=a&state=b", {
       maxRedirects: 0,

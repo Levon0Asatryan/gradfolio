@@ -6,6 +6,8 @@ import { previewAppBaseUrl } from "@/lib/auth/appBaseUrl";
 import {
   CALLBACK_PATH,
   LINK_STATE_COOKIE,
+  RETURN_COOKIE,
+  returnTarget,
   appOrigin,
   authorizeUrl,
   isDomain,
@@ -38,9 +40,10 @@ const failed = (error: unknown): { ok: false; code: string; retryAfter?: number 
  * in with GitHub), or the API hands out a nonce and this action returns the Auth0 authorize URL
  * of the secondary sign-in, after putting the one-time `state` in an HttpOnly cookie. The
  * browser then navigates there; the nonce is in the URL because Auth0 needs it there, and is
- * useless without the matching id token and this user's session.
+ * useless without the matching id token and this user's session. `from` names the page to
+ * return to (`integrations` or `connections`); anything else is `integrations`.
  */
-export async function startGithubConnectAction(): Promise<ConnectResult> {
+export async function startGithubConnectAction(from?: unknown): Promise<ConnectResult> {
   const domain = process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_CLIENT_ID;
   const origin = appOrigin(process.env, previewAppBaseUrl());
@@ -57,11 +60,11 @@ export async function startGithubConnectAction(): Promise<ConnectResult> {
   if (result.state === "connected") return { ok: true, state: "connected", login: result.login };
 
   const state = newState();
-  (await cookies()).set(
-    LINK_STATE_COOKIE,
-    state,
-    stateCookieOptions(process.env.NODE_ENV === "production"),
-  );
+  const jar = await cookies();
+  const options = stateCookieOptions(process.env.NODE_ENV === "production");
+  jar.set(LINK_STATE_COOKIE, state, options);
+  // Where to come back to: a word from a closed list, validated here and again by the callback.
+  jar.set(RETURN_COOKIE, returnTarget(from), options);
   const url = authorizeUrl({
     domain,
     clientId,
