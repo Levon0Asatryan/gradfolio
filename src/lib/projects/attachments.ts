@@ -51,7 +51,7 @@ export function parseAttachment(input: unknown): AttachmentResult {
   if (url === "") errors.url = "required";
   else if (!fits(url, URL_LIMIT)) errors.url = "too_long";
   else {
-    let parsed: URL | null = null;
+    let parsed: URL | null;
     try {
       parsed = new URL(url);
     } catch {
