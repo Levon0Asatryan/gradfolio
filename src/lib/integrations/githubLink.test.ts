@@ -153,8 +153,13 @@ describe("connection name", () => {
       "GitHub",
     );
   });
-  it("refuses a value outside [A-Za-z0-9_-]{1,64} and says so", () => {
-    for (const bad of ["git hub", "github&prompt=none", "a/b", "x".repeat(65), "gïthub"]) {
+  it("accepts up to Auth0's 128 characters", () => {
+    for (const n of [1, 64, 65, 127, 128]) {
+      expect(githubConnectionName("x".repeat(n))).toEqual({ name: "x".repeat(n), invalid: false });
+    }
+  });
+  it("refuses a value outside [A-Za-z0-9_-]{1,128} and says so", () => {
+    for (const bad of ["git hub", "github&prompt=none", "a/b", "x".repeat(129), "gïthub"]) {
       expect(githubConnectionName(bad)).toEqual({ name: "github", invalid: true });
     }
   });

@@ -98,7 +98,7 @@ export function githubConnectionName(raw: string | undefined): {
 } {
   const value = raw?.trim();
   if (!value) return { name: DEFAULT_GITHUB_CONNECTION, invalid: false };
-  return /^[A-Za-z0-9_-]{1,64}$/.test(value)
+  return /^[A-Za-z0-9_-]{1,128}$/.test(value)
     ? { name: value, invalid: false }
     : { name: DEFAULT_GITHUB_CONNECTION, invalid: true };
 }
