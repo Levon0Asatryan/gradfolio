@@ -123,7 +123,7 @@ export async function forwardedClientHeaders(
 ): Promise<Record<string, string>> {
   const secret = env.API_PROXY_SECRET;
   if (!secret) return {};
-  let forwarded: string | null = null;
+  let forwarded: string | null;
   try {
     forwarded = (await requestHeaders()).get("x-forwarded-for");
   } catch {

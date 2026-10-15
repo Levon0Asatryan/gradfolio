@@ -25,6 +25,16 @@ updates:
       # while the call crashes at runtime. It moves with the other three.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # MUI 9 is two majors up and needs a migration (tracker follow-up). Material and
+      # icons must move in one PR; one at a time fails on their peer ranges (#95, #97).
+      - dependency-name: "@mui/*"
+        update-types: ["version-update:semver-major"]
+      # ESLint 10: eslint-plugin-react 7.37.5 (latest) still peers eslint <=9, so the
+      # pair cannot install (#96). Lift this when it supports 10.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: deps
       prefix-development: deps-dev
