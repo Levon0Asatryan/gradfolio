@@ -32,7 +32,11 @@ type Problem = { code: string; retryAfter?: number };
  * - `GITHUB_LINK_IN_PROGRESS` means a change is still finishing: the card shows the state so
  *   far, and the notice says to try again shortly.
  */
-export const GithubCard: FC<{ github: Integrations["github"] }> = ({ github }) => {
+export const GithubCard: FC<{
+  github: Integrations["github"];
+  /** The page this card is on, so GitHub sends the user back to it. */
+  returnTo?: "integrations" | "connections";
+}> = ({ github, returnTo = "integrations" }) => {
   const { t } = useLanguage();
   const router = useRouter();
   const text = t.integrations;
@@ -57,7 +61,7 @@ export const GithubCard: FC<{ github: Integrations["github"] }> = ({ github }) =
     setBusy("connect");
     setProblem(null);
     try {
-      const result = await startGithubConnectAction();
+      const result = await startGithubConnectAction(returnTo);
       if (!result.ok) {
         setProblem({ code: result.code, retryAfter: result.retryAfter });
         release();

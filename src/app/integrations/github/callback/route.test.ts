@@ -20,10 +20,14 @@ vi.mock("@/lib/api/client", () => {
 const { GET } = await import("./route");
 const { ApiError } = await import("@/lib/api/client");
 
-const call = (query: string, cookie: string | null = "S1") =>
+const call = (query: string, cookie: string | null = "S1", from?: string) =>
   GET(
     new NextRequest(`https://app.example/integrations/github/callback?${query}`, {
-      headers: cookie ? { cookie: `gh_link_state=${cookie}` } : {},
+      headers: {
+        cookie: [cookie ? `gh_link_state=${cookie}` : "", from ? `gh_link_return=${from}` : ""]
+          .filter(Boolean)
+          .join("; "),
+      },
     }),
   );
 
@@ -109,6 +113,23 @@ describe("GitHub link callback", () => {
     );
     mocks.link.mockRejectedValue(new ApiError(500, "SOMETHING_NEW", "x"));
     expect(location(await call("code=C1&state=S1")).searchParams.get("reason")).toBe("UNKNOWN");
+  });
+
+  it("returns to the onboarding page that started the flow", async () => {
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ id_token: "T" })));
+    mocks.link.mockResolvedValue({ state: "connected", login: "a" });
+    const ok = await call("code=C1&state=S1", "S1", "connections");
+    expect(location(ok).pathname).toBe("/integrations/connections");
+    // A failure goes back there too, so the stepper shows it.
+    const bad = await call("code=C1&state=WRONG", "S1", "connections");
+    expect(location(bad).pathname).toBe("/integrations/connections");
+    expect(bad.headers.get("set-cookie")).toMatch(/gh_link_return=;/);
+  });
+
+  it("a return cookie that is not on the closed list is the integrations page", async () => {
+    const response = await call("code=C1&state=WRONG", "S1", "https%3A%2F%2Fevil.example");
+    expect(location(response).origin).toBe("https://app.example");
+    expect(location(response).pathname).toBe("/integrations");
   });
 
   it("redirects only to /integrations on this deployment, whatever the request says", async () => {

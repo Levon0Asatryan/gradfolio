@@ -48,7 +48,7 @@ export const ConnectionsContent: FC<{ integrations: Integrations }> = ({ integra
         sx={{ width: "100%" }}
       >
         <Step>
-          <GithubCard github={integrations.github} />
+          <GithubCard github={integrations.github} returnTo="connections" />
         </Step>
         <Step>
           <LinkedinCard linkedin={integrations.linkedin} />

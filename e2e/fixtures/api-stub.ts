@@ -84,7 +84,8 @@ const TAGS: Record<string, TagSummary> = {
  * logged-in specs mint a session whose access token names the scenario, e2e/integrations.spec.ts):
  * `e2e-off-*` GitHub not connected; `e2e-on-*` connected; `e2e-on502-*` connected, and
  * disconnecting answers 502 after the grant is gone (the ambiguous case); `e2e-unavailable-*`
- * the server has no GitHub config; `e2e-down-*` the load fails.
+ * the server has no GitHub config; `e2e-down-*` the load fails; `e2e-inuse-*` connect answers 409
+ * GITHUB_ACCOUNT_IN_USE.
  */
 const github = new Map<string, Integrations["github"]>();
 const githubFor = (token: string): Integrations["github"] => {
@@ -283,6 +284,8 @@ function integrations(req: IncomingMessage, res: ServerResponse, path: string) {
   if (path === "/v1/me/integrations/github/connect" && req.method === "POST") {
     if (!state.available)
       return send(res, 503, { code: "INTEGRATION_UNAVAILABLE", message: "not configured" });
+    if (token.startsWith("e2e-inuse-"))
+      return send(res, 409, { code: "GITHUB_ACCOUNT_IN_USE", message: "taken" });
     if (state.status === "connected")
       return send(res, 200, { state: "connected", login: state.login ?? "ani-p" });
     return send(res, 200, {

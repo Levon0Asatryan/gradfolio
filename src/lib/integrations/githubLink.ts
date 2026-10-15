@@ -14,8 +14,23 @@ export const LINK_COOKIE_PATH = "/integrations/github";
 export const CALLBACK_PATH = "/integrations/github/callback";
 const STATE_MAX_AGE_S = 10 * 60;
 
-/** Where the callback sends the browser: always `/integrations`, with a fixed vocabulary. */
-export const RETURN_PATH = "/integrations";
+/**
+ * Where the callback may send the browser: a closed list of our own paths, chosen by the
+ * page that started the flow and carried in an HttpOnly cookie, never by the request's query.
+ */
+export const RETURN_TARGETS = {
+  integrations: "/integrations",
+  connections: "/integrations/connections",
+} as const;
+export type ReturnTarget = keyof typeof RETURN_TARGETS;
+export const RETURN_COOKIE = "gh_link_return";
+
+/** Anything but a known target is the integrations page. */
+export function returnTarget(value: unknown): ReturnTarget {
+  return typeof value === "string" && Object.hasOwn(RETURN_TARGETS, value)
+    ? (value as ReturnTarget)
+    : "integrations";
+}
 
 export function stateCookieOptions(secure: boolean) {
   return {
