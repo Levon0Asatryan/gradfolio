@@ -89,3 +89,8 @@ export type DashboardProject = components["schemas"]["DashboardProject"];
 export type DashboardStats = components["schemas"]["DashboardStats"];
 export type Activity = components["schemas"]["Activity"];
 export type ActivityPage = components["schemas"]["ActivityPage"];
+
+// Integrations (M7 7.11): `GET /v1/me/integrations` and the GitHub connect flow.
+export type Integrations = components["schemas"]["Integrations"];
+export type GithubConnectResult = components["schemas"]["GithubConnectResult"];
+export type GithubConnected = components["schemas"]["GithubConnected"];

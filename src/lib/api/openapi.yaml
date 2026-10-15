@@ -20,6 +20,8 @@ tags:
     description: The caller’s own notifications
   - name: activities
     description: The caller’s own activity feed
+  - name: integrations
+    description: The caller’s GitHub and LinkedIn connections and imports
   - name: discovery
     description: "Public search and tag pages: published work of public profiles only"
 paths:
@@ -84,7 +86,7 @@ paths:
       tags:
         - me
       summary: The caller’s own account
-      description: The first call after a login creates the account from the access token’s profile claims (name, email, picture); later calls return the same id. `verified` follows the token’s `email_verified`.
+      description: The first call after a login creates the account from the access token’s profile claims (name, email, picture); later calls return the same id. `verified` is the token’s `email_verified`, or a connected GitHub account.
       security:
         - bearerAuth: []
       responses:
@@ -111,7 +113,7 @@ paths:
                     type: string
                   verified:
                     type: boolean
-                    description: Email verified with Auth0 (GitHub from M7).
+                    description: Email verified with Auth0, or a connected GitHub account.
                   isPublic:
                     type: boolean
                   onboarded:
@@ -156,7 +158,7 @@ paths:
       tags:
         - me
       summary: Delete the caller’s account and all its data
-      description: "Removes the profile, every section, skills, projects (with attachments, tags and team rows), integrations and notifications. The caller’s name stays on other people’s projects as a plain team-member name, without a photo or a link to an account. Irreversible. The Auth0 login is not deleted: sign the user out afterwards, because a token that is still valid creates a new, empty account on its next request."
+      description: "Removes the profile, every section, skills, projects (with attachments, tags and team rows), integrations and notifications. The caller’s name stays on other people’s projects as a plain team-member name, without a photo or a link to an account. Irreversible. A connected GitHub account is revoked at GitHub first; if GitHub does not confirm, nothing is deleted (502, retry). The Auth0 login is not deleted: sign the user out afterwards, because a token that is still valid creates a new, empty account on its next request."
       security:
         - bearerAuth: []
       responses:
@@ -174,14 +176,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_STATE_CHANGED: GitHub was connected at the same moment; nothing deleted, retry"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "429":
           description: "RATE_LIMITED: over budget; see the Retry-After header"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_REVOKE_FAILED: GitHub did not confirm the revocation; nothing deleted"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "503":
-          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          description: "INTEGRATION_UNAVAILABLE: a connected GitHub cannot be revoked now (Auth0 unreachable, or GitHub connect not configured); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE"
           content:
             application/json:
               schema:
@@ -2984,6 +2998,774 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/integrations:
+    get:
+      operationId: getMyIntegrations
+      tags:
+        - integrations
+      summary: The caller’s GitHub and LinkedIn status
+      description: "Only the caller’s own state; never a token, a nonce or the GitHub numeric id. GitHub is `connected` only once confirmed: a link still in progress reads `not_connected`. A link left half-done (the server stopped between Auth0 and our database) is settled here from Auth0’s record. LinkedIn is `connected` when the caller signs in with LinkedIn."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The integrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integrations"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_LINKED: settling a half-done link found the GitHub token refused"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED (over budget) or GITHUB_RATE_LIMITED; see the Retry-After header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed while a half-done link was settled"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/integrations/github/connect:
+    post:
+      operationId: connectGithub
+      tags:
+        - integrations
+      summary: Connect GitHub, or get a nonce to link it
+      description: "When Auth0 already holds a GitHub identity for the caller (they sign in with GitHub, or linked it), GitHub confirms its token and the account is connected: `state: connected`. Otherwise `state: link_required` with a single-use nonce for a secondary GitHub sign-in (see `link`). Public repositories only (D6). A connected GitHub counts toward `verified`."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Connected, or a link is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubConnectResult"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_LINKED: GitHub refused the token Auth0 holds (sign in with GitHub again); GITHUB_ACCOUNT_IN_USE: another Gradfolio account has this GitHub account; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/integrations/github/link:
+    post:
+      operationId: linkGithub
+      tags:
+        - integrations
+      summary: Link a GitHub sign-in to the caller’s account
+      description: Send the `id_token` of the secondary GitHub sign-in started with the nonce from `connect`. It must be fresh (issued within 5 minutes), for this application, and carry that nonce, which works once. The GitHub account is reserved first, so no other account can take it, then Auth0 links it. When Auth0’s answer is lost, the reservation is settled later from Auth0’s record (`GET /v1/me/integrations`).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idToken:
+                  type: string
+                  minLength: 1
+                  maxLength: 16384
+                  description: The id token of the secondary GitHub sign-in started with the nonce from `connect`. Verified (RS256, issuer, audience, expiry, issued within 5 minutes, a GitHub `sub`, the nonce), used once, never stored or logged.
+              required:
+                - idToken
+              additionalProperties: false
+      responses:
+        "200":
+          description: Connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubConnected"
+        "400":
+          description: "INVALID_ID_TOKEN: the id token is not a valid, fresh GitHub sign-in for this application; INVALID_NONCE: the nonce is unknown, expired, used, or another user’s; VALIDATION_FAILED: the body"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_ACCOUNT_IN_USE: that GitHub account is a Gradfolio account of its own, or another account holds it; GITHUB_ALREADY_CONNECTED; GITHUB_LINK_REFUSED: Auth0 refused the link; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry); GITHUB_NOT_LINKED"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed while confirming the new link"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "INTEGRATION_UNAVAILABLE: not configured, or Auth0 failed (when its answer was lost the link is settled later); AUTH_UNAVAILABLE: the signing keys could not be fetched"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/integrations/github:
+    delete:
+      operationId: disconnectGithub
+      tags:
+        - integrations
+      summary: Disconnect GitHub, revoking access at GitHub first
+      description: "Revokes the GitHub app grant first (every token of it, including the one Auth0 holds); only once GitHub confirms, or there is nothing left to revoke, is GitHub disconnected. A revocation GitHub refuses changes nothing (502): retry. One whose outcome is unknown (timeout, dropped connection, 5xx) also answers 502, but the grant may still be deleted: the card then shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until it settles, after a short delay. Idempotent. Imported projects stay. The GitHub identity stays linked at Auth0 (a GitHub sign-in keeps working); reconnecting needs one fresh GitHub sign-in. `verified` falls back to the email."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - not_connected
+                required:
+                  - status
+                additionalProperties: false
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_REVOKE_FAILED: GitHub did not confirm the revocation. When GitHub refused, nothing changed. When it timed out, dropped the connection or answered 5xx, the grant may still be deleted: the card shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until the outcome settles, after a short delay; retry shortly, and the next request then shows the true state"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/github/repos:
+    get:
+      operationId: listGithubRepos
+      tags:
+        - integrations
+      summary: The caller’s public GitHub repositories, paged
+      description: "**Not served yet: arrives with M7 PR (b).** Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`."
+      x-gradfolio-planned: M7 PR (b)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            description: "Opaque: `nextCursor` of the previous page. Omit for the first."
+            type: string
+            maxLength: 20
+        - name: limit
+          in: query
+          required: false
+          schema:
+            description: Repositories per page, at most GITHUB_PAGE_MAX (30).
+            type: integer
+            minimum: 1
+            maximum: 30
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GithubRepo"
+                  nextCursor:
+                    nullable: true
+                    type: string
+                  rateLimit:
+                    $ref: "#/components/schemas/GithubRateLimit"
+                required:
+                  - items
+                  - nextCursor
+                  - rateLimit
+                additionalProperties: false
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/github/import:
+    post:
+      operationId: importGithubRepos
+      tags:
+        - integrations
+      summary: Import repositories as draft projects
+      description: "**Not served yet: arrives with M7 PR (b).** Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3)."
+      x-gradfolio-planned: M7 PR (b)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoIds:
+                  minItems: 1
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+                    exclusiveMinimum: true
+                    maximum: 9007199254740991
+                  description: 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once.
+              required:
+                - repoIds
+              additionalProperties: false
+      responses:
+        "200":
+          description: One result per repository
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GithubImportResult"
+                  rateLimit:
+                    $ref: "#/components/schemas/GithubRateLimit"
+                required:
+                  - results
+                  - rateLimit
+                additionalProperties: false
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/projects/{id}/github/sync:
+    post:
+      operationId: syncGithubProject
+      tags:
+        - integrations
+      summary: Re-sync an imported project from GitHub, never overwriting an edit
+      description: "**Not served yet: arrives with M7 PR (b).** Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing."
+      x-gradfolio-planned: M7 PR (b)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The project id (UUID)
+            example: 0b6f2c1e-…
+        - name: dryRun
+          in: query
+          required: false
+          schema:
+            description: "`true`: compute and report, change nothing."
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        "200":
+          description: What changed, field by field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubSyncResult"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "NOT_GITHUB_PROJECT: the project was not imported; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/imports/linkedin/uploads:
+    post:
+      operationId: createLinkedinUpload
+      tags:
+        - integrations
+      summary: Get a signed URL to upload a LinkedIn data export ZIP
+      description: "**Not served yet: arrives with M7 PR (c).** The browser PUTs the ZIP straight to the returned URL (never through the frontend’s server: its body limit is 4.5 MB). At most IMPORT_MAX_PENDING uploads wait at once."
+      x-gradfolio-planned: M7 PR (c)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                size:
+                  type: integer
+                  minimum: 1
+                  maximum: 100000000
+                  description: Exact size of the ZIP in bytes, at most IMPORT_MAX_ZIP_BYTES; signed into the URL.
+              required:
+                - size
+              additionalProperties: false
+      responses:
+        "201":
+          description: The upload ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkedinUploadTicket"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "LIMIT_REACHED: too many uploads waiting for a preview"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: "IMPORT_TOO_LARGE: over IMPORT_MAX_ZIP_BYTES"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/imports/linkedin/preview:
+    post:
+      operationId: previewLinkedinImport
+      tags:
+        - integrations
+      summary: Read an uploaded export and propose entries; saves nothing
+      description: "**Not served yet: arrives with M7 PR (c).** Parses positions, education, skills and certifications; each item is `new`, `duplicate` (already on the profile) or `invalid` (with `problems`). The upload is deleted afterwards, whatever the outcome. Only the four datasets are ever opened."
+      x-gradfolio-planned: M7 PR (c)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uploadId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              required:
+                - uploadId
+              additionalProperties: false
+      responses:
+        "200":
+          description: The proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkedinPreview"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "IMPORT_UPLOAD_MISSING: no such upload of the caller’s"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: IMPORT_TOO_LARGE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: IMPORT_NOT_ZIP, IMPORT_TOO_MANY_ENTRIES, IMPORT_UNCOMPRESSED_TOO_LARGE, IMPORT_RATIO_EXCEEDED, IMPORT_UNSAFE_PATH, IMPORT_ENCRYPTED, IMPORT_ENTRY_NOT_CSV, IMPORT_EMPTY, IMPORT_COLUMNS_MISSING (see `details`), IMPORT_MALFORMED_CSV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED, or IMPORT_BUSY: too many previews running; see Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/imports/linkedin/confirm:
+    post:
+      operationId: confirmLinkedinImport
+      tags:
+        - integrations
+      summary: Save the selected entries, in one transaction
+      description: "**Not served yet: arrives with M7 PR (c).** The items are validated again like manual entries. Entries equal to an existing one are skipped; skills merge case-insensitively. Over a section cap nothing is saved. A second identical confirm adds nothing."
+      x-gradfolio-planned: M7 PR (c)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                experience:
+                  maxItems: 500
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      organization:
+                        type: string
+                      start:
+                        type: string
+                        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+                      end:
+                        default: null
+                        anyOf:
+                          - type: string
+                            nullable: true
+                            enum:
+                              - null
+                          - type: string
+                            pattern: ^\d{4}-(0[1-9]|1[0-2])$
+                      summary:
+                        type: string
+                      achievements:
+                        maxItems: 20
+                        type: array
+                        items:
+                          type: string
+                      skills:
+                        maxItems: 30
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - title
+                      - organization
+                      - start
+                      - summary
+                    additionalProperties: false
+                education:
+                  maxItems: 500
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      institution:
+                        type: string
+                      degree:
+                        type: string
+                      field:
+                        type: string
+                      startYear:
+                        type: integer
+                        minimum: 1900
+                        maximum: 2100
+                      endYear:
+                        default: null
+                        anyOf:
+                          - type: string
+                            nullable: true
+                            enum:
+                              - null
+                          - type: integer
+                            minimum: 1900
+                            maximum: 2100
+                      description:
+                        anyOf:
+                          - type: string
+                            nullable: true
+                            enum:
+                              - null
+                          - type: string
+                      highlights:
+                        maxItems: 20
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - institution
+                      - degree
+                      - field
+                      - startYear
+                    additionalProperties: false
+                certifications:
+                  maxItems: 500
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      issuer:
+                        type: string
+                      date:
+                        type: string
+                        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+                      credentialUrl:
+                        anyOf:
+                          - type: string
+                            nullable: true
+                            enum:
+                              - null
+                          - type: string
+                    required:
+                      - name
+                      - issuer
+                      - date
+                    additionalProperties: false
+                skills:
+                  maxItems: 1000
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+              required:
+                - experience
+                - education
+                - certifications
+                - skills
+              additionalProperties: false
+      responses:
+        "200":
+          description: Counts per section
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkedinImportResult"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "LIMIT_REACHED: a section would exceed its cap; nothing was saved"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/education:
     post:
       operationId: createEducation
@@ -4149,6 +4931,224 @@ components:
         - achievements
         - skills
       additionalProperties: false
+    GithubConnected:
+      type: object
+      properties:
+        state:
+          type: string
+          enum:
+            - connected
+        login:
+          type: string
+          description: The GitHub login now connected.
+      required:
+        - state
+        - login
+      additionalProperties: false
+    GithubConnectResult:
+      oneOf:
+        - type: object
+          properties:
+            state:
+              type: string
+              enum:
+                - connected
+            login:
+              type: string
+              description: The GitHub login now connected.
+          required:
+            - state
+            - login
+          additionalProperties: false
+        - type: object
+          properties:
+            state:
+              type: string
+              enum:
+                - link_required
+            nonce:
+              type: string
+              description: Single use, bound to the caller. Pass it as `nonce` to Auth0’s `/authorize` (`connection=github`, in a transaction separate from the session), then send the callback’s `id_token` to `POST /v1/me/integrations/github/link`. Never store it.
+            expiresAt:
+              type: string
+              description: ISO 8601, UTC; the nonce is refused after it.
+          required:
+            - state
+            - nonce
+            - expiresAt
+          additionalProperties: false
+    GithubImportResult:
+      type: object
+      properties:
+        repoId:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        outcome:
+          type: string
+          enum:
+            - created
+            - exists
+            - skipped
+        reason:
+          nullable: true
+          description: "Why it was skipped: `not_owner` when the caller neither owns it nor may push to it."
+          type: string
+          enum:
+            - not_found
+            - not_owner
+            - LIMIT_REACHED
+        projectId:
+          nullable: true
+          description: The draft created, or the existing one.
+          type: string
+        notes:
+          type: array
+          items:
+            type: string
+            enum:
+              - README_TOO_LARGE
+          description: "`README_TOO_LARGE`: created without a description."
+      required:
+        - repoId
+        - outcome
+        - reason
+        - projectId
+        - notes
+      additionalProperties: false
+    GithubRateLimit:
+      type: object
+      properties:
+        remaining:
+          nullable: true
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        resetsAt:
+          nullable: true
+          description: ISO 8601, UTC.
+          type: string
+      required:
+        - remaining
+        - resetsAt
+      additionalProperties: false
+    GithubRepo:
+      type: object
+      properties:
+        repoId:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: "GitHub’s repository id: what import takes."
+        fullName:
+          type: string
+          example: ani-p/thesis-tracker
+        description:
+          nullable: true
+          type: string
+        language:
+          nullable: true
+          type: string
+        stars:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        forks:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        fork:
+          type: boolean
+        archived:
+          type: boolean
+        pushedAt:
+          nullable: true
+          description: ISO 8601, UTC.
+          type: string
+        imported:
+          type: boolean
+        projectId:
+          nullable: true
+          description: The caller’s project, when imported.
+          type: string
+      required:
+        - repoId
+        - fullName
+        - description
+        - language
+        - stars
+        - forks
+        - fork
+        - archived
+        - pushedAt
+        - imported
+        - projectId
+      additionalProperties: false
+    GithubSyncResult:
+      type: object
+      properties:
+        dryRun:
+          type: boolean
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                enum:
+                  - title
+                  - summary
+                  - descriptionHtml
+                  - repoUrl
+                  - technologies
+              outcome:
+                type: string
+                enum:
+                  - unchanged
+                  - updated
+                  - kept
+                  - conflict
+                description: "`kept`: the caller edited it and GitHub did not change; `conflict`: both changed, the caller’s value is kept and GitHub’s is in `githubValue`."
+              githubValue:
+                description: Only on `conflict`.
+                nullable: true
+                anyOf:
+                  - type: string
+                  - type: array
+                    items:
+                      type: string
+            required:
+              - field
+              - outcome
+            additionalProperties: false
+        systemUpdated:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                enum:
+                  - stars
+                  - forks
+                  - language
+                  - readmeUrl
+              value:
+                nullable: true
+                anyOf:
+                  - type: number
+                  - type: string
+            required:
+              - field
+              - value
+            additionalProperties: false
+          description: Repository facts refreshed silently (D8), only those that changed.
+      required:
+        - dryRun
+        - fields
+        - systemUpdated
+      additionalProperties: false
     IncomingInvite:
       type: object
       properties:
@@ -4193,6 +5193,56 @@ components:
         - invitedAt
         - invitedBy
       additionalProperties: false
+    Integrations:
+      type: object
+      properties:
+        github:
+          type: object
+          properties:
+            available:
+              type: boolean
+              description: "false when the server is not configured for GitHub: every GitHub route then answers 503 INTEGRATION_UNAVAILABLE."
+            status:
+              type: string
+              enum:
+                - connected
+                - not_connected
+              description: "`connected` only once GitHub (or Auth0, for LinkedIn) confirmed it; a link still in progress reads `not_connected`."
+            login:
+              nullable: true
+              description: The connected GitHub login; null when not connected.
+              type: string
+            lastSyncedAt:
+              nullable: true
+              description: ISO 8601, UTC.
+              type: string
+          required:
+            - available
+            - status
+            - login
+            - lastSyncedAt
+          additionalProperties: false
+        linkedin:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - connected
+                - not_connected
+              description: "`connected` when the caller signs in with LinkedIn (derived from the access token, not stored)."
+            lastSyncedAt:
+              nullable: true
+              description: The last confirmed export import; ISO 8601.
+              type: string
+          required:
+            - status
+            - lastSyncedAt
+          additionalProperties: false
+      required:
+        - github
+        - linkedin
+      additionalProperties: false
     InviteMemberRequest:
       type: object
       properties:
@@ -4211,6 +5261,251 @@ components:
             - type: string
       required:
         - userId
+      additionalProperties: false
+    LinkedinImportResult:
+      type: object
+      properties:
+        added:
+          type: object
+          properties:
+            experience:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            education:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            certifications:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            skills:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+          required:
+            - experience
+            - education
+            - certifications
+            - skills
+          additionalProperties: false
+        skipped:
+          type: object
+          properties:
+            experience:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            education:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            certifications:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+            skills:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+          required:
+            - experience
+            - education
+            - certifications
+            - skills
+          additionalProperties: false
+      required:
+        - added
+        - skipped
+      additionalProperties: false
+    LinkedinPreview:
+      type: object
+      properties:
+        experience:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - new
+                  - duplicate
+                  - invalid
+              fields:
+                type: object
+                additionalProperties: {}
+                description: The proposed entry, in the shape of the manual-entry body for its section.
+              problems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    code:
+                      type: string
+                      example: DATE_NEEDS_MONTH
+                  required:
+                    - field
+                    - code
+                  additionalProperties: false
+            required:
+              - status
+              - fields
+              - problems
+            additionalProperties: false
+        education:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - new
+                  - duplicate
+                  - invalid
+              fields:
+                type: object
+                additionalProperties: {}
+                description: The proposed entry, in the shape of the manual-entry body for its section.
+              problems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    code:
+                      type: string
+                      example: DATE_NEEDS_MONTH
+                  required:
+                    - field
+                    - code
+                  additionalProperties: false
+            required:
+              - status
+              - fields
+              - problems
+            additionalProperties: false
+        certifications:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                enum:
+                  - new
+                  - duplicate
+                  - invalid
+              fields:
+                type: object
+                additionalProperties: {}
+                description: The proposed entry, in the shape of the manual-entry body for its section.
+              problems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    code:
+                      type: string
+                      example: DATE_NEEDS_MONTH
+                  required:
+                    - field
+                    - code
+                  additionalProperties: false
+            required:
+              - status
+              - fields
+              - problems
+            additionalProperties: false
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum:
+                  - new
+                  - duplicate
+                  - invalid
+            required:
+              - name
+              - status
+            additionalProperties: false
+        skippedColumns:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+              column:
+                type: string
+            required:
+              - file
+              - column
+            additionalProperties: false
+        missingFiles:
+          type: array
+          items:
+            type: string
+        skippedFileCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        extensions:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: -9007199254740991
+            maximum: 9007199254740991
+          description: How many other entries the archive held, by extension. Never their names.
+      required:
+        - experience
+        - education
+        - certifications
+        - skills
+        - skippedColumns
+        - missingFiles
+        - skippedFileCount
+        - extensions
+      additionalProperties: false
+    LinkedinUploadTicket:
+      type: object
+      properties:
+        uploadId:
+          type: string
+          description: Send this to `preview` after the upload.
+        uploadUrl:
+          type: string
+          description: PUT the ZIP here, from the browser.
+        method:
+          type: string
+          enum:
+            - PUT
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Send these headers exactly: they are part of the signature."
+        expiresAt:
+          type: string
+          description: ISO 8601, UTC.
+      required:
+        - uploadId
+        - uploadUrl
+        - method
+        - headers
+        - expiresAt
       additionalProperties: false
     MajorFacet:
       type: object

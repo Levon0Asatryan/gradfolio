@@ -40,6 +40,10 @@ const {
   removeTeamMember,
   leaveProjectTeam,
   lookupUsers,
+  getIntegrations,
+  connectGithub,
+  linkGithub,
+  disconnectGithub,
 } = await import("./client");
 
 const ME = {
@@ -552,5 +556,76 @@ describe("team", () => {
     await expect(removeTeamMember(PID, "../x")).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(leaveProjectTeam("x")).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(guard).not.toHaveBeenCalled();
+  });
+});
+
+describe("integrations", () => {
+  it("uses the paths and bodies of the contract, with the caller's token", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => json(200, {}));
+    vi.stubGlobal("fetch", fetchMock);
+    await getIntegrations();
+    await connectGithub();
+    await linkGithub("ID.TOKEN");
+    await disconnectGithub();
+    const calls = fetchMock.mock.calls.map(
+      (c) => `${(c[1] as RequestInit).method} ${(c[0] as URL).pathname}`,
+    );
+    expect(calls).toEqual([
+      "GET /v1/me/integrations",
+      "POST /v1/me/integrations/github/connect",
+      "POST /v1/me/integrations/github/link",
+      "DELETE /v1/me/integrations/github",
+    ]);
+    expect(JSON.parse((fetchMock.mock.calls[2]?.[1] as RequestInit).body as string)).toEqual({
+      idToken: "ID.TOKEN",
+    });
+    for (const call of fetchMock.mock.calls) {
+      expect(((call[1] as RequestInit).headers as Record<string, string>).Authorization).toBe(
+        "Bearer tok-123",
+      );
+      expect((call[1] as RequestInit).cache).toBe("no-store");
+    }
+  });
+
+  it("keeps Retry-After on a 429, as seconds", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: "GITHUB_RATE_LIMITED", message: "wait" }), {
+          status: 429,
+          headers: { "content-type": "application/json", "retry-after": "42" },
+        }),
+      ),
+    );
+    await expect(connectGithub()).rejects.toMatchObject({
+      status: 429,
+      code: "GITHUB_RATE_LIMITED",
+      retryAfter: 42,
+    });
+  });
+
+  it("ignores a Retry-After that is not a positive number", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: "RATE_LIMITED", message: "x" }), {
+          status: 429,
+          headers: { "content-type": "application/json", "retry-after": "Wed, 21 Oct 2026" },
+        }),
+      ),
+    );
+    const err: unknown = await connectGithub().catch((e: unknown) => e);
+    expect((err as InstanceType<typeof ApiError>).retryAfter).toBeUndefined();
+  });
+
+  it("an ambiguous revocation arrives as its own code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(json(502, { code: "GITHUB_REVOKE_FAILED", message: "unknown" })),
+    );
+    await expect(disconnectGithub()).rejects.toMatchObject({
+      status: 502,
+      code: "GITHUB_REVOKE_FAILED",
+    });
   });
 });

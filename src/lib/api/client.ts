@@ -32,6 +32,9 @@ import type {
   UserFacets,
   Dashboard,
   ActivityPage,
+  Integrations,
+  GithubConnectResult,
+  GithubConnected,
 } from "./types";
 
 /**
@@ -56,6 +59,8 @@ export class ApiError extends Error {
     message: string,
     /** `VALIDATION_FAILED` only: which fields the API refused, `{ path, message }[]`. */
     readonly details?: unknown,
+    /** Seconds from the `Retry-After` header of a 429 or 503, when the API sent one. */
+    readonly retryAfter?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -164,8 +169,10 @@ async function request<T>({ method, path, body, auth = "required", revalidate }:
 
   const parsed: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
+    const waited = Number(response.headers.get("retry-after"));
+    const retryAfter = Number.isFinite(waited) && waited > 0 ? Math.ceil(waited) : undefined;
     if (isEnvelope(parsed))
-      throw new ApiError(response.status, parsed.code, parsed.message, parsed.details);
+      throw new ApiError(response.status, parsed.code, parsed.message, parsed.details, retryAfter);
     throw new ApiError(response.status, LOCAL_CODES.unknown, `HTTP ${response.status}`);
   }
   return parsed as T;
@@ -196,6 +203,36 @@ export function updateMyProfile(patch: ProfileHeaderPatch): Promise<ProfileHeade
 
 export function completeOnboarding(): Promise<{ onboarded: true }> {
   return request<{ onboarded: true }>({ method: "POST", path: "/v1/me/onboarding/complete" });
+}
+
+/** GitHub and LinkedIn status (`GET /v1/me/integrations`): never a token or a numeric id. */
+export function getIntegrations(): Promise<Integrations> {
+  return request<Integrations>({ method: "GET", path: "/v1/me/integrations" });
+}
+
+/** Connect GitHub, or get the single-use nonce for the secondary GitHub sign-in. */
+export function connectGithub(): Promise<GithubConnectResult> {
+  return request<GithubConnectResult>({
+    method: "POST",
+    path: "/v1/me/integrations/github/connect",
+  });
+}
+
+/** Link the secondary GitHub sign-in's id token. It is used once and never stored here. */
+export function linkGithub(idToken: string): Promise<GithubConnected> {
+  return request<GithubConnected>({
+    method: "POST",
+    path: "/v1/me/integrations/github/link",
+    body: { idToken },
+  });
+}
+
+/** Disconnect GitHub; the API revokes the grant at GitHub first. */
+export function disconnectGithub(): Promise<{ status: "not_connected" }> {
+  return request<{ status: "not_connected" }>({
+    method: "DELETE",
+    path: "/v1/me/integrations/github",
+  });
 }
 
 /**
