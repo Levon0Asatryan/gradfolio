@@ -70,6 +70,14 @@ describe("GitHub link callback", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("exchanges against the tenant whatever form AUTH0_DOMAIN has", async () => {
+    vi.stubEnv("AUTH0_DOMAIN", "https://Tenant.us.auth0.com/");
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ id_token: "T" })));
+    mocks.link.mockResolvedValue({ state: "connected", login: "a" });
+    await call("code=C1&state=S1");
+    expect(fetchMock.mock.calls[0]![0]).toBe("https://tenant.us.auth0.com/oauth/token");
+  });
+
   it("clears the state cookie on every outcome", async () => {
     const response = await call("code=C1&state=WRONG");
     expect(response.headers.get("set-cookie")).toMatch(/gh_link_state=;/);

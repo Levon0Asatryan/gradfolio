@@ -42,18 +42,44 @@ export function stateCookieOptions(secure: boolean) {
   };
 }
 
-/** This deployment's own base URL: the preview's branch host, else `APP_BASE_URL`. */
+/**
+ * This deployment's own origin, from the same variable the Auth0 SDK reads, and as tolerant as
+ * deployments tend to be: the preview's branch host wins; `APP_BASE_URL` may carry a trailing
+ * slash or path, no scheme, surrounding space, or (as the SDK allows) a comma-separated list,
+ * of which the first entry is used. With none usable, `requestOrigin` (the host the request
+ * arrived on) stands in, as it does for the SDK. `null` only when nothing is usable.
+ */
 export function appOrigin(
   env: Record<string, string | undefined>,
   previewBase: string | undefined,
+  requestOrigin?: string | null,
 ): string | null {
-  const raw = previewBase ?? env.APP_BASE_URL;
-  if (!raw) return null;
-  try {
-    return new URL(raw).origin;
-  } catch {
-    return null;
+  const first = (env.APP_BASE_URL ?? "").split(",")[0]?.trim() ?? "";
+  for (const raw of [previewBase, first, requestOrigin ?? undefined]) {
+    const value = raw?.trim();
+    if (!value) continue;
+    try {
+      const url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`);
+      if (url.protocol === "https:" || url.protocol === "http:") return url.origin;
+    } catch {
+      // try the next candidate
+    }
   }
+  return null;
+}
+
+/**
+ * An Auth0 domain as the SDK takes it: a bare host. A scheme, trailing slashes, surrounding
+ * space and capitals (all easy to paste into a dashboard) are removed; a path or port is not
+ * a domain and is left for `isDomain` to refuse.
+ */
+export function normalizeDomain(raw: string | undefined): string | undefined {
+  if (raw === undefined) return undefined;
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
 }
 
 export interface AuthorizeInput {

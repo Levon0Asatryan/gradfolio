@@ -5,6 +5,7 @@ import {
   appOrigin,
   authorizeUrl,
   isDomain,
+  normalizeDomain,
   newState,
   RETURN_TARGETS,
   returnTarget,
@@ -104,5 +105,32 @@ describe("return target", () => {
       expect(returnTarget(bad)).toBe("integrations");
     }
     expect(RETURN_TARGETS.connections).toBe("/integrations/connections");
+  });
+});
+
+describe("tolerant configuration", () => {
+  it("normalizeDomain strips scheme, slashes, space and case, and nothing else", () => {
+    expect(normalizeDomain(" HTTPS://Tenant.auth0.com// ")).toBe("tenant.auth0.com");
+    expect(normalizeDomain("tenant.auth0.com")).toBe("tenant.auth0.com");
+    expect(normalizeDomain(undefined)).toBeUndefined();
+    // A path survives, so isDomain still refuses it.
+    expect(isDomain(normalizeDomain("https://t.auth0.com/x"))).toBe(false);
+  });
+  it("appOrigin accepts the forms a dashboard holds", () => {
+    for (const value of [
+      "https://gradfolio-navy.vercel.app",
+      "https://gradfolio-navy.vercel.app/",
+      "gradfolio-navy.vercel.app/",
+      "  https://gradfolio-navy.vercel.app/path  ",
+      "https://gradfolio-navy.vercel.app,https://other.example",
+    ]) {
+      expect(appOrigin({ APP_BASE_URL: value }, undefined)).toBe(
+        "https://gradfolio-navy.vercel.app",
+      );
+    }
+  });
+  it("falls back to the request's origin, and refuses a non-http scheme", () => {
+    expect(appOrigin({}, undefined, "https://req.example")).toBe("https://req.example");
+    expect(appOrigin({ APP_BASE_URL: "javascript://x" }, undefined, null)).toBeNull();
   });
 });

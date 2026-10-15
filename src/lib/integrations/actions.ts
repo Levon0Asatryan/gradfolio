@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { ApiError, connectGithub, disconnectGithub } from "@/lib/api/client";
 import { previewAppBaseUrl } from "@/lib/auth/appBaseUrl";
 import {
@@ -11,6 +11,7 @@ import {
   appOrigin,
   authorizeUrl,
   isDomain,
+  normalizeDomain,
   newState,
   stateCookieOptions,
 } from "./githubLink";
@@ -23,6 +24,19 @@ export type ConnectResult =
   | { ok: true; state: "connected"; login: string }
   | { ok: true; state: "redirect"; url: string }
   | { ok: false; code: string; retryAfter?: number };
+
+/** The origin the request arrived on (Vercel sets the forwarded headers), or null. */
+async function requestOrigin(): Promise<string | null> {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    if (!host || !/^[a-z0-9.-]+(:\d{1,5})?$/i.test(host)) return null;
+    const proto = h.get("x-forwarded-proto") === "http" ? "http" : "https";
+    return `${proto}://${host}`;
+  } catch {
+    return null;
+  }
+}
 
 const failed = (error: unknown): { ok: false; code: string; retryAfter?: number } => {
   if (error instanceof ApiError) {
@@ -44,11 +58,18 @@ const failed = (error: unknown): { ok: false; code: string; retryAfter?: number 
  * return to (`integrations` or `connections`); anything else is `integrations`.
  */
 export async function startGithubConnectAction(from?: unknown): Promise<ConnectResult> {
-  const domain = process.env.AUTH0_DOMAIN;
-  const clientId = process.env.AUTH0_CLIENT_ID;
-  const origin = appOrigin(process.env, previewAppBaseUrl());
-  if (!isDomain(domain) || !clientId || !origin) {
-    return { ok: false, code: "INTEGRATION_UNAVAILABLE" };
+  const domain = normalizeDomain(process.env.AUTH0_DOMAIN);
+  const clientId = process.env.AUTH0_CLIENT_ID?.trim();
+  const origin = appOrigin(process.env, previewAppBaseUrl(), await requestOrigin());
+  // This is not the API's 503: nothing was sent. Say which setting, never its value.
+  const missing = [
+    !isDomain(domain) && "AUTH0_DOMAIN",
+    !clientId && "AUTH0_CLIENT_ID",
+    !origin && "APP_BASE_URL",
+  ].filter(Boolean);
+  if (missing.length > 0 || !isDomain(domain) || !clientId || !origin) {
+    console.error(JSON.stringify({ event: "github_connect_not_configured", unusable: missing }));
+    return { ok: false, code: "INTEGRATION_NOT_CONFIGURED_FE" };
   }
 
   let result;

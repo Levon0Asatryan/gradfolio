@@ -10,6 +10,7 @@ import {
   returnTarget,
   appOrigin,
   isDomain,
+  normalizeDomain,
   sameState,
   toReturnReason,
   type ReturnReason,
@@ -38,7 +39,8 @@ export const dynamic = "force-dynamic";
 const EXCHANGE_TIMEOUT_MS = 10_000;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const origin = appOrigin(process.env, previewAppBaseUrl()) ?? request.nextUrl.origin;
+  const origin =
+    appOrigin(process.env, previewAppBaseUrl(), request.nextUrl.origin) ?? request.nextUrl.origin;
 
   const back = RETURN_TARGETS[returnTarget(request.cookies.get(RETURN_COOKIE)?.value)];
 
@@ -68,7 +70,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const code = params.get("code");
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = normalizeDomain(process.env.AUTH0_DOMAIN);
   const clientId = process.env.AUTH0_CLIENT_ID;
   const clientSecret = process.env.AUTH0_CLIENT_SECRET;
   if (!code || code.length > 2048 || !isDomain(domain) || !clientId || !clientSecret) {

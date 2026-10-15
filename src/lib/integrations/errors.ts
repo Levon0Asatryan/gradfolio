@@ -8,6 +8,8 @@ import { RETURN_REASONS } from "./githubLink";
 export const INTEGRATION_ERROR_CODES = [
   ...RETURN_REASONS,
   "GITHUB_REVOKE_FAILED",
+  /** This site's own configuration is incomplete: never sent by the API. */
+  "INTEGRATION_NOT_CONFIGURED_FE",
   "API_UNREACHABLE",
   "API_NOT_CONFIGURED",
 ] as const;
