@@ -319,7 +319,7 @@ an empty profile; a private or unknown profile is a 404 (Q3).
 
 ### GitHub connect (M7)
 
-"Connect GitHub" is a **secondary** Auth0 sign-in beside the session, never the SDK's login (that would replace the session with a GitHub-only account). `startGithubConnectAction` asks the API (`POST /v1/me/integrations/github/connect`): either GitHub is connected at once, or it gets a single-use nonce, puts a one-time `state` in the HttpOnly cookie `gh_link_state` (path `/integrations/github`) and returns Auth0's `/authorize?connection=github&nonce=…`. `/integrations/github/callback` (a route handler, protected by the proxy) checks `state` against the cookie, exchanges `code` at Auth0 with the client secret, hands the `id_token` to `POST …/github/link` once and redirects to `/integrations?github=connected|error&reason=<code>`. The page treats those parameters as a hint only (a forged `?github=connected` claims nothing; `reason` goes through a closed list, never rendered raw). Neither token is stored, logged or put in a URL. **Auth0 needs `<origin>/integrations/github/callback` in Allowed Callback URLs** for each host that connects (production, `localhost:3000`, tested branch hosts). An unconfirmed revocation (`GITHUB_REVOKE_FAILED`) is shown as unsettled, never as "nothing changed": the card follows what the API says after a refresh.
+"Connect GitHub" is a **secondary** Auth0 sign-in beside the session, never the SDK's login (that would replace the session with a GitHub-only account). `startGithubConnectAction` asks the API (`POST /v1/me/integrations/github/connect`): either GitHub is connected at once, or it gets a single-use nonce, puts a one-time `state` in the HttpOnly cookie `gh_link_state` (path `/integrations/github`) and returns Auth0's `/authorize?connection=<AUTH0_GITHUB_CONNECTION, default github>&nonce=…` (Auth0 matches the connection **Name**, case-sensitively; the Tenant log says "the connection is not enabled" when it does not match). `/integrations/github/callback` (a route handler, protected by the proxy) checks `state` against the cookie, exchanges `code` at Auth0 with the client secret, hands the `id_token` to `POST …/github/link` once and redirects to `/integrations?github=connected|error&reason=<code>`. The page treats those parameters as a hint only (a forged `?github=connected` claims nothing; `reason` goes through a closed list, never rendered raw). Neither token is stored, logged or put in a URL. **Auth0 needs `<origin>/integrations/github/callback` in Allowed Callback URLs** for each host that connects (production, `localhost:3000`, tested branch hosts). An unconfirmed revocation (`GITHUB_REVOKE_FAILED`) is shown as unsettled, never as "nothing changed": the card follows what the API says after a refresh.
 
 ### Data
 
@@ -339,15 +339,16 @@ Project writes go through server actions (`src/lib/projects/actions.ts`, checked
 
 `.env.example` lists them. Auth0 v4 names:
 
-| Variable                                 | Purpose                                                                                                                                           |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH0_DOMAIN`                           | Tenant domain, e.g. `dev-….us.auth0.com`                                                                                                          |
-| `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` | The application's credentials                                                                                                                     |
-| `AUTH0_SECRET`                           | Session cookie encryption (`openssl rand -hex 32`)                                                                                                |
-| `APP_BASE_URL`                           | This app's URL (`http://localhost:3000` locally)                                                                                                  |
-| `AUTH0_SCOPE`, `AUTH0_AUDIENCE`          | Passed explicitly in `src/lib/auth0.ts`; the audience is the API                                                                                  |
-| `API_BASE_URL`                           | gradfolio-api's base URL, server only (`src/lib/api/client.ts`)                                                                                   |
-| `API_PROXY_SECRET`                       | Server only, optional: with it public calls forward the visitor's address (`X-Client-IP`) so the API rate-limits per visitor; unset sends nothing |
+| Variable                                 | Purpose                                                                                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH0_DOMAIN`                           | Tenant domain, e.g. `dev-….us.auth0.com`                                                                                                                      |
+| `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET` | The application's credentials                                                                                                                                 |
+| `AUTH0_SECRET`                           | Session cookie encryption (`openssl rand -hex 32`)                                                                                                            |
+| `APP_BASE_URL`                           | This app's URL (`http://localhost:3000` locally)                                                                                                              |
+| `AUTH0_SCOPE`, `AUTH0_AUDIENCE`          | Passed explicitly in `src/lib/auth0.ts`; the audience is the API                                                                                              |
+| `API_BASE_URL`                           | gradfolio-api's base URL, server only (`src/lib/api/client.ts`)                                                                                               |
+| `AUTH0_GITHUB_CONNECTION`                | Optional, server only: the Name of the GitHub connection in Auth0 (case-sensitive, immutable), asked for as `connection=` by GitHub connect. Default `github` |
+| `API_PROXY_SECRET`                       | Server only, optional: with it public calls forward the visitor's address (`X-Client-IP`) so the API rate-limits per visitor; unset sends nothing             |
 
 There is no `vercel.json`; Vercel builds with its Next.js preset.
 

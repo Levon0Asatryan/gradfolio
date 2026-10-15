@@ -10,6 +10,7 @@ import {
   returnTarget,
   appOrigin,
   authorizeUrl,
+  githubConnectionName,
   isDomain,
   normalizeDomain,
   newState,
@@ -86,8 +87,20 @@ export async function startGithubConnectAction(from?: unknown): Promise<ConnectR
   jar.set(LINK_STATE_COOKIE, state, options);
   // Where to come back to: a word from a closed list, validated here and again by the callback.
   jar.set(RETURN_COOKIE, returnTarget(from), options);
+  const connection = githubConnectionName(process.env.AUTH0_GITHUB_CONNECTION);
+  if (connection.invalid) {
+    // The value is not logged (it is configuration, not a secret, but never echo env).
+    console.error(
+      JSON.stringify({
+        event: "github_connect_config_warning",
+        setting: "AUTH0_GITHUB_CONNECTION",
+        problem: "invalid; using the default",
+      }),
+    );
+  }
   const url = authorizeUrl({
     domain,
+    connection: connection.name,
     clientId,
     redirectUri: new URL(CALLBACK_PATH, origin).toString(),
     state,
