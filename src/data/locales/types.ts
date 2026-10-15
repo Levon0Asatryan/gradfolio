@@ -2,6 +2,8 @@
 // Defines supported languages and the shape of the translation dictionary
 // Used to enforce type-safe access to localized strings across the app
 
+import type { IntegrationErrorCode } from "@/lib/integrations/errors";
+
 export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
@@ -146,72 +148,49 @@ export interface Dictionary {
     disconnect: string;
     connected: string;
     notConnected: string;
-    synced: string;
-    infoText: string;
-    emptyState: string;
     lastSynced: string;
-    descriptions: {
-      linkedin: string;
-      github: string;
+    neverSynced: string;
+    loadErrorTitle: string;
+    retry: string;
+    signIn: string;
+    /** `{seconds}` */
+    retryIn: string;
+    dismiss: string;
+    checkStatus: string;
+    github: {
+      description: string;
+      /** `{login}` */
+      connectedAs: string;
+      unavailable: string;
+      opening: string;
+      disconnecting: string;
+      connectedToast: string;
+      disconnectedToast: string;
     };
-    buttons: {
-      learnMore: string;
-    };
-    steps: {
-      welcome: string;
-      welcomeSubtitle: string;
-      importGithub: string;
-      importLinkedin: string;
-      importingGithub: string;
-      importingLinkedin: string;
-      importedGithub: string;
-      importedLinkedin: string;
-      basic: {
-        title: string;
-        fullName: string;
-        fullNameRequired: string;
-        email: string;
-        emailInvalid: string;
-        birthday: string;
-        github: string;
-        linkedin: string;
-        phone: string;
-        website: string;
-      };
-      experience: {
-        title: string;
-        label: string;
-        placeholder: string;
-        educationLabel: string;
-        educationPlaceholder: string;
-      };
-      repos: {
-        title: string;
-        label: string;
-        placeholder: string;
-        empty: string;
-        hint: string;
-      };
+    linkedin: {
+      description: string;
+      viaSignIn: string;
+      notViaSignIn: string;
+      lastImport: string;
     };
     dialog: {
-      connectTitle: string;
-      connectDesc: string;
-      cancel: string;
-      confirm: string;
+      /** `{name}` */
       disconnectTitle: string;
-      disconnectDesc: string;
-      connectBody: string;
       disconnectBody: string;
+      cancel: string;
     };
+    errors: Record<IntegrationErrorCode, string>;
     setup: {
       title: string;
       subtitle: string;
       back: string;
       next: string;
       complete: string;
+      githubStep: string;
       doneTitle: string;
       doneBody: string;
       toProfile: string;
+      /** `{step}` `{total}` */
       stepOf: string;
     };
   };

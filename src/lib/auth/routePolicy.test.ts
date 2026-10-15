@@ -15,6 +15,7 @@ describe("isProtectedPath", () => {
     "/teams/",
     "/integrations",
     "/integrations/connections",
+    "/integrations/github/callback",
     "/account",
   ])("requires a login for %s", (path) => {
     expect(isProtectedPath(path)).toBe(true);

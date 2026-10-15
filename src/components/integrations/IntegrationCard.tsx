@@ -1,175 +1,116 @@
 "use client";
 
-import { memo, type FC, useCallback, useMemo } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  Chip,
-  Stack,
-  Typography,
-  type SxProps,
-  type Theme,
-} from "@mui/material";
+import { memo, type FC, type ReactNode } from "react";
+import { Box, Card, CardActions, CardContent, Chip, Stack, Typography } from "@mui/material";
+import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import GitHub from "@mui/icons-material/GitHub";
 import LinkedIn from "@mui/icons-material/LinkedIn";
-import type { IntegrationId, IntegrationStatus } from "@/data/integrations.mock";
+import RemoveCircleOutline from "@mui/icons-material/RemoveCircleOutline";
 import { formatDay } from "@/utils/helpers/formatDay";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
 export interface IntegrationCardProps {
-  id: IntegrationId;
+  id: "github" | "linkedin";
   name: string;
   description: string;
-  status: IntegrationStatus;
-  lastSyncedAt?: string;
-  onConnect: (id: IntegrationId) => void;
-  onDisconnect: (id: IntegrationId) => void;
-  docUrl?: string;
+  connected: boolean;
+  /** The label before the date, and the text when there is none. Omit to show no sync line. */
+  syncLabel?: string;
+  /** ISO 8601; `null` shows `neverText`. Ignored without `syncLabel`. */
+  syncedAt?: string | null;
+  neverText?: string;
+  /** Extra facts under the description (the connected login, how LinkedIn is connected). */
+  detail?: ReactNode;
+  /** Buttons. */
+  children?: ReactNode;
+  /** An alert shown inside the card, under the actions. */
+  notice?: ReactNode;
 }
 
-const cardSx: SxProps<Theme> = (theme) => ({
-  bgcolor: theme.palette.background.paper,
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-});
-
-const contentSx: SxProps<Theme> = {
-  flexGrow: 1,
-  p: 3,
-  "&:last-child": { pb: 2 },
-};
-
-const headerRowSx: SxProps<Theme> = (theme) => ({
-  alignItems: "center",
-  justifyContent: "space-between",
-  mb: 1.5,
-  gap: theme.spacing(1),
-});
-
-const descriptionSx: SxProps<Theme> = (theme) => ({
-  color: theme.palette.text.secondary,
-});
-
-const actionsRowSx: SxProps<Theme> = (theme) => ({
-  px: 3,
-  pb: 3,
-  pt: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: theme.spacing(1),
-});
-
-const iconBoxSx: SxProps<Theme> = (theme) => ({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 40,
-  height: 40,
-  borderRadius: 3,
-  bgcolor: theme.palette.surface.soft,
-  color: theme.palette.text.primary,
-});
-
 /**
- * IntegrationCard
- * Renders a single integration entry with status and actions to connect/disconnect.
+ * One integration: what it is, whether it is connected (text and an icon, never colour
+ * alone), when it last synced, and its actions.
  */
 const IntegrationCard: FC<IntegrationCardProps> = ({
   id,
   name,
   description,
-  status,
-  lastSyncedAt,
-  onConnect,
-  onDisconnect,
-  docUrl,
+  connected,
+  syncLabel,
+  syncedAt,
+  neverText,
+  detail,
+  children,
+  notice,
 }) => {
   const { t, language } = useLanguage();
-  const isConnected = status === "connected";
-
-  const StatusChip = useMemo(() => {
-    const color = isConnected ? "success" : "default";
-    const label = isConnected ? t.integrations.connected : t.integrations.notConnected;
-    return <Chip size="small" color={color} label={label} />;
-  }, [isConnected, t]);
-
-  const handlePrimaryClick = useCallback(() => {
-    if (isConnected) {
-      onDisconnect(id);
-    } else {
-      onConnect(id);
-    }
-  }, [id, isConnected, onConnect, onDisconnect]);
-
-  const handleLearnMoreClick = useCallback(() => {
-    if (docUrl) {
-      window.open(docUrl, "_blank", "noopener,noreferrer");
-    }
-  }, [docUrl]);
-
-  const ProviderIcon = useMemo(() => {
-    if (id === "github") return <GitHub fontSize="small" />;
-    if (id === "linkedin") return <LinkedIn fontSize="small" />;
-    return null;
-  }, [id]);
-
-  const lastSyncText = useMemo(() => {
-    if (!lastSyncedAt) return null;
-    const d = new Date(lastSyncedAt);
-    const formatted = isNaN(d.getTime()) ? lastSyncedAt : formatDay(lastSyncedAt, language);
-    return (
-      <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
-        {t.integrations.lastSynced} {formatted}
-      </Typography>
-    );
-  }, [lastSyncedAt, t, language]);
+  const titleId = `integration-${id}`;
 
   return (
-    <Card component="section" sx={cardSx}>
-      <CardContent sx={contentSx}>
-        <Stack direction="row" sx={headerRowSx}>
+    <Card
+      component="section"
+      aria-labelledby={titleId}
+      sx={{
+        bgcolor: "background.paper",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <CardContent sx={{ flexGrow: 1, p: 3, "&:last-child": { pb: 2 } }}>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5, gap: 1 }}
+        >
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box sx={iconBoxSx}>{ProviderIcon}</Box>
-            <Typography component="h3" variant="h6">
+            <Box
+              aria-hidden
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 40,
+                height: 40,
+                borderRadius: 3,
+                bgcolor: "surface.soft",
+                color: "text.primary",
+              }}
+            >
+              {id === "github" ? <GitHub fontSize="small" /> : <LinkedIn fontSize="small" />}
+            </Box>
+            <Typography id={titleId} component="h2" variant="h6">
               {name}
             </Typography>
           </Stack>
-          {StatusChip}
+          <Chip
+            size="small"
+            color={connected ? "success" : "default"}
+            icon={connected ? <CheckCircleOutlined /> : <RemoveCircleOutline />}
+            label={connected ? t.integrations.connected : t.integrations.notConnected}
+          />
         </Stack>
 
-        <Typography variant="body2" sx={descriptionSx}>
+        <Typography variant="body2" color="text.secondary">
           {description}
         </Typography>
-
-        {lastSyncText && <Box mt={1}>{lastSyncText}</Box>}
+        {detail && <Box sx={{ mt: 1.5 }}>{detail}</Box>}
+        {syncLabel && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            suppressHydrationWarning
+            sx={{ display: "block", mt: 1.5 }}
+          >
+            {syncedAt ? `${syncLabel} ${formatDay(syncedAt, language)}` : neverText}
+          </Typography>
+        )}
       </CardContent>
 
-      <CardActions sx={actionsRowSx}>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant={isConnected ? "outlined" : "contained"}
-            color={isConnected ? "inherit" : "primary"}
-            onClick={handlePrimaryClick}
-          >
-            {isConnected ? t.integrations.disconnect : t.integrations.connect}
-          </Button>
-          <Button
-            variant="text"
-            color="primary"
-            size="small"
-            onClick={handleLearnMoreClick}
-            disabled={!docUrl}
-          >
-            {t.integrations.buttons.learnMore}
-          </Button>
-        </Stack>
-      </CardActions>
+      {children && (
+        <CardActions sx={{ px: 3, pb: 3, pt: 0, gap: 1, flexWrap: "wrap" }}>{children}</CardActions>
+      )}
+      {notice && <Box sx={{ px: 3, pb: 3 }}>{notice}</Box>}
     </Card>
   );
 };
