@@ -7,6 +7,7 @@ import {
   isDomain,
   normalizeDomain,
   newState,
+  githubConnectionName,
   RETURN_TARGETS,
   returnTarget,
   sameState,
@@ -132,5 +133,29 @@ describe("tolerant configuration", () => {
   it("falls back to the request's origin, and refuses a non-http scheme", () => {
     expect(appOrigin({}, undefined, "https://req.example")).toBe("https://req.example");
     expect(appOrigin({ APP_BASE_URL: "javascript://x" }, undefined, null)).toBeNull();
+  });
+});
+
+describe("connection name", () => {
+  it("defaults to github and carries an override into /authorize", () => {
+    expect(githubConnectionName(undefined)).toEqual({ name: "github", invalid: false });
+    expect(githubConnectionName("  ")).toEqual({ name: "github", invalid: false });
+    expect(githubConnectionName(" GitHub ")).toEqual({ name: "GitHub", invalid: false });
+    const base = {
+      domain: "t.auth0.com",
+      clientId: "c",
+      redirectUri: "https://a/b",
+      state: "s",
+      nonce: "n",
+    };
+    expect(authorizeUrl(base).searchParams.get("connection")).toBe("github");
+    expect(authorizeUrl({ ...base, connection: "GitHub" }).searchParams.get("connection")).toBe(
+      "GitHub",
+    );
+  });
+  it("refuses a value outside [A-Za-z0-9_-]{1,64} and says so", () => {
+    for (const bad of ["git hub", "github&prompt=none", "a/b", "x".repeat(65), "gïthub"]) {
+      expect(githubConnectionName(bad)).toEqual({ name: "github", invalid: true });
+    }
   });
 });

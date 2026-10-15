@@ -82,8 +82,31 @@ export function normalizeDomain(raw: string | undefined): string | undefined {
     .toLowerCase();
 }
 
+/** Auth0's default for the GitHub social connection; its Name (immutable) may differ. */
+const DEFAULT_GITHUB_CONNECTION = "github";
+
+/**
+ * The Auth0 connection **Name** the secondary sign-in asks for (`connection=` is matched
+ * against the name, case-sensitively). From `AUTH0_GITHUB_CONNECTION`; unset or invalid falls
+ * back to `github`, and an invalid value is reported so it is not silently ignored. The
+ * identity's `sub` prefix (`github|…`) comes from the connection's strategy, not its name, so
+ * this setting does not affect the API.
+ */
+export function githubConnectionName(raw: string | undefined): {
+  name: string;
+  invalid: boolean;
+} {
+  const value = raw?.trim();
+  if (!value) return { name: DEFAULT_GITHUB_CONNECTION, invalid: false };
+  return /^[A-Za-z0-9_-]{1,64}$/.test(value)
+    ? { name: value, invalid: false }
+    : { name: DEFAULT_GITHUB_CONNECTION, invalid: true };
+}
+
 export interface AuthorizeInput {
   domain: string;
+  /** The connection's Name in Auth0 (`githubConnectionName`). */
+  connection?: string;
   clientId: string;
   redirectUri: string;
   state: string;
@@ -94,14 +117,21 @@ export interface AuthorizeInput {
  * Auth0's `/authorize` for the GitHub connection. `prompt=login` forces GitHub's own sign-in,
  * so the linked account is the one the student just authenticated, not an ambient session.
  */
-export function authorizeUrl({ domain, clientId, redirectUri, state, nonce }: AuthorizeInput) {
+export function authorizeUrl({
+  domain,
+  connection = DEFAULT_GITHUB_CONNECTION,
+  clientId,
+  redirectUri,
+  state,
+  nonce,
+}: AuthorizeInput) {
   const url = new URL(`https://${domain}/authorize`);
   url.search = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: "openid",
-    connection: "github",
+    connection,
     prompt: "login",
     state,
     nonce,

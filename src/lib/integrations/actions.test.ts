@@ -66,6 +66,34 @@ describe("startGithubConnectAction", () => {
     });
   });
 
+  it("asks Auth0 for the connection Name from AUTH0_GITHUB_CONNECTION, default github", async () => {
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const ask = async () => {
+      const r = await startGithubConnectAction();
+      if (!r.ok || r.state !== "redirect") throw new Error("refused");
+      return new URL(r.url).searchParams.get("connection");
+    };
+    expect(await ask()).toBe("github");
+    vi.stubEnv("AUTH0_GITHUB_CONNECTION", "GitHub");
+    expect(await ask()).toBe("GitHub");
+  });
+
+  it("an invalid AUTH0_GITHUB_CONNECTION falls back to the default and is reported without its value", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubEnv("AUTH0_GITHUB_CONNECTION", "git hub&x=1");
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const r = await startGithubConnectAction();
+    if (!r.ok || r.state !== "redirect") throw new Error("refused");
+    expect(new URL(r.url).searchParams.get("connection")).toBe("github");
+    const line = String(log.mock.calls[0]?.[0]);
+    expect(JSON.parse(line)).toMatchObject({
+      event: "github_connect_config_warning",
+      setting: "AUTH0_GITHUB_CONNECTION",
+    });
+    expect(line).not.toMatch(/git hub/);
+    log.mockRestore();
+  });
+
   it("remembers which page started the flow, from a closed list", async () => {
     mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
     await startGithubConnectAction("connections");
