@@ -103,15 +103,86 @@ describe("GitHub link callback", () => {
     expect(mocks.link).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["a failed exchange", () => fetchMock.mockResolvedValue(new Response("{}", { status: 400 }))],
-    ["no id token", () => fetchMock.mockResolvedValue(new Response(JSON.stringify({})))],
-    ["a network error", () => fetchMock.mockRejectedValue(new Error("down"))],
-  ])("%s ends as EXCHANGE_FAILED without linking", async (_name, arrange) => {
-    arrange();
-    const response = await call("code=C1&state=S1");
-    expect(location(response).searchParams.get("reason")).toBe("EXCHANGE_FAILED");
-    expect(mocks.link).not.toHaveBeenCalled();
+  describe("EXCHANGE_FAILED branches: one user message, a log line that says which", () => {
+    const logged = (spy: ReturnType<typeof vi.spyOn>) =>
+      spy.mock.calls.map((c: unknown[]) => JSON.parse(String(c[0])));
+    let log: ReturnType<typeof vi.spyOn>;
+    beforeEach(() => {
+      log = vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+    afterEach(() => log.mockRestore());
+
+    it("Auth0 returned an error other than access_denied: its error and description are logged", async () => {
+      const response = await call(
+        "error=unauthorized_client&error_description=Connection%20github%20is%20not%20enabled&state=S1&code=SECRETCODE",
+      );
+      expect(location(response).searchParams.get("reason")).toBe("EXCHANGE_FAILED");
+      expect(logged(log)).toEqual([
+        {
+          event: "github_link_exchange_failed",
+          branch: "auth0_error",
+          error: "unauthorized_client",
+          error_description: "Connection github is not enabled",
+        },
+      ]);
+      expect(mocks.link).not.toHaveBeenCalled();
+    });
+
+    it("the token endpoint refused: status, error and description are logged, nothing secret", async () => {
+      fetchMock.mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: "invalid_grant", error_description: "x".repeat(500) }),
+          { status: 403 },
+        ),
+      );
+      const response = await call("code=SECRETCODE&state=S1");
+      expect(location(response).searchParams.get("reason")).toBe("EXCHANGE_FAILED");
+      const [line] = logged(log);
+      expect(line).toMatchObject({
+        branch: "exchange_rejected",
+        status: 403,
+        error: "invalid_grant",
+      });
+      expect(line.error_description).toHaveLength(200);
+      const text = JSON.stringify(line);
+      expect(text).not.toMatch(/SECRETCODE|csecret|client_secret/);
+    });
+
+    it("a refusal with a body that is not JSON still logs the status", async () => {
+      fetchMock.mockResolvedValue(new Response("<html>", { status: 502 }));
+      await call("code=C1&state=S1");
+      expect(logged(log)[0]).toMatchObject({ branch: "exchange_rejected", status: 502, error: "" });
+    });
+
+    it("the exchange threw (timeout or network): the error's kind is logged, not its message", async () => {
+      fetchMock.mockRejectedValue(
+        Object.assign(new Error("connect ECONNREFUSED https://tenant/secret?code=SECRETCODE"), {
+          name: "TypeError",
+        }),
+      );
+      await call("code=SECRETCODE&state=S1");
+      expect(logged(log)).toEqual([
+        { event: "github_link_exchange_failed", branch: "exchange_threw", name: "TypeError" },
+      ]);
+    });
+
+    it("the answer had no id token", async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ access_token: "AT" })));
+      await call("code=C1&state=S1");
+      expect(logged(log)[0]).toMatchObject({ branch: "no_id_token", status: 200 });
+      expect(JSON.stringify(logged(log))).not.toMatch(/AT/);
+    });
+
+    it("no code, and an unusable configuration, are named", async () => {
+      await call("state=S1");
+      expect(logged(log)[0]).toMatchObject({ branch: "no_code" });
+      vi.stubEnv("AUTH0_CLIENT_SECRET", "");
+      await call("code=C1&state=S1");
+      expect(logged(log)[1]).toMatchObject({
+        branch: "not_configured",
+        unusable: ["AUTH0_CLIENT_SECRET"],
+      });
+    });
   });
 
   it("returns the API's code from the closed list, and nothing else", async () => {
