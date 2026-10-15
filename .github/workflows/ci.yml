@@ -83,7 +83,7 @@ jobs:
       # The browser is downloaded, never committed; the cache key is the Playwright version.
       - id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: browsers
         with:
           path: ~/.cache/ms-playwright
