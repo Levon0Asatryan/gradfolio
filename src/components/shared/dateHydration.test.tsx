@@ -89,10 +89,9 @@ const cases: Array<[string, React.ReactElement]> = [
       id="github"
       name="GitHub"
       description="Repos"
-      status="connected"
-      lastSyncedAt="2026-10-09T12:00:00.000Z"
-      onConnect={() => {}}
-      onDisconnect={() => {}}
+      connected
+      syncLabel="Last synced:"
+      syncedAt="2026-10-09T12:00:00.000Z"
     />,
   ],
 ];

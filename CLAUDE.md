@@ -317,6 +317,10 @@ session and reads anonymously otherwise, and refuses any id that is not a UUID b
 calling (no `..` path tricks). A failed load is an error screen (`ProfileError`), never
 an empty profile; a private or unknown profile is a 404 (Q3).
 
+### GitHub connect (M7)
+
+"Connect GitHub" is a **secondary** Auth0 sign-in beside the session, never the SDK's login (that would replace the session with a GitHub-only account). `startGithubConnectAction` asks the API (`POST /v1/me/integrations/github/connect`): either GitHub is connected at once, or it gets a single-use nonce, puts a one-time `state` in the HttpOnly cookie `gh_link_state` (path `/integrations/github`) and returns Auth0's `/authorize?connection=github&nonce=…`. `/integrations/github/callback` (a route handler, protected by the proxy) checks `state` against the cookie, exchanges `code` at Auth0 with the client secret, hands the `id_token` to `POST …/github/link` once and redirects to `/integrations?github=connected|error&reason=<code>`. The page treats those parameters as a hint only (a forged `?github=connected` claims nothing; `reason` goes through a closed list, never rendered raw). Neither token is stored, logged or put in a URL. **Auth0 needs `<origin>/integrations/github/callback` in Allowed Callback URLs** for each host that connects (production, `localhost:3000`, tested branch hosts). An unconfirmed revocation (`GITHUB_REVOKE_FAILED`) is shown as unsettled, never as "nothing changed": the card follows what the API says after a refresh.
+
 ### Data
 
 All data is mock (`src/data/*.mock.ts`). Each feature moves to the API as its
@@ -329,7 +333,7 @@ it (never hand-edited; `schema.test.ts` fails on drift, in `verify` and CI).
 `sh scripts/sync-api-contract.sh <full sha of gradfolio-api>`.
 Projects (`getProject`, `listMyProjects`) are on the API; descriptions go through
 `src/lib/sanitize.ts` (isomorphic-dompurify, the API's allow-list) in a server component.
-Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; browse, facets and the tag cloud included). The dashboard is on the API too. Still mock until their milestones: integrations.
+Project writes go through server actions (`src/lib/projects/actions.ts`, checked by `src/lib/projects/form.ts`, limits in `limits.ts`); the description editor is Tiptap, loaded on the form routes only. Attachments and uploads: `AttachmentsEditor` (own requests per change on a saved project; a draft list on a new one, with uploads too: files are keyed by user, not project), `UploadControl` + `signUploadAction` (the browser PUTs to the signed URL, the token stays on the server; 503 `STORAGE_UNAVAILABLE` shows "uploads not available, paste a link"). Search and tags are on the API (public calls with `auth: "none"`: no token, so the answer cannot differ per user; browse, facets and the tag cloud included). The dashboard is on the API too. Integrations are on the API (M7): `src/lib/integrations/` (actions, `githubLink.ts`), `src/app/integrations/github/callback/route.ts`.
 
 ## Environment variables
 
@@ -368,8 +372,8 @@ mock hosts are gone (F5, tracker 4.9). Media URLs go through `safeHttpsUrl` firs
 | `/search`                            | Global search on the API (6.8): `q`/`type`/`cursor` in the URL; People and Projects groups; public, no token                               |
 | `/tags/[name]`                       | A tag's projects and people (`GET /v1/tags`); unknown tag is a 404; chips on project and profile link here                                 |
 | `/browse/projects`, `/browse/people` | Public gallery and directory (6.9): filters in the URL, "Next page" links (no infinite scroll); people filters from `GET /v1/users/facets` |
-| `/integrations`                      | GitHub and LinkedIn cards; connect/disconnect is local state                                                                               |
-| `/integrations/connections`          | Four-step onboarding stepper (to be redesigned with 2.14 in M3)                                                                            |
+| `/integrations`                      | GitHub and LinkedIn cards on `GET /v1/me/integrations`; GitHub connect (secondary Auth0 sign-in, below) and disconnect                     |
+| `/integrations/connections`          | Onboarding stepper: the GitHub and LinkedIn cards, one per step, skippable                                                                 |
 | `/settings`                          | Language and theme                                                                                                                         |
 | `/account`                           | `getMe` + `getMyProfile`: linked accounts, privacy switch, contact email, delete account; login required                                   |
 | 404                                  | Hides the sidebar, Noise effect                                                                                                            |

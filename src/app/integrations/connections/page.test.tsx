@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./ConnectionsContent", () => ({ ConnectionsContent: () => null }));
+vi.mock("@/lib/api/client", () => ({ ApiError: class extends Error {}, getIntegrations: vi.fn() }));
+vi.mock("@/components/integrations/IntegrationsError", () => ({ IntegrationsError: () => null }));
 const jar = vi.hoisted(() => ({ language: undefined as string | undefined }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -15,10 +17,10 @@ beforeEach(() => (jar.language = undefined));
 
 describe("/integrations/connections tab title", () => {
   it.each([
-    [undefined, "Integrations Setup"],
-    ["en", "Integrations Setup"],
-    ["ru", "Настройка интеграций"],
-    ["am", "Ինտեգրացիաների կարգավորում"],
+    [undefined, "Set up your accounts"],
+    ["en", "Set up your accounts"],
+    ["ru", "Настройка аккаунтов"],
+    ["am", "Հաշիվների կարգավորում"],
   ])("language cookie %s gives %s", async (language, title) => {
     jar.language = language;
     expect(await generateMetadata()).toEqual({ title });

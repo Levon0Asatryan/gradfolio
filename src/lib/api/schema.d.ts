@@ -53,14 +53,14 @@ export interface paths {
         };
         /**
          * The caller’s own account
-         * @description The first call after a login creates the account from the access token’s profile claims (name, email, picture); later calls return the same id. `verified` follows the token’s `email_verified`.
+         * @description The first call after a login creates the account from the access token’s profile claims (name, email, picture); later calls return the same id. `verified` is the token’s `email_verified`, or a connected GitHub account.
          */
         get: operations["getMe"];
         put?: never;
         post?: never;
         /**
          * Delete the caller’s account and all its data
-         * @description Removes the profile, every section, skills, projects (with attachments, tags and team rows), integrations and notifications. The caller’s name stays on other people’s projects as a plain team-member name, without a photo or a link to an account. Irreversible. The Auth0 login is not deleted: sign the user out afterwards, because a token that is still valid creates a new, empty account on its next request.
+         * @description Removes the profile, every section, skills, projects (with attachments, tags and team rows), integrations and notifications. The caller’s name stays on other people’s projects as a plain team-member name, without a photo or a link to an account. Irreversible. A connected GitHub account is revoked at GitHub first; if GitHub does not confirm, nothing is deleted (502, retry). The Auth0 login is not deleted: sign the user out afterwards, because a token that is still valid creates a new, empty account on its next request.
          */
         delete: operations["deleteMe"];
         options?: never;
@@ -806,6 +806,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s GitHub and LinkedIn status
+         * @description Only the caller’s own state; never a token, a nonce or the GitHub numeric id. GitHub is `connected` only once confirmed: a link still in progress reads `not_connected`. A link left half-done (the server stopped between Auth0 and our database) is settled here from Auth0’s record. LinkedIn is `connected` when the caller signs in with LinkedIn.
+         */
+        get: operations["getMyIntegrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/integrations/github/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect GitHub, or get a nonce to link it
+         * @description When Auth0 already holds a GitHub identity for the caller (they sign in with GitHub, or linked it), GitHub confirms its token and the account is connected: `state: connected`. Otherwise `state: link_required` with a single-use nonce for a secondary GitHub sign-in (see `link`). Public repositories only (D6). A connected GitHub counts toward `verified`.
+         */
+        post: operations["connectGithub"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/integrations/github/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a GitHub sign-in to the caller’s account
+         * @description Send the `id_token` of the secondary GitHub sign-in started with the nonce from `connect`. It must be fresh (issued within 5 minutes), for this application, and carry that nonce, which works once. The GitHub account is reserved first, so no other account can take it, then Auth0 links it. When Auth0’s answer is lost, the reservation is settled later from Auth0’s record (`GET /v1/me/integrations`).
+         */
+        post: operations["linkGithub"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/integrations/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect GitHub, revoking access at GitHub first
+         * @description Revokes the GitHub app grant first (every token of it, including the one Auth0 holds); only once GitHub confirms, or there is nothing left to revoke, is GitHub disconnected. A revocation GitHub refuses changes nothing (502): retry. One whose outcome is unknown (timeout, dropped connection, 5xx) also answers 502, but the grant may still be deleted: the card then shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until it settles, after a short delay. Idempotent. Imported projects stay. The GitHub identity stays linked at Auth0 (a GitHub sign-in keeps working); reconnecting needs one fresh GitHub sign-in. `verified` falls back to the email.
+         */
+        delete: operations["disconnectGithub"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/github/repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s public GitHub repositories, paged
+         * @description **Not served yet: arrives with M7 PR (b).** Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
+         */
+        get: operations["listGithubRepos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/github/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import repositories as draft projects
+         * @description **Not served yet: arrives with M7 PR (b).** Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3).
+         */
+        post: operations["importGithubRepos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/projects/{id}/github/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-sync an imported project from GitHub, never overwriting an edit
+         * @description **Not served yet: arrives with M7 PR (b).** Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing.
+         */
+        post: operations["syncGithubProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/imports/linkedin/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a signed URL to upload a LinkedIn data export ZIP
+         * @description **Not served yet: arrives with M7 PR (c).** The browser PUTs the ZIP straight to the returned URL (never through the frontend’s server: its body limit is 4.5 MB). At most IMPORT_MAX_PENDING uploads wait at once.
+         */
+        post: operations["createLinkedinUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/imports/linkedin/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read an uploaded export and propose entries; saves nothing
+         * @description **Not served yet: arrives with M7 PR (c).** Parses positions, education, skills and certifications; each item is `new`, `duplicate` (already on the profile) or `invalid` (with `problems`). The upload is deleted afterwards, whatever the outcome. Only the four datasets are ever opened.
+         */
+        post: operations["previewLinkedinImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/imports/linkedin/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save the selected entries, in one transaction
+         * @description **Not served yet: arrives with M7 PR (c).** The items are validated again like manual entries. Entries equal to an existing one are skipped; skills merge case-insensitively. Over a section cap nothing is saved. A second identical confirm adds nothing.
+         */
+        post: operations["confirmLinkedinImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/education": {
         parameters: {
             query?: never;
@@ -1113,6 +1313,81 @@ export interface components {
             achievements: string[];
             skills: string[];
         };
+        GithubConnected: {
+            /** @enum {string} */
+            state: "connected";
+            /** @description The GitHub login now connected. */
+            login: string;
+        };
+        GithubConnectResult: {
+            /** @enum {string} */
+            state: "connected";
+            /** @description The GitHub login now connected. */
+            login: string;
+        } | {
+            /** @enum {string} */
+            state: "link_required";
+            /** @description Single use, bound to the caller. Pass it as `nonce` to Auth0’s `/authorize` (`connection=github`, in a transaction separate from the session), then send the callback’s `id_token` to `POST /v1/me/integrations/github/link`. Never store it. */
+            nonce: string;
+            /** @description ISO 8601, UTC; the nonce is refused after it. */
+            expiresAt: string;
+        };
+        GithubImportResult: {
+            repoId: number;
+            /** @enum {string} */
+            outcome: "created" | "exists" | "skipped";
+            /**
+             * @description Why it was skipped: `not_owner` when the caller neither owns it nor may push to it.
+             * @enum {string|null}
+             */
+            reason: "not_found" | "not_owner" | "LIMIT_REACHED" | null;
+            /** @description The draft created, or the existing one. */
+            projectId: string | null;
+            /** @description `README_TOO_LARGE`: created without a description. */
+            notes: "README_TOO_LARGE"[];
+        };
+        GithubRateLimit: {
+            remaining: number | null;
+            /** @description ISO 8601, UTC. */
+            resetsAt: string | null;
+        };
+        GithubRepo: {
+            /** @description GitHub’s repository id: what import takes. */
+            repoId: number;
+            /** @example ani-p/thesis-tracker */
+            fullName: string;
+            description: string | null;
+            language: string | null;
+            stars: number;
+            forks: number;
+            fork: boolean;
+            archived: boolean;
+            /** @description ISO 8601, UTC. */
+            pushedAt: string | null;
+            imported: boolean;
+            /** @description The caller’s project, when imported. */
+            projectId: string | null;
+        };
+        GithubSyncResult: {
+            dryRun: boolean;
+            fields: {
+                /** @enum {string} */
+                field: "title" | "summary" | "descriptionHtml" | "repoUrl" | "technologies";
+                /**
+                 * @description `kept`: the caller edited it and GitHub did not change; `conflict`: both changed, the caller’s value is kept and GitHub’s is in `githubValue`.
+                 * @enum {string}
+                 */
+                outcome: "unchanged" | "updated" | "kept" | "conflict";
+                /** @description Only on `conflict`. */
+                githubValue?: (string | string[]) | null;
+            }[];
+            /** @description Repository facts refreshed silently (D8), only those that changed. */
+            systemUpdated: {
+                /** @enum {string} */
+                field: "stars" | "forks" | "language" | "readmeUrl";
+                value: (number | string) | null;
+            }[];
+        };
         IncomingInvite: {
             /** @description The membership id. */
             id: string;
@@ -1130,11 +1405,119 @@ export interface components {
                 name: string;
             };
         };
+        Integrations: {
+            github: {
+                /** @description false when the server is not configured for GitHub: every GitHub route then answers 503 INTEGRATION_UNAVAILABLE. */
+                available: boolean;
+                /**
+                 * @description `connected` only once GitHub (or Auth0, for LinkedIn) confirmed it; a link still in progress reads `not_connected`.
+                 * @enum {string}
+                 */
+                status: "connected" | "not_connected";
+                /** @description The connected GitHub login; null when not connected. */
+                login: string | null;
+                /** @description ISO 8601, UTC. */
+                lastSyncedAt: string | null;
+            };
+            linkedin: {
+                /**
+                 * @description `connected` when the caller signs in with LinkedIn (derived from the access token, not stored).
+                 * @enum {string}
+                 */
+                status: "connected" | "not_connected";
+                /** @description The last confirmed export import; ISO 8601. */
+                lastSyncedAt: string | null;
+            };
+        };
         InviteMemberRequest: {
             /** @description The account to invite (a public profile). */
             userId: string;
             /** @description Shown on the team list; optional. */
             role?: (null) | string;
+        };
+        LinkedinImportResult: {
+            added: {
+                experience: number;
+                education: number;
+                certifications: number;
+                skills: number;
+            };
+            skipped: {
+                experience: number;
+                education: number;
+                certifications: number;
+                skills: number;
+            };
+        };
+        LinkedinPreview: {
+            experience: {
+                /** @enum {string} */
+                status: "new" | "duplicate" | "invalid";
+                /** @description The proposed entry, in the shape of the manual-entry body for its section. */
+                fields: {
+                    [key: string]: unknown;
+                };
+                problems: {
+                    field: string;
+                    /** @example DATE_NEEDS_MONTH */
+                    code: string;
+                }[];
+            }[];
+            education: {
+                /** @enum {string} */
+                status: "new" | "duplicate" | "invalid";
+                /** @description The proposed entry, in the shape of the manual-entry body for its section. */
+                fields: {
+                    [key: string]: unknown;
+                };
+                problems: {
+                    field: string;
+                    /** @example DATE_NEEDS_MONTH */
+                    code: string;
+                }[];
+            }[];
+            certifications: {
+                /** @enum {string} */
+                status: "new" | "duplicate" | "invalid";
+                /** @description The proposed entry, in the shape of the manual-entry body for its section. */
+                fields: {
+                    [key: string]: unknown;
+                };
+                problems: {
+                    field: string;
+                    /** @example DATE_NEEDS_MONTH */
+                    code: string;
+                }[];
+            }[];
+            skills: {
+                name: string;
+                /** @enum {string} */
+                status: "new" | "duplicate" | "invalid";
+            }[];
+            skippedColumns: {
+                file: string;
+                column: string;
+            }[];
+            missingFiles: string[];
+            skippedFileCount: number;
+            /** @description How many other entries the archive held, by extension. Never their names. */
+            extensions: {
+                [key: string]: number;
+            };
+        };
+        LinkedinUploadTicket: {
+            /** @description Send this to `preview` after the upload. */
+            uploadId: string;
+            /** @description PUT the ZIP here, from the browser. */
+            uploadUrl: string;
+            /** @enum {string} */
+            method: "PUT";
+            /** @description Send these headers exactly: they are part of the signature. */
+            headers: {
+                [key: string]: string;
+            };
+            /** @description ISO 8601, UTC. */
+            expiresAt: string;
         };
         MajorFacet: {
             value: string;
@@ -1685,7 +2068,7 @@ export interface operations {
                         email: string | null;
                         avatarUrl: string | null;
                         headline: string;
-                        /** @description Email verified with Auth0 (GitHub from M7). */
+                        /** @description Email verified with Auth0, or a connected GitHub account. */
                         verified: boolean;
                         isPublic: boolean;
                         /** @description false: the frontend should offer first-login onboarding. */
@@ -1758,6 +2141,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description GITHUB_STATE_CHANGED: GitHub was connected at the same moment; nothing deleted, retry */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description RATE_LIMITED: over budget; see the Retry-After header */
             429: {
                 headers: {
@@ -1767,7 +2159,16 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            /** @description GITHUB_REVOKE_FAILED: GitHub did not confirm the revocation; nothing deleted */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE: a connected GitHub cannot be revoked now (Auth0 unreachable, or GitHub connect not configured); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -4502,6 +4903,796 @@ export interface operations {
                 };
             };
             /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getMyIntegrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The integrations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Integrations"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_LINKED: settling a half-done link found the GitHub token refused */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED (over budget) or GITHUB_RATE_LIMITED; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed while a half-done link was settled */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    connectGithub: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connected, or a link is required */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubConnectResult"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_LINKED: GitHub refused the token Auth0 holds (sign in with GitHub again); GITHUB_ACCOUNT_IN_USE: another Gradfolio account has this GitHub account; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    linkGithub: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The id token of the secondary GitHub sign-in started with the nonce from `connect`. Verified (RS256, issuer, audience, expiry, issued within 5 minutes, a GitHub `sub`, the nonce), used once, never stored or logged. */
+                    idToken: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Connected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubConnected"];
+                };
+            };
+            /** @description INVALID_ID_TOKEN: the id token is not a valid, fresh GitHub sign-in for this application; INVALID_NONCE: the nonce is unknown, expired, used, or another user’s; VALIDATION_FAILED: the body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_ACCOUNT_IN_USE: that GitHub account is a Gradfolio account of its own, or another account holds it; GITHUB_ALREADY_CONNECTED; GITHUB_LINK_REFUSED: Auth0 refused the link; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry); GITHUB_NOT_LINKED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed while confirming the new link */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE: not configured, or Auth0 failed (when its answer was lost the link is settled later); AUTH_UNAVAILABLE: the signing keys could not be fetched */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    disconnectGithub: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disconnected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "not_connected";
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_REVOKE_FAILED: GitHub did not confirm the revocation. When GitHub refused, nothing changed. When it timed out, dropped the connection or answered 5xx, the grant may still be deleted: the card shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until the outcome settles, after a short delay; retry shortly, and the next request then shows the true state */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE: GitHub connect is not configured on this server, or Auth0 could not be used (see Retry-After when it is a rate limit); AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE as on every route */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listGithubRepos: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["GithubRepo"][];
+                        nextCursor: string | null;
+                        rateLimit: components["schemas"]["GithubRateLimit"];
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED or GITHUB_RATE_LIMITED; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    importGithubRepos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once. */
+                    repoIds: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description One result per repository */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: components["schemas"]["GithubImportResult"][];
+                        rateLimit: components["schemas"]["GithubRateLimit"];
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    syncGithubProject: {
+        parameters: {
+            query?: {
+                dryRun?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What changed, field by field */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubSyncResult"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such project of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_GITHUB_PROJECT: the project was not imported; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createLinkedinUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Exact size of the ZIP in bytes, at most IMPORT_MAX_ZIP_BYTES; signed into the URL. */
+                    size: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The upload ticket */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedinUploadTicket"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LIMIT_REACHED: too many uploads waiting for a preview */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description IMPORT_TOO_LARGE: over IMPORT_MAX_ZIP_BYTES */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    previewLinkedinImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    uploadId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The proposal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedinPreview"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description IMPORT_UPLOAD_MISSING: no such upload of the caller’s */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description IMPORT_TOO_LARGE */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description IMPORT_NOT_ZIP, IMPORT_TOO_MANY_ENTRIES, IMPORT_UNCOMPRESSED_TOO_LARGE, IMPORT_RATIO_EXCEEDED, IMPORT_UNSAFE_PATH, IMPORT_ENCRYPTED, IMPORT_ENTRY_NOT_CSV, IMPORT_EMPTY, IMPORT_COLUMNS_MISSING (see `details`), IMPORT_MALFORMED_CSV */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED, or IMPORT_BUSY: too many previews running; see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    confirmLinkedinImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    experience: {
+                        title: string;
+                        organization: string;
+                        start: string;
+                        /** @default null */
+                        end?: (null) | string;
+                        summary: string;
+                        achievements?: string[];
+                        skills?: string[];
+                    }[];
+                    education: {
+                        institution: string;
+                        degree: string;
+                        field: string;
+                        startYear: number;
+                        /** @default null */
+                        endYear?: (null) | number;
+                        description?: (null) | string;
+                        highlights?: string[];
+                    }[];
+                    certifications: {
+                        name: string;
+                        issuer: string;
+                        date: string;
+                        credentialUrl?: (null) | string;
+                    }[];
+                    skills: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Counts per section */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedinImportResult"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LIMIT_REACHED: a section would exceed its cap; nothing was saved */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
             503: {
                 headers: {
                     [name: string]: unknown;

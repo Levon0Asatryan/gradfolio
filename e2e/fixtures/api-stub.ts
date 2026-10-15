@@ -12,6 +12,7 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
+  Integrations,
   DiscoveryProject,
   Suggestions,
   TagCloud,
@@ -78,6 +79,29 @@ const TAGS: Record<string, TagSummary> = {
   "c%23": { name: "C%23", projectCount: 1, peopleCount: 1 },
 };
 
+/**
+ * The integrations endpoints, keyed by the bearer token so each test owns its state (the
+ * logged-in specs mint a session whose access token names the scenario, e2e/integrations.spec.ts):
+ * `e2e-off-*` GitHub not connected; `e2e-on-*` connected; `e2e-on502-*` connected, and
+ * disconnecting answers 502 after the grant is gone (the ambiguous case); `e2e-unavailable-*`
+ * the server has no GitHub config; `e2e-down-*` the load fails.
+ */
+const github = new Map<string, Integrations["github"]>();
+const githubFor = (token: string): Integrations["github"] => {
+  let state = github.get(token);
+  if (!state) {
+    const on = /^e2e-on(502)?-/.test(token);
+    state = {
+      available: !token.startsWith("e2e-unavailable-"),
+      status: on ? "connected" : "not_connected",
+      login: on ? "ani-p" : null,
+      lastSyncedAt: on ? "2026-10-09T12:00:00.000Z" : null,
+    };
+    github.set(token, state);
+  }
+  return state;
+};
+
 const seen: Array<{ path: string; search: string; headers: Record<string, string | undefined> }> =
   [];
 
@@ -126,6 +150,8 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     seen.length = 0;
     return send(res, 200, {});
   }
+
+  if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
 
   const failure = FAIL[q as keyof typeof FAIL];
   if (failure && url.pathname.startsWith("/v1/search")) return send(res, failure[0], failure[1]);
@@ -238,4 +264,47 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     return tag ? send(res, 200, tag) : send(res, 404, { code: "NOT_FOUND", message: "no tag" });
   }
   return send(res, 503, { code: "DATABASE_UNAVAILABLE", message: "the stub has no such endpoint" });
+}
+
+function integrations(req: IncomingMessage, res: ServerResponse, path: string) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  if (token.startsWith("e2e-down-"))
+    return send(res, 503, { code: "DATABASE_UNAVAILABLE", message: "down" });
+  const state = githubFor(token);
+
+  if (path === "/v1/me/integrations" && req.method === "GET") {
+    const body: Integrations = {
+      github: { ...state },
+      linkedin: { status: "not_connected", lastSyncedAt: null },
+    };
+    return send(res, 200, body);
+  }
+  if (path === "/v1/me/integrations/github/connect" && req.method === "POST") {
+    if (!state.available)
+      return send(res, 503, { code: "INTEGRATION_UNAVAILABLE", message: "not configured" });
+    if (state.status === "connected")
+      return send(res, 200, { state: "connected", login: state.login ?? "ani-p" });
+    return send(res, 200, {
+      state: "link_required",
+      nonce: "stub-nonce",
+      expiresAt: "2026-10-15T10:10:00.000Z",
+    });
+  }
+  if (path === "/v1/me/integrations/github" && req.method === "DELETE") {
+    if (token.startsWith("e2e-on502-")) {
+      if (state.status === "not_connected")
+        return send(res, 409, { code: "GITHUB_LINK_IN_PROGRESS", message: "settling" });
+      // The grant is gone at GitHub, but the answer was lost: the card now reads not connected.
+      state.status = "not_connected";
+      state.login = null;
+      state.lastSyncedAt = null;
+      return send(res, 502, { code: "GITHUB_REVOKE_FAILED", message: "unknown outcome" });
+    }
+    state.status = "not_connected";
+    state.login = null;
+    state.lastSyncedAt = null;
+    return send(res, 200, { status: "not_connected" });
+  }
+  return send(res, 404, { code: "NOT_FOUND", message: "the stub has no such endpoint" });
 }

@@ -144,83 +144,80 @@ export const en: Dictionary = {
   integrations: {
     title: "Integrations",
     subtitle:
-      "Connect LinkedIn and GitHub. Connected integrations enable data import (LinkedIn profile data, GitHub repositories) and a verification badge on your profile.",
+      "Connect GitHub to import your repositories as project drafts. LinkedIn shows as connected when you sign in with it; your LinkedIn history comes from your own data export.",
     connect: "Connect",
     disconnect: "Disconnect",
     connected: "Connected",
     notConnected: "Not connected",
-    synced: "Synced",
-    infoText:
-      "You haven’t connected any integrations yet. Connect LinkedIn or GitHub to quickly import your data and add verification to your portfolio.",
-    emptyState: "No integrations available.",
     lastSynced: "Last synced:",
-    descriptions: {
-      linkedin:
-        "Import education, experience, certifications, and skills. Enables profile verification.",
-      github:
-        "Import repositories to create project entries. Verifies coding projects on your portfolio.",
+    neverSynced: "Not synced yet",
+    loadErrorTitle: "Integrations could not be loaded",
+    retry: "Try again",
+    signIn: "Sign in",
+    retryIn: "Try again in {seconds} s.",
+    dismiss: "Dismiss",
+    checkStatus: "Check status",
+    github: {
+      description:
+        "Import your public repositories as project drafts, and show a verification badge on your profile.",
+      connectedAs: "Connected as {login}",
+      unavailable: "GitHub connection is not set up on this server yet.",
+      opening: "Opening GitHub…",
+      disconnecting: "Disconnecting…",
+      connectedToast: "GitHub is connected.",
+      disconnectedToast: "GitHub is disconnected.",
     },
-    buttons: {
-      learnMore: "Learn more",
-    },
-    steps: {
-      welcome: "Welcome to Gradfolio",
-      welcomeSubtitle:
-        "Connect your GitHub or LinkedIn to auto-import data, or skip and fill things manually — your call.",
-      importGithub: "Import from GitHub",
-      importLinkedin: "Import from LinkedIn",
-      importingGithub: "Importing from GitHub...",
-      importingLinkedin: "Importing from LinkedIn...",
-      importedGithub: "GitHub data imported",
-      importedLinkedin: "LinkedIn data imported",
-      basic: {
-        title: "Basic Info",
-        fullName: "Full name",
-        fullNameRequired: "Full name is required",
-        email: "Email",
-        emailInvalid: "Enter a valid email",
-        birthday: "Birthday",
-        github: "GitHub URL",
-        linkedin: "LinkedIn URL",
-        phone: "Phone",
-        website: "Website",
-      },
-      experience: {
-        title: "Experience & Education",
-        label: "Experience",
-        placeholder: "Summarize your relevant work experience...",
-        educationLabel: "Education",
-        educationPlaceholder: "Schools, degrees, courses...",
-      },
-      repos: {
-        title: "Projects (GitHub Repos)",
-        label: "Repositories",
-        placeholder: "Paste repo URLs or names, one per line",
-        empty: "No repositories added yet. Paste one per line above.",
-        hint: "You can link repos now or skip and add them later from the Projects section.",
-      },
+    linkedin: {
+      description:
+        "Shown as connected when you sign in with LinkedIn, which fills in your name and photo. Your positions, education, skills and certifications come from your own LinkedIn data export.",
+      viaSignIn: "You sign in with LinkedIn.",
+      notViaSignIn: "You do not sign in with LinkedIn.",
+      lastImport: "Last import:",
     },
     dialog: {
-      connectTitle: "Connect {name}",
-      connectDesc: "Are you sure you want to connect {name}?",
-      cancel: "Cancel",
-      confirm: "Confirm",
       disconnectTitle: "Disconnect {name}",
-      disconnectDesc: "Are you sure you want to disconnect {name}?",
-      connectBody:
-        "Connecting {name} turns on data import and a verification badge on your profile. You can disconnect at any time.",
       disconnectBody:
-        "You can reconnect at any time. Imported data stays, but the verification badge may be removed from your profile.",
+        "Gradfolio asks GitHub to remove its access first, and disconnects only when GitHub confirms. Projects you imported stay. Your GitHub sign-in stays linked, so signing in with GitHub still works. Your verified badge falls back to your confirmed email.",
+      cancel: "Cancel",
+    },
+    errors: {
+      ACCESS_DENIED: "GitHub access was not granted, so nothing was connected.",
+      STATE_MISMATCH:
+        "This GitHub sign-in did not start from this browser, so it was ignored. Start again.",
+      EXCHANGE_FAILED: "The GitHub sign-in could not be completed. Start again.",
+      INVALID_ID_TOKEN: "The GitHub sign-in could not be verified. Start again.",
+      INVALID_NONCE: "The GitHub sign-in expired or was already used. Start again.",
+      GITHUB_ACCOUNT_IN_USE: "That GitHub account already belongs to another Gradfolio account.",
+      GITHUB_ALREADY_CONNECTED: "GitHub is already connected.",
+      GITHUB_LINK_REFUSED: "Auth0 refused to link that GitHub account. Nothing was connected.",
+      GITHUB_LINK_IN_PROGRESS:
+        "A GitHub connection change is still finishing. The card shows the state so far; try again shortly.",
+      GITHUB_STATE_CHANGED:
+        "GitHub was changed by another request at the same moment. Nothing was changed by this one. Reload and try again.",
+      GITHUB_NOT_LINKED:
+        "GitHub no longer accepts the saved sign-in. Connect GitHub again and sign in with it.",
+      GITHUB_UNAVAILABLE: "GitHub is not responding. Try again in a moment.",
+      GITHUB_RATE_LIMITED: "GitHub’s request limit is reached.",
+      RATE_LIMITED: "Too many requests. Wait a moment and try again.",
+      INTEGRATION_UNAVAILABLE: "GitHub connections are not available right now.",
+      AUTH_UNAVAILABLE: "The sign-in service is not responding. Try again in a moment.",
+      UNAUTHENTICATED: "Your session has expired. Please sign in again.",
+      UNKNOWN: "Something went wrong. Try again.",
+      GITHUB_REVOKE_FAILED:
+        "GitHub did not confirm that access was removed. It may or may not have been removed already: this card shows the current state. Try again in a minute; until it settles, a retry can answer that a change is still finishing.",
+      API_UNREACHABLE: "The Gradfolio API is not responding. Please try again in a moment.",
+      API_NOT_CONFIGURED: "The Gradfolio API is not connected to this site yet.",
     },
     setup: {
-      title: "Integrations Setup",
-      subtitle:
-        "Let’s get your Gradfolio ready by connecting your data sources and filling in the basics.",
+      title: "Set up your accounts",
+      subtitle: "Connect GitHub so you can import your repositories. You can skip any step.",
       back: "Previous",
       next: "Next",
       complete: "Finish",
+      githubStep: "GitHub",
       doneTitle: "Setup finished",
-      doneBody: "Your answers are not saved yet. Edit your profile any time from My profile.",
+      doneBody:
+        "You can connect accounts any time from Integrations, and edit your profile from My profile.",
       toProfile: "Go to my profile",
       stepOf: "Step {step} of {total}",
     },
