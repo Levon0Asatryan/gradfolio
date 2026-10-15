@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { motion } from "motion/react";
 
 const stepVariants = {
@@ -32,6 +32,16 @@ export const SlideTransition: React.FC<SlideTransitionProps> = ({
   useLayoutEffect(() => {
     if (containerRef.current) onHeightReady(containerRef.current.offsetHeight);
   }, [children, onHeightReady]);
+
+  // A step whose own content grows (an error shown after an action) is not a new `children`
+  // prop: without this the spacer keeps the first height and the content is clipped.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => onHeightReady(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onHeightReady]);
 
   return (
     <motion.div
