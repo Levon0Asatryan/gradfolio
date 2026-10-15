@@ -72,6 +72,7 @@ describe("GitHub link callback", () => {
 
   it("exchanges against the tenant whatever form AUTH0_DOMAIN has", async () => {
     vi.stubEnv("AUTH0_DOMAIN", "https://Tenant.us.auth0.com/");
+    // (production holds "https://dev-wkthnyn8b8mjn5ae.us.auth0.com": same shape)
     fetchMock.mockImplementation(async () => new Response(JSON.stringify({ id_token: "T" })));
     mocks.link.mockResolvedValue({ state: "connected", login: "a" });
     await call("code=C1&state=S1");

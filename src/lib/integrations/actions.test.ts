@@ -101,6 +101,17 @@ describe("startGithubConnectAction", () => {
     expect(new URL(result.url).origin).toBe("https://tenant.us.auth0.com");
   });
 
+  it("accepts the exact AUTH0_DOMAIN production holds (scheme included), regression for the Connect that said 'not available'", async () => {
+    vi.stubEnv("AUTH0_DOMAIN", "https://dev-wkthnyn8b8mjn5ae.us.auth0.com");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("APP_BASE_URL", "https://gradfolio-navy.vercel.app");
+    mocks.connect.mockResolvedValue({ state: "link_required", nonce: "N", expiresAt: "x" });
+    const result = await startGithubConnectAction();
+    if (!result.ok || result.state !== "redirect") throw new Error("refused");
+    expect(mocks.connect).toHaveBeenCalledTimes(1);
+    expect(new URL(result.url).origin).toBe("https://dev-wkthnyn8b8mjn5ae.us.auth0.com");
+  });
+
   it.each([
     ["https://gradfolio-navy.vercel.app"],
     ["https://gradfolio-navy.vercel.app/"],
