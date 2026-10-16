@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   preview: vi.fn(),
   refresh: vi.fn(),
+  suggestions: vi.fn(),
+  accept: vi.fn(),
+  dismiss: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, push: vi.fn(), replace: vi.fn() }),
@@ -15,6 +18,12 @@ vi.mock("@/lib/integrations/importActions", () => ({
   listGithubReposAction: mocks.list,
   importGithubReposAction: mocks.save,
   previewGithubImportAction: mocks.preview,
+}));
+
+vi.mock("@/lib/integrations/suggestionActions", () => ({
+  loadProfileSuggestionsAction: mocks.suggestions,
+  acceptSuggestionsAction: mocks.accept,
+  dismissSuggestionAction: mocks.dismiss,
 }));
 
 const { GithubImportModal } = await import("./GithubImportModal");
@@ -336,5 +345,142 @@ describe("review and save", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByRole("checkbox", { name: "ani-p/repo-1" })).toBeChecked();
     expect(within(screen.getByRole("dialog")).getByText("Selected: 2 of 10")).toBeVisible();
+  });
+});
+
+const item = (
+  id: string,
+  kind: string,
+  current: string | null,
+  proposed: string,
+  mode: "fill" | "replace",
+) => ({
+  id,
+  kind,
+  source: "github",
+  status: "open",
+  field: kind.replace("profile.", ""),
+  current,
+  proposed,
+  mode,
+  lastSyncedAt: null,
+  createdAt: "2026-10-16T10:00:00Z",
+  resolvedAt: null,
+});
+const A = "0b6f2c1e-1111-4222-8333-444455556661";
+const B = "0b6f2c1e-1111-4222-8333-444455556662";
+
+describe("profile data tab", () => {
+  const withProfile = async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.suggestions.mockResolvedValue({
+      ok: true,
+      items: [
+        item(A, "profile.bio", null, "I build things", "fill"),
+        item(B, "profile.location", "Yerevan", "Gyumri", "replace"),
+      ],
+      refresh: null,
+      refreshError: null,
+    });
+    open();
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
+    await screen.findByText("I build things");
+  };
+
+  it("is read only when its tab is opened, not when the dialog opens", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    open();
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    expect(mocks.suggestions).not.toHaveBeenCalled();
+  });
+
+  it("shows now beside GitHub's value; an empty field is pre-ticked, a replacement is not", async () => {
+    await withProfile();
+    expect(screen.getByRole("checkbox", { name: "Bio" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Location" })).not.toBeChecked();
+    expect(screen.getByText("Yerevan")).toBeVisible();
+    expect(screen.getByText("Gyumri")).toBeVisible();
+    expect(screen.getByText("(empty)")).toBeVisible();
+  });
+
+  it("nothing is written until Save: ticked fields are accepted, the others left alone", async () => {
+    await withProfile();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("Profile fields to update")).toBeVisible();
+    expect(mocks.accept).not.toHaveBeenCalled();
+    mocks.accept.mockResolvedValue({ ok: true, results: [{ id: A, ok: true }] });
+    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    expect(await screen.findByText("Profile fields updated: 1")).toBeVisible();
+    expect(mocks.accept).toHaveBeenCalledWith({ ids: [A] });
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("repositories are saved first; if that fails the profile is not touched", async () => {
+    await withProfile();
+    fireEvent.click(screen.getByRole("tab", { name: "Repositories" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "ani-p/repo-1" }));
+    mocks.preview.mockResolvedValue(previewOf([1]));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByDisplayValue("repo-1");
+    mocks.save.mockResolvedValue({ ok: false, code: "GITHUB_UNAVAILABLE" });
+    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("GitHub is not responding");
+    expect(mocks.accept).not.toHaveBeenCalled();
+  });
+
+  it("a field that fails to update is reported, not hidden", async () => {
+    await withProfile();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Profile fields to update");
+    mocks.accept.mockResolvedValue({
+      ok: true,
+      results: [{ id: A, ok: false, code: "SUGGESTION_INVALID" }],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    expect(await screen.findByText("Profile fields not updated: 1")).toBeVisible();
+  });
+
+  it("dismissing removes the row and asks the API to remember it", async () => {
+    await withProfile();
+    mocks.dismiss.mockResolvedValue({ ok: true });
+    fireEvent.click(screen.getAllByRole("button", { name: "Do not suggest this again" })[0]!);
+    await waitFor(() => expect(screen.queryByText("I build things")).toBeNull());
+    expect(mocks.dismiss).toHaveBeenCalledWith({ id: A });
+  });
+
+  it("nothing from GitHub is its own state; a failed read is an error with Retry", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.suggestions.mockResolvedValueOnce({ ok: false, code: "GITHUB_NOT_LINKED" });
+    open();
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "no longer accepts the saved sign-in",
+    );
+    expect(screen.queryByText("Nothing new from your GitHub profile.")).toBeNull();
+    mocks.suggestions.mockResolvedValueOnce({
+      ok: true,
+      items: [],
+      refresh: null,
+      refreshError: null,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Nothing new from your GitHub profile.")).toBeVisible();
+  });
+
+  it("a refresh that failed is shown beside the stored suggestions", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.suggestions.mockResolvedValue({
+      ok: true,
+      items: [item(A, "profile.bio", null, "Hi", "fill")],
+      refresh: null,
+      refreshError: "GITHUB_RATE_LIMITED",
+    });
+    open();
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
+    expect(await screen.findByText("GitHub’s request limit is reached.")).toBeVisible();
+    expect(screen.getByText("Hi")).toBeVisible();
   });
 });

@@ -120,6 +120,17 @@ for (const language of LANGUAGES) {
           });
         }
 
+        test("profile data tab: axe, clean console", async ({ page }) => {
+          const problems = watch(page);
+          const dialog = await openDialog(page, "e2e-on", language, theme);
+          await dialog.getByRole("tab").nth(1).click();
+          await expect(dialog.getByRole("checkbox").first()).toBeAttached();
+          await page.mouse.move(0, 0);
+          await settled(page);
+          await expectCleanAxe(page);
+          expect(problems).toEqual([]);
+        });
+
         test("review and result: axe, clean console", async ({ page }) => {
           const problems = watch(page);
           const dialog = await openDialog(page, "e2e-on", language, theme);
@@ -153,6 +164,61 @@ for (const language of LANGUAGES) {
     }
   }
 }
+
+test.describe("profile data", () => {
+  test("pre-ticks the empty field, accepts only what is ticked on Save, leaves the rest", async ({
+    page,
+    request,
+  }) => {
+    const dialog = await openDialog(page, "e2e-on");
+    await dialog.getByRole("tab", { name: "Profile data" }).click();
+    await expect(dialog.getByText("I build things")).toBeVisible();
+    await expect(dialog.getByRole("checkbox", { name: "Bio" })).toBeChecked();
+    await expect(dialog.getByRole("checkbox", { name: "Location" })).not.toBeChecked();
+    await expect(dialog.getByText("Gyumri")).toBeVisible();
+    await expectCleanAxe(page);
+    await dialog.getByRole("button", { name: "Continue" }).click();
+    await expect(dialog.getByText("Profile fields to update")).toBeVisible();
+    await dialog.getByRole("button", { name: "Save as drafts" }).click();
+    await expect(dialog.getByText("Profile fields updated: 1")).toBeVisible();
+    const seen = (await (
+      await request.get(`${STUB}/__suggestions?token=${encodeURIComponent(currentToken)}`)
+    ).json()) as { accepted: string[]; dismissed: string[] };
+    expect(seen.accepted).toEqual(["0b6f2c1e-1111-4222-8333-444455556661"]);
+    expect(seen.dismissed).toEqual([]);
+  });
+
+  test("Not now writes nothing", async ({ page, request }) => {
+    const dialog = await openDialog(page, "e2e-on");
+    await dialog.getByRole("tab", { name: "Profile data" }).click();
+    await expect(dialog.getByText("I build things")).toBeVisible();
+    await dialog.getByRole("button", { name: "Not now" }).click();
+    const seen = (await (
+      await request.get(`${STUB}/__suggestions?token=${encodeURIComponent(currentToken)}`)
+    ).json()) as { accepted: string[]; dismissed: string[] };
+    expect(seen).toEqual({ accepted: [], dismissed: [] });
+  });
+
+  test("dismissing a field is remembered by the API and removes the row", async ({
+    page,
+    request,
+  }) => {
+    const dialog = await openDialog(page, "e2e-on");
+    await dialog.getByRole("tab", { name: "Profile data" }).click();
+    await dialog.getByRole("button", { name: "Do not suggest this again" }).nth(1).click();
+    await expect(dialog.getByText("Gyumri")).toHaveCount(0);
+    const seen = (await (
+      await request.get(`${STUB}/__suggestions?token=${encodeURIComponent(currentToken)}`)
+    ).json()) as { dismissed: string[] };
+    expect(seen.dismissed).toEqual(["0b6f2c1e-1111-4222-8333-444455556662"]);
+  });
+
+  test("nothing new is its own state", async ({ page }) => {
+    const dialog = await openDialog(page, "e2e-onempty");
+    await dialog.getByRole("tab", { name: "Profile data" }).click();
+    await expect(dialog.getByText("Nothing new from your GitHub profile.")).toBeVisible();
+  });
+});
 
 test.describe("behaviour", () => {
   test("pick, review, edit, save: one request with only the override; drafts, never published", async ({
