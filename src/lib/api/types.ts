@@ -105,3 +105,9 @@ export type GithubImportOutcome = components["schemas"]["GithubImportResult"];
 export type GithubSyncResult = components["schemas"]["GithubSyncResult"];
 export type GithubRepoPage = Json<paths["/v1/me/github/repos"]["get"]>;
 export type GithubImportResponse = Json<paths["/v1/me/github/import"]["post"]>;
+
+// Suggestions (M7 7.13): profile data GitHub offers, accepted or dismissed by the student.
+export type SuggestionItem = components["schemas"]["SuggestionItem"];
+export type SuggestionPage = components["schemas"]["SuggestionPage"];
+export type SuggestionRefresh = components["schemas"]["SuggestionRefresh"];
+export type SuggestionResolved = components["schemas"]["SuggestionResolved"];

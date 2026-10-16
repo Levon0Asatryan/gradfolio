@@ -4,15 +4,21 @@ import { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
+  Tab,
+  Tabs,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Typography,
+  Alert,
+  Box,
+  Stack,
 } from "@mui/material";
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type {
+  SuggestionItem,
   GithubDraft,
   GithubImportOutcome,
   GithubPreviewOutcome,
@@ -23,14 +29,28 @@ import {
   listGithubReposAction,
   previewGithubImportAction,
 } from "@/lib/integrations/importActions";
+import {
+  acceptSuggestionsAction,
+  dismissSuggestionAction,
+  loadProfileSuggestionsAction,
+} from "@/lib/integrations/suggestionActions";
 import { IMPORT_MAX } from "@/lib/integrations/importLimits";
 import { errorCode } from "@/lib/integrations/errors";
 import { ImportResult } from "./ImportResult";
 import { ImportReview, draftProblem, type ReviewRow } from "./ImportReview";
+import { type ProfileState, ProfileTab, fieldLabel } from "./ProfileTab";
 import { type PickerState, RepoPicker, timeOf } from "./RepoPicker";
 import { type Draft, initialDraft, overridesFor } from "./model";
 
 type Step = "pick" | "review" | "result";
+
+const NO_PROFILE: ProfileState = {
+  items: [],
+  loading: false,
+  loaded: false,
+  error: null,
+  refreshError: null,
+};
 
 const EMPTY: PickerState = {
   repos: [],
@@ -67,6 +87,13 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     loading: false,
     error: null,
   });
+  const [tab, setTab] = useState<"repos" | "profile">("repos");
+  const [profile, setProfile] = useState<ProfileState>(NO_PROFILE);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [dismissError, setDismissError] = useState<string | null>(null);
+  const [profileOutcome, setProfileOutcome] = useState<{ updated: number; failed: number } | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<{ code: string; retryAfter?: number } | null>(null);
   const [results, setResults] = useState<GithubImportOutcome[]>([]);
@@ -128,6 +155,11 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     setResults([]);
     setPreviews({});
     setPreviewState({ loading: false, error: null });
+    setTab("repos");
+    setProfile(NO_PROFILE);
+    setChecked(new Set());
+    setDismissError(null);
+    setProfileOutcome(null);
     setPicker(EMPTY);
     void load("");
     // `load` is stable.
@@ -146,6 +178,52 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
   useEffect(() => {
     if (open) heading.current?.focus();
   }, [step, open]);
+
+  // GitHub's profile data is read when the student first opens its tab (the API throttles its
+  // own reads of GitHub), not when the dialog opens: it costs nothing until it is asked for.
+  const loadProfile = useCallback(async () => {
+    setProfile((p) => ({ ...p, loading: true, error: null }));
+    const result = await loadProfileSuggestionsAction();
+    if (!result.ok) {
+      setProfile({ ...NO_PROFILE, loaded: true, error: result.code });
+      return;
+    }
+    setProfile({
+      items: result.items,
+      loading: false,
+      loaded: true,
+      error: null,
+      refreshError: result.refreshError,
+    });
+    // An empty field is pre-ticked (a fill); one that would replace something is not.
+    setChecked(new Set(result.items.filter((i) => i.mode === "fill").map((i) => i.id)));
+  }, []);
+  useEffect(() => {
+    if (open && tab === "profile" && !profile.loaded && !profile.loading) void loadProfile();
+  }, [open, tab, profile.loaded, profile.loading, loadProfile]);
+
+  const toggleProfile = (id: string) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  async function dismissProfile(id: string) {
+    setDismissError(null);
+    const result = await dismissSuggestionAction({ id });
+    if (!result.ok) {
+      setDismissError(message(result));
+      return;
+    }
+    setProfile((p) => ({ ...p, items: p.items.filter((i) => i.id !== id) }));
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
 
   const toggle = (repo: GithubRepo) => {
     setSelected((prev) => {
@@ -187,18 +265,22 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
   const toReview = () => {
     setFailure(null);
     setStep("review");
-    void loadPreview([...selected.values()]);
+    // Profile data alone has nothing to preview.
+    if (selected.size > 0) void loadPreview([...selected.values()]);
   };
 
   const chosen = [...selected.values()];
   // Only repositories the preview turned into a draft (and only they have one) can be saved.
   const savable = chosen.filter((r) => drafts[r.repoId]);
   const rows: ReviewRow[] = chosen.map((repo) => ({ repo, preview: previews[repo.repoId] }));
-  const canSave =
-    !previewState.loading &&
-    !previewState.error &&
-    savable.length > 0 &&
-    savable.every((r) => !draftProblem(drafts[r.repoId]!));
+  const profileChosen = profile.items.filter((i) => checked.has(i.id));
+  const reposOk =
+    chosen.length === 0 ||
+    (!previewState.loading &&
+      !previewState.error &&
+      savable.length > 0 &&
+      savable.every((r) => !draftProblem(drafts[r.repoId]!)));
+  const canSave = reposOk && (chosen.length > 0 || profileChosen.length > 0);
 
   async function save() {
     if (saveLock.current || !canSave) return;
@@ -206,21 +288,40 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     setSaving(true);
     setFailure(null);
     try {
-      const result = await importGithubReposAction({
-        repoIds: savable.map((r) => r.repoId),
-        overrides: overridesFor(
-          Object.fromEntries(
-            savable.map((r) => [r.repoId, previews[r.repoId]!.draft as GithubDraft]),
+      // Repositories first: if that fails nothing at all has changed, and the profile is untouched.
+      if (savable.length > 0) {
+        const result = await importGithubReposAction({
+          repoIds: savable.map((r) => r.repoId),
+          overrides: overridesFor(
+            Object.fromEntries(
+              savable.map((r) => [r.repoId, previews[r.repoId]!.draft as GithubDraft]),
+            ),
+            drafts,
           ),
-          drafts,
-        ),
-      });
-      if (!result.ok) {
-        setFailure({ code: result.code, retryAfter: result.retryAfter });
-        return;
+        });
+        if (!result.ok) {
+          setFailure({ code: result.code, retryAfter: result.retryAfter });
+          return;
+        }
+        setNames(Object.fromEntries(savable.map((r) => [r.repoId, r.fullName])));
+        setResults(result.response.results);
+      } else {
+        setResults([]);
       }
-      setNames(Object.fromEntries(savable.map((r) => [r.repoId, r.fullName])));
-      setResults(result.response.results);
+      // Then the ticked profile fields, one accept each; a failed one is reported, not hidden.
+      if (profileChosen.length > 0) {
+        const accepted = await acceptSuggestionsAction({ ids: profileChosen.map((i) => i.id) });
+        setProfileOutcome(
+          accepted.ok
+            ? {
+                updated: accepted.results.filter((r) => r.ok).length,
+                failed: accepted.results.filter((r) => !r.ok).length,
+              }
+            : { updated: 0, failed: profileChosen.length },
+        );
+      } else {
+        setProfileOutcome(null);
+      }
       setStep("result");
       router.refresh();
     } catch {
@@ -256,17 +357,56 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
       </DialogTitle>
       <DialogContent dividers>
         {step === "pick" && (
-          <RepoPicker
-            state={picker}
-            selected={selected}
-            onQuery={onQuery}
-            onToggle={toggle}
-            onMore={() => picker.nextCursor && void load(picker.query.trim(), picker.nextCursor)}
-            onRetry={() => void load(picker.query.trim())}
-            errorText={(code) => message({ code, retryAfter: picker.error?.retryAfter })}
-          />
+          <Tabs
+            value={tab}
+            onChange={(_, v: "repos" | "profile") => setTab(v)}
+            aria-label={text.title}
+            sx={{ mb: 2 }}
+          >
+            <Tab
+              value="repos"
+              label={text.tabRepos}
+              id="import-tab-repos"
+              aria-controls="import-panel-repos"
+            />
+            <Tab
+              value="profile"
+              label={text.tabProfile}
+              id="import-tab-profile"
+              aria-controls="import-panel-profile"
+            />
+          </Tabs>
         )}
-        {step === "review" && (
+        {step === "pick" && tab === "repos" && (
+          <div role="tabpanel" id="import-panel-repos" aria-labelledby="import-tab-repos">
+            <RepoPicker
+              state={picker}
+              selected={selected}
+              onQuery={onQuery}
+              onToggle={toggle}
+              onMore={() => picker.nextCursor && void load(picker.query.trim(), picker.nextCursor)}
+              onRetry={() => void load(picker.query.trim())}
+              errorText={(code) => message({ code, retryAfter: picker.error?.retryAfter })}
+            />
+          </div>
+        )}
+        {step === "pick" && tab === "profile" && (
+          <div role="tabpanel" id="import-panel-profile" aria-labelledby="import-tab-profile">
+            <ProfileTab
+              state={profile}
+              checked={checked}
+              onToggle={toggleProfile}
+              onDismiss={(id) => void dismissProfile(id)}
+              onRetry={() => void loadProfile()}
+              errorText={(code) => message({ code })}
+              dismissError={dismissError}
+            />
+          </div>
+        )}
+        {step === "review" && chosen.length === 0 && (
+          <ProfileSummary items={profileChosen} failure={failure ? message(failure) : null} />
+        )}
+        {step === "review" && chosen.length > 0 && (
           <ImportReview
             rows={rows}
             loading={previewState.loading}
@@ -284,13 +424,40 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
             failure={failure ? message(failure) : null}
           />
         )}
-        {step === "result" && <ImportResult results={results} names={names} />}
+        {step === "review" && chosen.length > 0 && profileChosen.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <ProfileSummary items={profileChosen} failure={null} />
+          </Box>
+        )}
+        {step === "result" && (
+          <>
+            {results.length > 0 && <ImportResult results={results} names={names} />}
+            {profileOutcome && (
+              <Stack spacing={1} sx={{ mt: results.length > 0 ? 2 : 0 }}>
+                {profileOutcome.updated > 0 && (
+                  <Alert severity="success">
+                    {text.profile.updated.replace("{count}", String(profileOutcome.updated))}
+                  </Alert>
+                )}
+                {profileOutcome.failed > 0 && (
+                  <Alert severity="warning" role="alert">
+                    {text.profile.failed.replace("{count}", String(profileOutcome.failed))}
+                  </Alert>
+                )}
+              </Stack>
+            )}
+          </>
+        )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         {step === "pick" && (
           <>
             <Button onClick={onClose}>{text.notNow}</Button>
-            <Button variant="contained" disabled={selected.size === 0} onClick={toReview}>
+            <Button
+              variant="contained"
+              disabled={selected.size === 0 && checked.size === 0}
+              onClick={toReview}
+            >
               {text.continue}
             </Button>
           </>
@@ -317,5 +484,31 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
         )}
       </DialogActions>
     </Dialog>
+  );
+};
+
+/** What the ticked profile fields will become, shown once more before Save. */
+const ProfileSummary: FC<{ items: SuggestionItem[]; failure: string | null }> = ({
+  items,
+  failure,
+}) => {
+  const { t } = useLanguage();
+  const text = t.integrations.import.profile;
+  return (
+    <Stack spacing={1}>
+      <Typography component="h3" variant="subtitle1">
+        {text.summaryTitle}
+      </Typography>
+      {failure && (
+        <Alert severity="error" role="alert">
+          {failure}
+        </Alert>
+      )}
+      {items.map((i) => (
+        <Typography key={i.id} variant="body2" sx={{ overflowWrap: "anywhere" }}>
+          <strong>{fieldLabel(i, text.fields)}:</strong> {i.proposed ?? text.emptyNow}
+        </Typography>
+      ))}
+    </Stack>
   );
 };

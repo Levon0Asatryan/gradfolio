@@ -155,6 +155,13 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   });
 
   if (url.pathname === "/__requests") return send(res, 200, seen);
+  if (url.pathname === "/__suggestions") {
+    const only = url.searchParams.get("token");
+    return send(res, 200, {
+      accepted: SUGGESTION_ACCEPTED.filter((x) => x.token === only).map((x) => x.id),
+      dismissed: SUGGESTION_DISMISSED.filter((x) => x.token === only).map((x) => x.id),
+    });
+  }
   if (url.pathname === "/__imports") {
     const only = url.searchParams.get("token");
     return send(
@@ -169,6 +176,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   }
 
   if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
+  if (url.pathname.startsWith("/v1/me/suggestions")) return suggestions(req, res, url.pathname);
   if (url.pathname === "/v1/me" || url.pathname === "/v1/me/profile")
     return account(req, res, url.pathname);
   if (
@@ -560,4 +568,66 @@ function githubProject(req: IncomingMessage, res: ServerResponse, path: string) 
     owner: { id: "0b6f2c1e-1111-4222-8333-444455556666", name: "Ani Petrosyan", avatarUrl: null },
   };
   return send(res, 200, body);
+}
+
+/**
+ * Profile suggestions from GitHub (API #82), keyed by token: one fill (bio, empty now) and one
+ * replace (location). `accepted` / `dismissed` lists are exposed at /__suggestions for assertions.
+ */
+const SUGGESTION_ACCEPTED: Array<{ token: string; id: string }> = [];
+const SUGGESTION_DISMISSED: Array<{ token: string; id: string }> = [];
+const suggestionItems = () => [
+  {
+    id: "0b6f2c1e-1111-4222-8333-444455556661",
+    kind: "profile.bio",
+    source: "github",
+    status: "open",
+    field: "bio",
+    current: null,
+    proposed: "I build things",
+    mode: "fill",
+    lastSyncedAt: null,
+    createdAt: "2026-10-16T10:00:00.000Z",
+    resolvedAt: null,
+  },
+  {
+    id: "0b6f2c1e-1111-4222-8333-444455556662",
+    kind: "profile.location",
+    source: "github",
+    status: "open",
+    field: "location",
+    current: "Yerevan",
+    proposed: "Gyumri",
+    mode: "replace",
+    lastSyncedAt: null,
+    createdAt: "2026-10-16T10:00:00.000Z",
+    resolvedAt: null,
+  },
+];
+function suggestions(req: IncomingMessage, res: ServerResponse, path: string) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  const gone = new Set(
+    [...SUGGESTION_ACCEPTED, ...SUGGESTION_DISMISSED]
+      .filter((x) => x.token === token)
+      .map((x) => x.id),
+  );
+  if (path === "/v1/me/suggestions/refresh")
+    return send(res, 200, { github: "refreshed", nextAllowedAt: null, created: 2, openCount: 2 });
+  if (path === "/v1/me/suggestions") {
+    if (token.startsWith("e2e-onempty-"))
+      return send(res, 200, { items: [], nextCursor: null, openCount: 0 });
+    const items = suggestionItems().filter((i) => !gone.has(i.id));
+    return send(res, 200, { items, nextCursor: null, openCount: items.length });
+  }
+  const m = /^\/v1\/me\/suggestions\/([^/]+)\/(accept|dismiss)$/.exec(path);
+  if (m) {
+    (m[2] === "accept" ? SUGGESTION_ACCEPTED : SUGGESTION_DISMISSED).push({ token, id: m[1]! });
+    return send(res, 200, {
+      id: m[1],
+      status: m[2] === "accept" ? "accepted" : "dismissed",
+      applied: null,
+    });
+  }
+  return send(res, 404, { code: "NOT_FOUND", message: "no" });
 }

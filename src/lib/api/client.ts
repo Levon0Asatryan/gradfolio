@@ -39,6 +39,9 @@ import type {
   GithubImportResponse,
   GithubPreviewResponse,
   GithubSyncResult,
+  SuggestionPage,
+  SuggestionRefresh,
+  SuggestionResolved,
 } from "./types";
 
 /**
@@ -282,6 +285,44 @@ export function importGithubRepos(
     path: "/v1/me/github/import",
     body: Object.keys(overrides).length > 0 ? { repoIds, overrides } : { repoIds },
   });
+}
+
+/** The caller's open suggestions, newest first (`status` defaults to open on the API). */
+export function listSuggestions(
+  query: { cursor?: string; limit?: number } = {},
+): Promise<SuggestionPage> {
+  const params = new URLSearchParams();
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return request<SuggestionPage>({
+    method: "GET",
+    path: `/v1/me/suggestions${qs ? `?${qs}` : ""}`,
+  });
+}
+
+/** Read GitHub's public profile (at most once per interval, API side) and recompute suggestions. */
+export function refreshSuggestions(): Promise<SuggestionRefresh> {
+  return request<SuggestionRefresh>({ method: "POST", path: "/v1/me/suggestions/refresh" });
+}
+
+const suggestionPath = (id: string, verb: "accept" | "dismiss"): string => {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such suggestion");
+  return `/v1/me/suggestions/${id}/${verb}`;
+};
+
+/** Apply one suggestion: the API writes the one field it names. */
+export function acceptSuggestion(id: string): Promise<SuggestionResolved> {
+  return Promise.resolve().then(() =>
+    request<SuggestionResolved>({ method: "POST", path: suggestionPath(id, "accept") }),
+  );
+}
+
+/** Dismiss one suggestion; the API remembers, so it does not come back with the same value. */
+export function dismissSuggestion(id: string): Promise<SuggestionResolved> {
+  return Promise.resolve().then(() =>
+    request<SuggestionResolved>({ method: "POST", path: suggestionPath(id, "dismiss") }),
+  );
 }
 
 /** Re-sync one imported project; `dryRun` reports and changes nothing. */
