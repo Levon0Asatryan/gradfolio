@@ -18,6 +18,7 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 import { disconnectGithubAction, startGithubConnectAction } from "@/lib/integrations/actions";
 import { errorCode } from "@/lib/integrations/errors";
 import type { Integrations } from "@/lib/api/types";
+import { GithubImportModal } from "@/components/github-import/GithubImportModal";
 import IntegrationCard from "./IntegrationCard";
 
 type Problem = { code: string; retryAfter?: number };
@@ -44,6 +45,7 @@ export const GithubCard: FC<{
   const [problem, setProblem] = useState<Problem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const cancel = useRef<HTMLButtonElement>(null);
   // State updates land after the click handler returns, so a fast double click would pass a
   // `busy` check twice. The ref closes that gap.
@@ -151,6 +153,11 @@ export const GithubCard: FC<{
           ) : undefined
         }
       >
+        {connected && (
+          <Button variant="contained" onClick={() => setImporting(true)}>
+            {text.importButton}
+          </Button>
+        )}
         {connected ? (
           <Button
             variant="outlined"
@@ -171,6 +178,8 @@ export const GithubCard: FC<{
           </Button>
         )}
       </IntegrationCard>
+
+      <GithubImportModal open={importing} onClose={() => setImporting(false)} />
 
       <Dialog
         open={confirming}

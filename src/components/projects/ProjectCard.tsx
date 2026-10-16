@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
 import TruncatedText from "@/components/shared/TruncatedText";
+import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectSummary } from "@/lib/api/types";
 import { safeHttpsUrl } from "@/utils/helpers/safeHttpUrl";
@@ -89,6 +90,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
         <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5, flex: 1 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
             <CategoryChip category={category} />
+            <SourceBadge source={project.source} />
             {project.isDraft ? (
               <Chip size="small" variant="outlined" label={t.projects.draft} />
             ) : !project.isPublic ? (

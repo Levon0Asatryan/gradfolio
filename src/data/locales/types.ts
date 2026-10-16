@@ -179,6 +179,90 @@ export interface Dictionary {
       disconnectBody: string;
       cancel: string;
     };
+    sourceBadge: string;
+    importButton: string;
+    import: {
+      title: string;
+      intro: string;
+      notNow: string;
+      searchLabel: string;
+      /** `{count}` `{max}` */
+      selected: string;
+      /** `{max}` */
+      maxReached: string;
+      imported: string;
+      openProject: string;
+      /** `{count}` */
+      stars: string;
+      noDescription: string;
+      loading: string;
+      loadMore: string;
+      empty: string;
+      emptyHelp: string;
+      noMatches: string;
+      /** `{remaining}` `{time}` */
+      rateLimit: string;
+      /** `{time}` */
+      rateLimited: string;
+      notConnected: string;
+      connect: string;
+      continue: string;
+      back: string;
+      reviewTitle: string;
+      reviewHelp: string;
+      fieldTitle: string;
+      fieldSummary: string;
+      fieldTechnologies: string;
+      fieldTechnologiesHint: string;
+      fieldRepoUrl: string;
+      descriptionNote: string;
+      /** `{name}` */
+      remove: string;
+      nothingLeft: string;
+      save: string;
+      saving: string;
+      resultTitle: string;
+      /** `{count}` */
+      created: string;
+      createdHelp: string;
+      /** `{count}` */
+      exists: string;
+      /** `{count}` */
+      skipped: string;
+      reasons: {
+        invalid_repository: string;
+        not_owner: string;
+        not_found: string;
+        LIMIT_REACHED: string;
+      };
+      notes: { README_TOO_LARGE: string };
+      editDraft: string;
+      goToProjects: string;
+      close: string;
+    };
+    resync: {
+      title: string;
+      lastSynced: string;
+      check: string;
+      checking: string;
+      apply: string;
+      applying: string;
+      done: string;
+      nothing: string;
+      editedKept: string;
+      githubValue: string;
+      fields: {
+        title: string;
+        summary: string;
+        descriptionHtml: string;
+        repoUrl: string;
+        technologies: string;
+      };
+      outcomes: { unchanged: string; updated: string; kept: string; conflict: string };
+      system: { stars: string; forks: string; language: string; readmeUrl: string };
+      systemTitle: string;
+      close: string;
+    };
     errors: Record<IntegrationErrorCode, string>;
     setup: {
       title: string;

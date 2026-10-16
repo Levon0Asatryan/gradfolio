@@ -12,6 +12,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import type { DashboardProject } from "@/lib/api/types";
 import Alert from "@mui/material/Alert";
 import { formatDay } from "@/utils/helpers/formatDay";
+import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 import TruncatedText from "@/components/shared/TruncatedText";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -36,6 +37,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
       >
         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
           <CategoryChip category={p.category} />
+          <SourceBadge source={p.source} />
           <Typography variant="caption" color="text.secondary">
             {t.projects.status[p.status]}
           </Typography>

@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, replace: vi.fn(), push: vi.fn() }),
 }));
+vi.mock("@/lib/integrations/importActions", () => ({
+  listGithubReposAction: vi.fn(),
+  importGithubReposAction: vi.fn(),
+}));
 vi.mock("@/lib/integrations/actions", () => ({
   startGithubConnectAction: mocks.start,
   disconnectGithubAction: mocks.disconnect,

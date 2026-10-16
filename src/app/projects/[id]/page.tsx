@@ -9,6 +9,7 @@ import AttachmentsGallery from "@/components/project/AttachmentsGallery";
 import ProjectMetadataCard from "@/components/project/ProjectMetadataCard";
 import { TeamSection } from "@/components/team/TeamSection";
 import TechTags from "@/components/project/TechTags";
+import { ResyncCard } from "@/components/project/ResyncCard";
 import { OwnerBar } from "@/components/project/OwnerBar";
 import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
@@ -101,8 +102,13 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
         category={project.category}
         heroImageUrl={project.heroImageUrl}
         repo={project.repo}
+        source={project.source}
         liveDemoUrl={project.liveDemoUrl}
       />
+
+      {project.isOwner && project.source === "github" && (
+        <ResyncCard projectId={project.id} repoUrl={project.repo.url} />
+      )}
 
       <Box
         sx={{

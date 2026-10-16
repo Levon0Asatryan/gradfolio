@@ -7,6 +7,10 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/integrations/connections",
 }));
+vi.mock("@/lib/integrations/importActions", () => ({
+  listGithubReposAction: vi.fn(),
+  importGithubReposAction: vi.fn(),
+}));
 vi.mock("@/lib/integrations/actions", () => ({
   startGithubConnectAction: vi.fn(),
   disconnectGithubAction: vi.fn(),
