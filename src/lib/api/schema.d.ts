@@ -895,7 +895,7 @@ export interface paths {
         };
         /**
          * The caller’s public GitHub repositories, paged
-         * @description **Not served yet: arrives with M7 PR (b).** Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
+         * @description Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
          */
         get: operations["listGithubRepos"];
         put?: never;
@@ -917,7 +917,7 @@ export interface paths {
         put?: never;
         /**
          * Import repositories as draft projects
-         * @description **Not served yet: arrives with M7 PR (b).** Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3).
+         * @description Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3).
          */
         post: operations["importGithubRepos"];
         delete?: never;
@@ -937,7 +937,7 @@ export interface paths {
         put?: never;
         /**
          * Re-sync an imported project from GitHub, never overwriting an edit
-         * @description **Not served yet: arrives with M7 PR (b).** Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing.
+         * @description Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing.
          */
         post: operations["syncGithubProject"];
         delete?: never;
@@ -1263,6 +1263,11 @@ export interface components {
             role: "owner" | "member";
             isPublic: boolean;
             isDraft: boolean;
+            /**
+             * @description `github`: imported from a GitHub repository (M7); shows the GitHub badge.
+             * @enum {string}
+             */
+            source: "manual" | "github";
             /** @description ISO 8601, UTC. */
             updatedAt: string;
         };
@@ -1337,10 +1342,10 @@ export interface components {
             /** @enum {string} */
             outcome: "created" | "exists" | "skipped";
             /**
-             * @description Why it was skipped: `not_owner` when the caller neither owns it nor may push to it.
+             * @description Why it was skipped: `not_owner` when the caller neither owns it nor may push to it; `invalid_repository` when GitHub’s data cannot be stored as a project.
              * @enum {string|null}
              */
-            reason: "not_found" | "not_owner" | "LIMIT_REACHED" | null;
+            reason: "not_found" | "not_owner" | "invalid_repository" | "LIMIT_REACHED" | null;
             /** @description The draft created, or the existing one. */
             projectId: string | null;
             /** @description `README_TOO_LARGE`: created without a description. */
@@ -1709,6 +1714,11 @@ export interface components {
             role: "owner" | "member";
             isPublic: boolean;
             isDraft: boolean;
+            /**
+             * @description `github`: imported from a GitHub repository (M7); shows the GitHub badge.
+             * @enum {string}
+             */
+            source: "manual" | "github";
         };
         ProjectAttachment: {
             id: string;
@@ -1720,7 +1730,7 @@ export interface components {
             /** @description Videos on an allow-listed host only: the URL to put in an iframe. Never embed `url`. */
             embedUrl: string | null;
         };
-        /** @description A published project of a public profile as a card. Never the description, links, files, visibility flags or repository data. */
+        /** @description A published project of a public profile as a card. Never the description, links, files, visibility flags or repository facts (only whether it was imported from GitHub). */
         ProjectCard: {
             id: string;
             title: string;
@@ -1731,6 +1741,11 @@ export interface components {
             /** @enum {string} */
             status: "ongoing" | "completed" | "archived";
             heroImageUrl: string | null;
+            /**
+             * @description `github`: imported from a GitHub repository (M7); shows the GitHub badge.
+             * @enum {string}
+             */
+            source: "manual" | "github";
             /** @description Up to 5. */
             technologies: string[];
             /** @description Up to 5. */
@@ -1769,6 +1784,11 @@ export interface components {
             /** @description The caller owns the project. */
             isOwner: boolean;
             ownerId: string;
+            /**
+             * @description `github`: imported from a GitHub repository (M7); shows the GitHub badge.
+             * @enum {string}
+             */
+            source: "manual" | "github";
             metadata: components["schemas"]["ProjectMetadata"];
             /** @description ISO 8601, UTC. */
             createdAt: string;
@@ -1792,8 +1812,6 @@ export interface components {
             /** @description Accepted team members. The owner is `owner`, not a member. */
             team: components["schemas"]["ProjectTeamMember"][];
             owner: components["schemas"]["ProjectOwner"];
-            /** @enum {string} */
-            source: "manual" | "github";
         };
         ProjectGroup: {
             items: components["schemas"]["ProjectCard"][];
@@ -1860,6 +1878,11 @@ export interface components {
             /** @description The caller owns the project. */
             isOwner: boolean;
             ownerId: string;
+            /**
+             * @description `github`: imported from a GitHub repository (M7); shows the GitHub badge.
+             * @enum {string}
+             */
+            source: "manual" | "github";
             metadata: components["schemas"]["ProjectMetadata"];
             /** @description ISO 8601, UTC. */
             createdAt: string;
@@ -5397,7 +5420,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description NOT_GITHUB_PROJECT: the project was not imported; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED */
+            /** @description NOT_GITHUB_PROJECT: the project was not imported; GITHUB_REPO_UNAVAILABLE: the repository is gone or no longer visible; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED */
             409: {
                 headers: {
                     [name: string]: unknown;

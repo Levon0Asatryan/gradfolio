@@ -22,6 +22,7 @@ const project = (over: Partial<DiscoveryProject> = {}): DiscoveryProject => ({
   summary: "Soil moisture with MQTT.",
   category: "course",
   status: "completed",
+  source: "manual",
   heroImageUrl: null,
   technologies: ["Arduino", "IoT"],
   tags: [],

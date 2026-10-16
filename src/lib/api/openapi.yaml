@@ -3211,8 +3211,7 @@ paths:
       tags:
         - integrations
       summary: The caller’s public GitHub repositories, paged
-      description: "**Not served yet: arrives with M7 PR (b).** Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`."
-      x-gradfolio-planned: M7 PR (b)
+      description: Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
       security:
         - bearerAuth: []
       parameters:
@@ -3295,8 +3294,7 @@ paths:
       tags:
         - integrations
       summary: Import repositories as draft projects
-      description: "**Not served yet: arrives with M7 PR (b).** Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3)."
-      x-gradfolio-planned: M7 PR (b)
+      description: "Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3)."
       security:
         - bearerAuth: []
       requestBody:
@@ -3379,8 +3377,7 @@ paths:
       tags:
         - integrations
       summary: Re-sync an imported project from GitHub, never overwriting an edit
-      description: "**Not served yet: arrives with M7 PR (b).** Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing."
-      x-gradfolio-planned: M7 PR (b)
+      description: "Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing."
       security:
         - bearerAuth: []
       parameters:
@@ -3426,7 +3423,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: "NOT_GITHUB_PROJECT: the project was not imported; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED"
+          description: "NOT_GITHUB_PROJECT: the project was not imported; GITHUB_REPO_UNAVAILABLE: the repository is gone or no longer visible; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED"
           content:
             application/json:
               schema:
@@ -4777,6 +4774,12 @@ components:
           type: boolean
         isDraft:
           type: boolean
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         updatedAt:
           type: string
           description: ISO 8601, UTC.
@@ -4790,6 +4793,7 @@ components:
         - role
         - isPublic
         - isDraft
+        - source
         - updatedAt
       additionalProperties: false
     DashboardProjectCounts:
@@ -4992,11 +4996,12 @@ components:
             - skipped
         reason:
           nullable: true
-          description: "Why it was skipped: `not_owner` when the caller neither owns it nor may push to it."
+          description: "Why it was skipped: `not_owner` when the caller neither owns it nor may push to it; `invalid_repository` when GitHub’s data cannot be stored as a project."
           type: string
           enum:
             - not_found
             - not_owner
+            - invalid_repository
             - LIMIT_REACHED
         projectId:
           nullable: true
@@ -6047,6 +6052,12 @@ components:
           type: boolean
         isDraft:
           type: boolean
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
       required:
         - id
         - title
@@ -6058,6 +6069,7 @@ components:
         - role
         - isPublic
         - isDraft
+        - source
       additionalProperties: false
     ProjectAttachment:
       type: object
@@ -6120,6 +6132,12 @@ components:
         heroImageUrl:
           nullable: true
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         technologies:
           type: array
           items:
@@ -6145,13 +6163,14 @@ components:
         - category
         - status
         - heroImageUrl
+        - source
         - technologies
         - tags
         - owner
         - createdAt
         - updatedAt
       additionalProperties: false
-      description: A published project of a public profile as a card. Never the description, links, files, visibility flags or repository data.
+      description: A published project of a public profile as a card. Never the description, links, files, visibility flags or repository facts (only whether it was imported from GitHub).
     ProjectCardOwner:
       type: object
       properties:
@@ -6220,6 +6239,12 @@ components:
           description: The caller owns the project.
         ownerId:
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         metadata:
           $ref: "#/components/schemas/ProjectMetadata"
         createdAt:
@@ -6278,11 +6303,6 @@ components:
           description: Accepted team members. The owner is `owner`, not a member.
         owner:
           $ref: "#/components/schemas/ProjectOwner"
-        source:
-          type: string
-          enum:
-            - manual
-            - github
       required:
         - id
         - title
@@ -6297,6 +6317,7 @@ components:
         - isDraft
         - isOwner
         - ownerId
+        - source
         - metadata
         - createdAt
         - updatedAt
@@ -6309,7 +6330,6 @@ components:
         - attachments
         - team
         - owner
-        - source
       additionalProperties: false
     ProjectGroup:
       type: object
@@ -6469,6 +6489,12 @@ components:
           description: The caller owns the project.
         ownerId:
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         metadata:
           $ref: "#/components/schemas/ProjectMetadata"
         createdAt:
@@ -6491,6 +6517,7 @@ components:
         - isDraft
         - isOwner
         - ownerId
+        - source
         - metadata
         - createdAt
         - updatedAt

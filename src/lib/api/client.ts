@@ -35,6 +35,9 @@ import type {
   Integrations,
   GithubConnectResult,
   GithubConnected,
+  GithubRepoPage,
+  GithubImportResponse,
+  GithubSyncResult,
 } from "./types";
 
 /**
@@ -224,6 +227,60 @@ export function linkGithub(idToken: string): Promise<GithubConnected> {
     method: "POST",
     path: "/v1/me/integrations/github/link",
     body: { idToken },
+  });
+}
+
+/**
+ * One page of the caller's public repositories. `q` (a search over the name and description)
+ * is part of the contract proposed for PR 3 and ignored by an API that does not have it yet.
+ */
+export function listGithubRepos(query: {
+  cursor?: string;
+  q?: string;
+  limit?: number;
+}): Promise<GithubRepoPage> {
+  const params = new URLSearchParams();
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.q) params.set("q", query.q);
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return request<GithubRepoPage>({
+    method: "GET",
+    path: `/v1/me/github/repos${qs ? `?${qs}` : ""}`,
+  });
+}
+
+/** What the review step may change before the drafts are created (one request, PR 3 contract). */
+export interface GithubImportEdit {
+  repoId: number;
+  title?: string;
+  summary?: string;
+  technologies?: string[];
+  repoUrl?: string;
+}
+
+/**
+ * Import the repositories as drafts in one request. `edits` is the optional per-repository
+ * override proposed for this PR (the API validates it like a project create); it is sent only
+ * when there is one, so an API without it still serves a plain import.
+ */
+export function importGithubRepos(
+  repoIds: number[],
+  edits: GithubImportEdit[],
+): Promise<GithubImportResponse> {
+  return request<GithubImportResponse>({
+    method: "POST",
+    path: "/v1/me/github/import",
+    body: edits.length > 0 ? { repoIds, edits } : { repoIds },
+  });
+}
+
+/** Re-sync one imported project; `dryRun` reports and changes nothing. */
+export async function syncGithubProject(id: string, dryRun: boolean): Promise<GithubSyncResult> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return request<GithubSyncResult>({
+    method: "POST",
+    path: `/v1/me/projects/${id}/github/sync${dryRun ? "?dryRun=true" : "?dryRun=false"}`,
   });
 }
 
