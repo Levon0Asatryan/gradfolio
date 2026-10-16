@@ -14,7 +14,6 @@ import {
 } from "@mui/material";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { AccountCard } from "./AccountCard";
-import { deleteAccountAction } from "@/lib/profile/actions";
 
 /**
  * Delete the account (3.9). Needs an explicit "I understand", and signs the user
@@ -27,29 +26,35 @@ export const DeleteAccount: FC = () => {
   const [open, setOpen] = useState(false);
   const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   function close() {
     if (busy) return;
     setOpen(false);
     setUnderstood(false);
-    setFailed(false);
+    setFailed(null);
   }
 
   async function remove() {
     if (busy || !understood) return;
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
-      const result = await deleteAccountAction();
-      if (result.ok) {
-        // A plain navigation: /auth/* is the SDK's, not a Next route.
-        window.location.assign("/auth/logout");
+      // A same-origin request that renders nothing: a server action would re-render this page,
+      // and `GET /v1/me` on a token that is still valid creates a new empty account.
+      const response = await fetch("/api/account", { method: "DELETE", cache: "no-store" });
+      if (response.ok) {
+        // Sign out at once. `replace`, so Back does not return to a page of a deleted account;
+        // a plain navigation, as /auth/* is the SDK's and not a Next route. The dialog stays
+        // busy: nothing else may run now.
+        window.location.replace("/auth/logout");
         return;
       }
-      setFailed(true);
+      const body: unknown = await response.json().catch(() => null);
+      const code = (body as { code?: unknown } | null)?.code;
+      setFailed(typeof code === "string" ? code : "UNKNOWN_ERROR");
     } catch {
-      setFailed(true);
+      setFailed("UNKNOWN_ERROR");
     }
     setBusy(false);
   }
@@ -75,7 +80,7 @@ export const DeleteAccount: FC = () => {
           />
           {failed && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              {text.error}
+              {failed === "GITHUB_REVOKE_FAILED" ? text.errorGithub : text.error}
             </Alert>
           )}
         </DialogContent>

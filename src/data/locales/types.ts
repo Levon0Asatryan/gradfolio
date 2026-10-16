@@ -655,6 +655,7 @@ export interface Dictionary {
     understand: string;
     confirm: string;
     error: string;
+    errorGithub: string;
   };
   notifications: {
     title: string;

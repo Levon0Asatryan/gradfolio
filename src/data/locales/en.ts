@@ -707,6 +707,8 @@ export const en: Dictionary = {
     understand: "I understand this cannot be undone",
     confirm: "Delete account",
     error: "Could not delete your account. Please try again.",
+    errorGithub:
+      "GitHub did not confirm that access was removed, so your account was not deleted. Try again in a minute.",
   },
   notifications: {
     title: "Notifications",
