@@ -2090,10 +2090,10 @@ export interface components {
         };
         SuggestionRefresh: {
             /**
-             * @description `refreshed`: GitHub was read; `unchanged`: GitHub answered 304; `throttled`: read less than SUGGESTIONS_MIN_INTERVAL_S ago, the stored profile was used; `not_connected`.
+             * @description `refreshed`: GitHub was read; `unchanged`: GitHub answered 304; `throttled`: read less than SUGGESTIONS_MIN_INTERVAL_S ago, the stored profile was used; `discarded`: GitHub was read but the connection it was read for was disconnected and replaced meanwhile, so nothing of it was applied (refresh again); `not_connected`.
              * @enum {string}
              */
-            github: "refreshed" | "unchanged" | "throttled" | "not_connected";
+            github: "refreshed" | "unchanged" | "throttled" | "discarded" | "not_connected";
             /** @description When GitHub may be read again, ISO 8601; null when not connected. */
             nextAllowedAt: string | null;
             /** @description Suggestions this refresh opened. */
