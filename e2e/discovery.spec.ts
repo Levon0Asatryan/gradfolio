@@ -457,6 +457,12 @@ for (const language of LANGUAGES) {
         await page.keyboard.type("io", { delay: 30 });
         await expect(page.getByRole("listbox")).toBeVisible();
         await page.keyboard.press("ArrowDown");
+        // Typing runs a debounced router.replace to /search?q=io, and Next swaps `<title>` a
+        // moment AFTER the URL changes: for that moment the page has none, and axe's
+        // document-title rule failed about 1 run in 15 under load (found by repeating this test
+        // 240 times with the wait removed and added). Judge the page once its title says "io".
+        await page.waitForURL(/q=io/);
+        await page.waitForFunction(() => document.title.startsWith("io |"));
         await settled(page);
         expect(await seriousAxe(page)).toEqual([]);
         expect(problems).toEqual([]);
