@@ -35,6 +35,10 @@ import type {
   Integrations,
   GithubConnectResult,
   GithubConnected,
+  GithubRepoPage,
+  GithubImportResponse,
+  GithubPreviewResponse,
+  GithubSyncResult,
 } from "./types";
 
 /**
@@ -224,6 +228,68 @@ export function linkGithub(idToken: string): Promise<GithubConnected> {
     method: "POST",
     path: "/v1/me/integrations/github/link",
     body: { idToken },
+  });
+}
+
+/**
+ * One page of the caller's public repositories. `q` is a case-insensitive substring of the name,
+ * description or language (the API scans a few pages and returns every match).
+ */
+export function listGithubRepos(query: {
+  cursor?: string;
+  q?: string;
+  limit?: number;
+}): Promise<GithubRepoPage> {
+  const params = new URLSearchParams();
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.q) params.set("q", query.q);
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return request<GithubRepoPage>({
+    method: "GET",
+    path: `/v1/me/github/repos${qs ? `?${qs}` : ""}`,
+  });
+}
+
+/** What the student edited in the review step, per repository (`GithubDraftOverrides`). */
+export interface GithubOverride {
+  title?: string;
+  summary?: string | null;
+  technologies?: string[];
+}
+
+/** The drafts an import would create; nothing is saved (`POST /v1/me/github/import/preview`). */
+export function previewGithubImport(repoIds: number[]): Promise<GithubPreviewResponse> {
+  return request<GithubPreviewResponse>({
+    method: "POST",
+    path: "/v1/me/github/import/preview",
+    body: { repoIds },
+  });
+}
+
+/**
+ * Import the repositories as drafts in one request. `overrides` (keyed by repository id) carry
+ * only the fields the student changed in the review step; an untouched import sends none. The
+ * API reads GitHub again and validates them like a project create: the preview is never trusted
+ * back.
+ */
+export function importGithubRepos(
+  repoIds: number[],
+  overrides: Record<string, GithubOverride>,
+): Promise<GithubImportResponse> {
+  return request<GithubImportResponse>({
+    method: "POST",
+    path: "/v1/me/github/import",
+    body: Object.keys(overrides).length > 0 ? { repoIds, overrides } : { repoIds },
+  });
+}
+
+/** Re-sync one imported project; `dryRun` reports and changes nothing. */
+export async function syncGithubProject(id: string, dryRun: boolean): Promise<GithubSyncResult> {
+  if (!UUID.test(id)) throw new ApiError(404, "NOT_FOUND", "no such project");
+  return request<GithubSyncResult>({
+    method: "POST",
+    path: `/v1/me/projects/${id}/github/sync${dryRun ? "?dryRun=true" : "?dryRun=false"}`,
   });
 }
 

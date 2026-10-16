@@ -12,6 +12,8 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type {
+  GithubRepo,
+  ProjectDetail,
   Integrations,
   DiscoveryProject,
   Suggestions,
@@ -46,6 +48,7 @@ const project = (n: number, over: Partial<DiscoveryProject> = {}): DiscoveryProj
   summary: "Soil moisture monitoring with MQTT and an IoT gateway.",
   category: (["course", "personal", "research", "hackathon"] as const)[n % 4] ?? "other",
   status: "completed",
+  source: "manual",
   heroImageUrl: null,
   technologies: ["Arduino", "IoT", "MQTT"],
   tags: ["iot"],
@@ -91,7 +94,7 @@ const github = new Map<string, Integrations["github"]>();
 const githubFor = (token: string): Integrations["github"] => {
   let state = github.get(token);
   if (!state) {
-    const on = /^e2e-on(502)?-/.test(token);
+    const on = /^e2e-on(502|rl|empty|err)?-/.test(token);
     state = {
       available: !token.startsWith("e2e-unavailable-"),
       status: on ? "connected" : "not_connected",
@@ -152,6 +155,14 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   });
 
   if (url.pathname === "/__requests") return send(res, 200, seen);
+  if (url.pathname === "/__imports") {
+    const only = url.searchParams.get("token");
+    return send(
+      res,
+      200,
+      importBodies.filter((b) => !only || b.token === only),
+    );
+  }
   if (url.pathname === "/__reset") {
     seen.length = 0;
     return send(res, 200, {});
@@ -160,6 +171,13 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
   if (url.pathname === "/v1/me" || url.pathname === "/v1/me/profile")
     return account(req, res, url.pathname);
+  if (
+    url.pathname.startsWith("/v1/me/github/") ||
+    /^\/v1\/me\/projects\/[^/]+\/github\/sync$/.test(url.pathname)
+  )
+    return githubData(req, res, url);
+  if (url.pathname.startsWith("/v1/projects/5c1d9a3e-0000-4000-8000-"))
+    return githubProject(req, res, url.pathname);
 
   const failure = FAIL[q as keyof typeof FAIL];
   if (failure && url.pathname.startsWith("/v1/search")) return send(res, failure[0], failure[1]);
@@ -359,4 +377,187 @@ function account(req: IncomingMessage, res: ServerResponse, path: string) {
     avatarUrl: null,
     links: { github: null, linkedin: null, twitter: null, website: null },
   });
+}
+
+/**
+ * GitHub repositories and import (docs/m7-plan.md section 4), keyed by the bearer token like the
+ * integrations: `e2e-on-*` a normal account; `e2e-onrl-*` the GitHub limit is reached (429);
+ * `e2e-onempty-*` no public repositories; `e2e-onerr-*` GitHub fails (502).
+ * Repository 3 is already imported. `q` filters by name; the first page has a cursor.
+ */
+const REPOS: GithubRepo[] = Array.from({ length: 5 }, (_, i) => ({
+  repoId: i + 1,
+  fullName: `ani-p/${["thesis-tracker", "smart-garden", "dotfiles", "ml-notes", "c-sharp-labs"][i]}`,
+  description:
+    i === 4
+      ? null
+      : `Repository ${i + 1}: ${"a long description that wraps. ".repeat(i === 1 ? 6 : 1)}`,
+  language: ["TypeScript", "C++", "Shell", "Python", null][i] ?? null,
+  stars: i * 3,
+  forks: i,
+  fork: false,
+  archived: false,
+  pushedAt: "2026-10-01T10:00:00.000Z",
+  imported: i === 2,
+  projectId: i === 2 ? "5c1d9a3e-0000-4000-8000-000000000003" : null,
+}));
+const importBodies: Array<{ token: string; repoIds: number[]; overrides?: unknown }> = [];
+
+function githubData(req: IncomingMessage, res: ServerResponse, url: URL) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  const rateLimit = { remaining: 4000, resetsAt: "2026-10-16T10:30:00.000Z" };
+  if (url.pathname === "/v1/me/github/repos") {
+    if (token.startsWith("e2e-onrl-"))
+      return send(res, 429, { code: "GITHUB_RATE_LIMITED", message: "limit" });
+    if (token.startsWith("e2e-onerr-"))
+      return send(res, 502, { code: "GITHUB_UNAVAILABLE", message: "down" });
+    if (token.startsWith("e2e-onempty-"))
+      return send(res, 200, { items: [], nextCursor: null, rateLimit });
+    const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+    const all = REPOS.filter((r) => !q || r.fullName.toLowerCase().includes(q));
+    const cursor = url.searchParams.get("cursor");
+    return send(res, 200, {
+      items: cursor ? all.slice(3) : all.slice(0, 3),
+      nextCursor: !cursor && all.length > 3 ? "page-2" : null,
+      rateLimit,
+    });
+  }
+  if (url.pathname === "/v1/me/github/import/preview" && req.method === "POST") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      const body = JSON.parse(raw) as { repoIds: number[] };
+      send(res, 200, {
+        results: body.repoIds.map((id) => {
+          const repo = REPOS.find((r) => r.repoId === id);
+          const name = repo?.fullName.split("/")[1] ?? String(id);
+          if (id === 3)
+            return {
+              repoId: id,
+              outcome: "exists",
+              reason: null,
+              projectId: "5c1d9a3e-0000-4000-8000-000000000003",
+              draft: null,
+              notes: [],
+            };
+          if (id === 5)
+            return {
+              repoId: id,
+              outcome: "skipped",
+              reason: "not_owner",
+              projectId: null,
+              draft: null,
+              notes: [],
+            };
+          return {
+            repoId: id,
+            outcome: "draft",
+            reason: null,
+            projectId: null,
+            draft: {
+              title: name,
+              summary: repo?.description?.trim() ?? null,
+              descriptionHtml: `<h1>${name}</h1><p>README of ${name}, cleaned by the server.</p>`,
+              technologies: repo?.language ? [repo.language] : [],
+              links: [],
+              repoUrl: `https://github.com/${repo?.fullName ?? ""}`,
+              isPublic: true,
+            },
+            notes: [],
+          };
+        }),
+        rateLimit,
+      });
+    });
+    return;
+  }
+  if (url.pathname === "/v1/me/github/import" && req.method === "POST") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      const body = JSON.parse(raw) as { repoIds: number[] };
+      importBodies.push({ token, ...body });
+      send(res, 200, {
+        results: body.repoIds.map((id) =>
+          id === 3
+            ? {
+                repoId: id,
+                outcome: "exists",
+                reason: null,
+                projectId: "5c1d9a3e-0000-4000-8000-000000000003",
+                notes: [],
+              }
+            : id === 5
+              ? { repoId: id, outcome: "skipped", reason: "not_owner", projectId: null, notes: [] }
+              : {
+                  repoId: id,
+                  outcome: "created",
+                  reason: null,
+                  projectId: `5c1d9a3e-0000-4000-8000-00000000000${id}`,
+                  notes: [],
+                },
+        ),
+        rateLimit,
+      });
+    });
+    return;
+  }
+  // Re-sync: a dry run reports; the real call returns the same fields with dryRun false.
+  const dry = url.searchParams.get("dryRun") === "true";
+  return send(res, 200, {
+    dryRun: dry,
+    fields: [
+      { field: "title", outcome: "unchanged" },
+      { field: "summary", outcome: "updated" },
+      { field: "technologies", outcome: "kept" },
+      { field: "descriptionHtml", outcome: "conflict", githubValue: "GitHub's newer README" },
+      { field: "repoUrl", outcome: "unchanged" },
+    ],
+    systemUpdated: [{ field: "stars", value: 12 }],
+  });
+}
+
+/** An owner's GitHub-imported project page; id `...0003` is the one the repo list marks imported. */
+function githubProject(req: IncomingMessage, res: ServerResponse, path: string) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 404, { code: "NOT_FOUND", message: "no" });
+  if (path.endsWith("/team")) return send(res, 200, { items: [], nextCursor: null });
+  const id = path.split("/")[3] ?? "";
+  const body: ProjectDetail = {
+    id,
+    title: "dotfiles",
+    summary: "My shell setup",
+    category: "personal",
+    status: "ongoing",
+    source: "github",
+    heroImageUrl: null,
+    tags: [],
+    role: "owner",
+    technologies: ["Shell"],
+    isPublic: false,
+    isDraft: true,
+    isOwner: true,
+    ownerId: "0b6f2c1e-1111-4222-8333-444455556666",
+    metadata: { startDate: null, endDate: null, course: null, professor: null },
+    createdAt: "2026-10-01T10:00:00.000Z",
+    updatedAt: "2026-10-01T10:00:00.000Z",
+    aiSummary: null,
+    descriptionHtml: "<p>Imported README.</p>",
+    liveDemoUrl: null,
+    repo: {
+      url: "https://github.com/ani-p/dotfiles",
+      latestCommitDate: "2026-10-01",
+      readmeUrl: "https://github.com/ani-p/dotfiles#readme",
+      stars: 6,
+      forks: 2,
+      language: "Shell",
+    },
+    links: [],
+    files: [],
+    attachments: [],
+    team: [],
+    owner: { id: "0b6f2c1e-1111-4222-8333-444455556666", name: "Ani Petrosyan", avatarUrl: null },
+  };
+  return send(res, 200, body);
 }

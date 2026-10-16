@@ -22,6 +22,8 @@ tags:
     description: The caller’s own activity feed
   - name: integrations
     description: The caller’s GitHub and LinkedIn connections and imports
+  - name: suggestions
+    description: What GitHub and the sign-in claims suggest for the caller’s profile
   - name: discovery
     description: "Public search and tag pages: published work of public profiles only"
 paths:
@@ -3211,11 +3213,18 @@ paths:
       tags:
         - integrations
       summary: The caller’s public GitHub repositories, paged
-      description: "**Not served yet: arrives with M7 PR (b).** Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`."
-      x-gradfolio-planned: M7 PR (b)
+      description: Owned and collaborator repositories, public only (D6), most recently pushed first. `q` searches name, description and language over up to GITHUB_SEARCH_SCAN_PAGES pages. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
       security:
         - bearerAuth: []
       parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            description: "Search: a case-insensitive substring of the repository’s name, description or language. GitHub cannot search this list, so up to GITHUB_SEARCH_SCAN_PAGES pages of 100 are read and every match in them is returned (`limit` does not apply); `nextCursor` continues after the last page read."
+            type: string
+            minLength: 1
+            maxLength: 100
         - name: cursor
           in: query
           required: false
@@ -3295,8 +3304,7 @@ paths:
       tags:
         - integrations
       summary: Import repositories as draft projects
-      description: "**Not served yet: arrives with M7 PR (b).** Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3)."
-      x-gradfolio-planned: M7 PR (b)
+      description: "Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3). `overrides` (per repository id) are what the student edited in the review step: title, summary, description, technologies, links, validated like a manual create (a bad one is a 400 naming `overrides.<id>.<field>` and nothing is created). They cannot set the source, the repository facts or the visibility, and the re-sync snapshot records what GitHub gave, so a later re-sync keeps them."
       security:
         - bearerAuth: []
       requestBody:
@@ -3316,6 +3324,11 @@ paths:
                     exclusiveMinimum: true
                     maximum: 9007199254740991
                   description: 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once.
+                overrides:
+                  description: Per repository id (a key of `repoIds`), the fields the student edited in the review step. The README still comes from GitHub unless `descriptionHtml` is given. The re-sync snapshot records what GitHub gave, not these, so a later re-sync keeps them.
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/GithubDraftOverrides"
               required:
                 - repoIds
               additionalProperties: false
@@ -3373,14 +3386,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/github/import/preview:
+    post:
+      operationId: previewGithubImport
+      tags:
+        - integrations
+      summary: The drafts an import would create, for the review step; saves nothing
+      description: "Read from GitHub exactly as the import does (ownership, README sanitized, the project create rules). `draft` is what the student may edit; `exists` and `skipped` say why a repository has none. The save re-reads GitHub: this answer is never trusted back."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoIds:
+                  minItems: 1
+                  maxItems: 10
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+                    exclusiveMinimum: true
+                    maximum: 9007199254740991
+                  description: 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once.
+              required:
+                - repoIds
+              additionalProperties: false
+      responses:
+        "200":
+          description: One result per repository
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GithubPreviewResult"
+                  rateLimit:
+                    $ref: "#/components/schemas/GithubRateLimit"
+                required:
+                  - results
+                  - rateLimit
+                additionalProperties: false
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /v1/me/projects/{id}/github/sync:
     post:
       operationId: syncGithubProject
       tags:
         - integrations
       summary: Re-sync an imported project from GitHub, never overwriting an edit
-      description: "**Not served yet: arrives with M7 PR (b).** Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing."
-      x-gradfolio-planned: M7 PR (b)
+      description: "Per field: a value the caller edited is kept; one GitHub changed and the caller did not is updated; both changed is a `conflict` (kept, GitHub’s value reported). Stars, forks, language and README link always refresh (D8). `dryRun=true` reports without changing."
       security:
         - bearerAuth: []
       parameters:
@@ -3426,7 +3521,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: "NOT_GITHUB_PROJECT: the project was not imported; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED"
+          description: "NOT_GITHUB_PROJECT: the project was not imported; GITHUB_REPO_UNAVAILABLE: the repository is gone or no longer visible; GITHUB_NOT_CONNECTED; GITHUB_NOT_LINKED"
           content:
             application/json:
               schema:
@@ -3762,6 +3857,223 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: "STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/suggestions:
+    get:
+      operationId: listSuggestions
+      tags:
+        - suggestions
+      summary: The caller’s suggestions, newest first
+      description: Open ones by default (`status=all` adds the answered). A `profile.*` suggestion names the `field`, what it holds now (`current`) and what an accept would write (`proposed`). `openCount` is the caller’s open suggestions in all.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            default: open
+            type: string
+            enum:
+              - open
+              - all
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: One page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionPage"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/suggestions/refresh:
+    post:
+      operationId: refreshSuggestions
+      tags:
+        - suggestions
+      summary: Read GitHub’s public profile and recompute the suggestions
+      description: "Reads GitHub at most once per SUGGESTIONS_MIN_INTERVAL_S (conditionally by ETag; a refresh inside the floor uses the stored profile and says `throttled`), then opens what is new, supersedes what GitHub no longer says, and never reopens an answered suggestion with the same value. LinkedIn: a sign-in’s name and photo, and a re-import reminder. Without GitHub connected only the LinkedIn rules run."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: What was done
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionRefresh"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: "GITHUB_UNAVAILABLE: GitHub failed or timed out"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/suggestions/{id}/accept:
+    post:
+      operationId: acceptSuggestion
+      tags:
+        - suggestions
+      summary: "Apply a suggestion: write the one field it names"
+      description: Writes that field through the profile’s own rules and marks the suggestion accepted, in one transaction. Idempotent for an accepted one. A reminder is only acknowledged.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The suggestion id (UUID)
+            example: 0b6f2c1e-…
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionResolved"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such suggestion of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/suggestions/{id}/dismiss:
+    post:
+      operationId: dismissSuggestion
+      tags:
+        - suggestions
+      summary: Dismiss a suggestion; it is not offered again until the value changes
+      description: "Remembered by its key, which carries a hash of the proposed value: GitHub saying something else is a new suggestion. Idempotent for a dismissed one."
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The suggestion id (UUID)
+            example: 0b6f2c1e-…
+      responses:
+        "200":
+          description: Dismissed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestionResolved"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such suggestion of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
           content:
             application/json:
               schema:
@@ -4777,6 +5089,12 @@ components:
           type: boolean
         isDraft:
           type: boolean
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         updatedAt:
           type: string
           description: ISO 8601, UTC.
@@ -4790,6 +5108,7 @@ components:
         - role
         - isPublic
         - isDraft
+        - source
         - updatedAt
       additionalProperties: false
     DashboardProjectCounts:
@@ -4977,6 +5296,88 @@ components:
             - nonce
             - expiresAt
           additionalProperties: false
+    GithubDraft:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          nullable: true
+          type: string
+        descriptionHtml:
+          nullable: true
+          description: The README, sanitized; images dropped.
+          type: string
+        technologies:
+          type: array
+          items:
+            type: string
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+            required:
+              - label
+              - url
+            additionalProperties: false
+        repoUrl:
+          type: string
+          description: Shown, not editable.
+        isPublic:
+          type: boolean
+          description: The repository is public; not editable here.
+      required:
+        - title
+        - summary
+        - descriptionHtml
+        - technologies
+        - links
+        - repoUrl
+        - isPublic
+      additionalProperties: false
+    GithubDraftOverrides:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 5000
+        summary:
+          nullable: true
+          type: string
+          maxLength: 70000
+        descriptionHtml:
+          nullable: true
+          description: Sanitized like any description. Omit to keep the README from GitHub.
+          type: string
+          maxLength: 500000
+        technologies:
+          maxItems: 100
+          type: array
+          items:
+            type: string
+            maxLength: 500
+        links:
+          maxItems: 100
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                maxLength: 500
+              url:
+                type: string
+                maxLength: 5000
+            required:
+              - label
+              - url
+            additionalProperties: false
+      additionalProperties: false
     GithubImportResult:
       type: object
       properties:
@@ -4992,11 +5393,12 @@ components:
             - skipped
         reason:
           nullable: true
-          description: "Why it was skipped: `not_owner` when the caller neither owns it nor may push to it."
+          description: "Why it was skipped: `not_owner` when the caller neither owns it nor may push to it; `invalid_repository` when GitHub’s data cannot be stored as a project."
           type: string
           enum:
             - not_found
             - not_owner
+            - invalid_repository
             - LIMIT_REACHED
         projectId:
           nullable: true
@@ -5014,6 +5416,49 @@ components:
         - outcome
         - reason
         - projectId
+        - notes
+      additionalProperties: false
+    GithubPreviewResult:
+      type: object
+      properties:
+        repoId:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        outcome:
+          type: string
+          enum:
+            - draft
+            - exists
+            - skipped
+        reason:
+          nullable: true
+          type: string
+          enum:
+            - not_found
+            - not_owner
+            - invalid_repository
+        projectId:
+          nullable: true
+          description: The existing project, for `exists`.
+          type: string
+        draft:
+          nullable: true
+          description: What an import would create; null unless `draft`.
+          allOf:
+            - $ref: "#/components/schemas/GithubDraft"
+        notes:
+          type: array
+          items:
+            type: string
+            enum:
+              - README_TOO_LARGE
+      required:
+        - repoId
+        - outcome
+        - reason
+        - projectId
+        - draft
         - notes
       additionalProperties: false
     GithubRateLimit:
@@ -6047,6 +6492,12 @@ components:
           type: boolean
         isDraft:
           type: boolean
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
       required:
         - id
         - title
@@ -6058,6 +6509,7 @@ components:
         - role
         - isPublic
         - isDraft
+        - source
       additionalProperties: false
     ProjectAttachment:
       type: object
@@ -6120,6 +6572,12 @@ components:
         heroImageUrl:
           nullable: true
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         technologies:
           type: array
           items:
@@ -6145,13 +6603,14 @@ components:
         - category
         - status
         - heroImageUrl
+        - source
         - technologies
         - tags
         - owner
         - createdAt
         - updatedAt
       additionalProperties: false
-      description: A published project of a public profile as a card. Never the description, links, files, visibility flags or repository data.
+      description: A published project of a public profile as a card. Never the description, links, files, visibility flags or repository facts (only whether it was imported from GitHub).
     ProjectCardOwner:
       type: object
       properties:
@@ -6220,6 +6679,12 @@ components:
           description: The caller owns the project.
         ownerId:
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         metadata:
           $ref: "#/components/schemas/ProjectMetadata"
         createdAt:
@@ -6278,11 +6743,6 @@ components:
           description: Accepted team members. The owner is `owner`, not a member.
         owner:
           $ref: "#/components/schemas/ProjectOwner"
-        source:
-          type: string
-          enum:
-            - manual
-            - github
       required:
         - id
         - title
@@ -6297,6 +6757,7 @@ components:
         - isDraft
         - isOwner
         - ownerId
+        - source
         - metadata
         - createdAt
         - updatedAt
@@ -6309,7 +6770,6 @@ components:
         - attachments
         - team
         - owner
-        - source
       additionalProperties: false
     ProjectGroup:
       type: object
@@ -6469,6 +6929,12 @@ components:
           description: The caller owns the project.
         ownerId:
           type: string
+        source:
+          type: string
+          enum:
+            - manual
+            - github
+          description: "`github`: imported from a GitHub repository (M7); shows the GitHub badge."
         metadata:
           $ref: "#/components/schemas/ProjectMetadata"
         createdAt:
@@ -6491,6 +6957,7 @@ components:
         - isDraft
         - isOwner
         - ownerId
+        - source
         - metadata
         - createdAt
         - updatedAt
@@ -6574,6 +7041,158 @@ components:
         - id
         - label
         - avatarUrl
+      additionalProperties: false
+    SuggestionItem:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            - profile.name
+            - profile.headline
+            - profile.bio
+            - profile.location
+            - profile.avatarUrl
+            - profile.links.github
+            - profile.links.website
+            - linkedin.reimport
+        source:
+          type: string
+          enum:
+            - github
+            - linkedin
+            - auth0
+        status:
+          type: string
+          enum:
+            - open
+            - accepted
+            - dismissed
+            - superseded
+        field:
+          nullable: true
+          description: The profile field a `profile.*` suggestion would change (`bio`, `links.github` …); null for a reminder.
+          type: string
+        current:
+          nullable: true
+          description: The field’s value now (open suggestions only); null when empty.
+          type: string
+        proposed:
+          nullable: true
+          description: The value an accept would write.
+          type: string
+        mode:
+          nullable: true
+          description: "`fill`: the field is empty now; `replace`: it holds a different value."
+          type: string
+          enum:
+            - fill
+            - replace
+        lastSyncedAt:
+          nullable: true
+          description: "`linkedin.reimport` only: the last confirmed export import, ISO 8601."
+          type: string
+        createdAt:
+          type: string
+          description: ISO 8601, UTC.
+        resolvedAt:
+          nullable: true
+          type: string
+      required:
+        - id
+        - kind
+        - source
+        - status
+        - field
+        - current
+        - proposed
+        - mode
+        - lastSyncedAt
+        - createdAt
+        - resolvedAt
+      additionalProperties: false
+    SuggestionPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestionItem"
+        nextCursor:
+          nullable: true
+          description: Pass as `cursor`; null on the last page.
+          type: string
+        openCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Open suggestions the caller has, in all.
+      required:
+        - items
+        - nextCursor
+        - openCount
+      additionalProperties: false
+    SuggestionRefresh:
+      type: object
+      properties:
+        github:
+          type: string
+          enum:
+            - refreshed
+            - unchanged
+            - throttled
+            - discarded
+            - not_connected
+          description: "`refreshed`: GitHub was read; `unchanged`: GitHub answered 304; `throttled`: read less than SUGGESTIONS_MIN_INTERVAL_S ago, the stored profile was used; `discarded`: GitHub was read but the connection it was read for was disconnected and replaced meanwhile, so nothing of it was applied (refresh again); `not_connected`."
+        nextAllowedAt:
+          nullable: true
+          description: When GitHub may be read again, ISO 8601; null when not connected.
+          type: string
+        created:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Suggestions this refresh opened.
+        openCount:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+      required:
+        - github
+        - nextAllowedAt
+        - created
+        - openCount
+      additionalProperties: false
+    SuggestionResolved:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - accepted
+            - dismissed
+        applied:
+          nullable: true
+          description: What an accept wrote; null for a dismiss or a reminder.
+          type: object
+          properties:
+            field:
+              type: string
+            value:
+              nullable: true
+              type: string
+          required:
+            - field
+            - value
+          additionalProperties: false
+      required:
+        - id
+        - status
+        - applied
       additionalProperties: false
     Suggestions:
       type: object

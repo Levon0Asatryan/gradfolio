@@ -1,5 +1,6 @@
 "use client";
 
+import SourceBadge from "@/components/shared/SourceBadge";
 import { FC, memo, useId } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -73,6 +74,7 @@ const ProjectResultCard: FC<{ project: DiscoveryProject; highlightQuery?: string
         <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5, flex: 1 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
             <CategoryChip category={category} />
+            <SourceBadge source={project.source} />
             <Typography variant="caption" color="text.secondary">
               {t.projects.status[project.status] ?? project.status}
             </Typography>

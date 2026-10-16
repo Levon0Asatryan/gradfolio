@@ -73,6 +73,7 @@ const cases: Array<[string, React.ReactElement]> = [
           summary: "Routes",
           category: "personal",
           status: "ongoing",
+          source: "manual",
           technologies: ["Next.js"],
           role: "owner",
           isPublic: true,

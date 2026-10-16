@@ -1,5 +1,6 @@
 "use client";
 
+import SourceBadge from "@/components/shared/SourceBadge";
 import { FC, memo } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import Image from "next/image";
@@ -14,6 +15,7 @@ export interface ProjectHeaderProps {
   category?: string;
   heroImageUrl: string | null;
   repo?: ProjectDetail["repo"];
+  source?: ProjectDetail["source"];
   liveDemoUrl: string | null;
 }
 
@@ -23,6 +25,7 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
   category,
   heroImageUrl,
   repo,
+  source,
   liveDemoUrl,
 }) => {
   const { t } = useLanguage();
@@ -55,9 +58,10 @@ const ProjectHeader: FC<ProjectHeaderProps> = ({
         </Box>
       )}
 
-      {category && (
-        <Box>
-          <CategoryChip category={category} />
+      {(category || source === "github") && (
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+          {category && <CategoryChip category={category} />}
+          <SourceBadge source={source} />
         </Box>
       )}
       <Typography
