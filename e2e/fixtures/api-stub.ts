@@ -103,8 +103,12 @@ const githubFor = (token: string): Integrations["github"] => {
   return state;
 };
 
-const seen: Array<{ path: string; search: string; headers: Record<string, string | undefined> }> =
-  [];
+const seen: Array<{
+  method?: string;
+  path: string;
+  search: string;
+  headers: Record<string, string | undefined>;
+}> = [];
 
 function send(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { "content-type": "application/json" });
@@ -137,6 +141,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   const cursor = url.searchParams.get("cursor");
   const limit = Number(url.searchParams.get("limit") ?? 12);
   seen.push({
+    method: req.method,
     path: url.pathname,
     search: url.search,
     headers: {
@@ -153,6 +158,8 @@ function handle(req: IncomingMessage, res: ServerResponse) {
   }
 
   if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
+  if (url.pathname === "/v1/me" || url.pathname === "/v1/me/profile")
+    return account(req, res, url.pathname);
 
   const failure = FAIL[q as keyof typeof FAIL];
   if (failure && url.pathname.startsWith("/v1/search")) return send(res, failure[0], failure[1]);
@@ -310,4 +317,46 @@ function integrations(req: IncomingMessage, res: ServerResponse, path: string) {
     return send(res, 200, { status: "not_connected" });
   }
   return send(res, 404, { code: "NOT_FOUND", message: "the stub has no such endpoint" });
+}
+
+/**
+ * The account endpoints for the delete-account spec. Like production (m2-plan Q7), a valid token
+ * with no account **creates a new empty one** on `GET /v1/me`. Scenario by token prefix:
+ * `e2e-del-*` deletes with 204; `e2e-delfail-*` answers 502 GITHUB_REVOKE_FAILED.
+ */
+const deletedAccounts = new Map<string, number>();
+function account(req: IncomingMessage, res: ServerResponse, path: string) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  if (path === "/v1/me" && req.method === "DELETE") {
+    if (token.startsWith("e2e-delfail-"))
+      return send(res, 502, { code: "GITHUB_REVOKE_FAILED", message: "no" });
+    deletedAccounts.set(token, (deletedAccounts.get(token) ?? 0) + 1);
+    res.writeHead(204);
+    return res.end();
+  }
+  if (path === "/v1/me") {
+    return send(res, 200, {
+      id: "0b6f2c1e-1111-4222-8333-444455556666",
+      name: "Ani Petrosyan",
+      email: "ani@example.com",
+      avatarUrl: null,
+      headline: "",
+      verified: true,
+      isPublic: true,
+      // A brand-new account after a delete is not onboarded.
+      onboarded: !deletedAccounts.has(token),
+      identities: ["auth0"],
+    });
+  }
+  return send(res, 200, {
+    isPublic: true,
+    contactEmail: null,
+    name: "Ani Petrosyan",
+    headline: "",
+    bio: "",
+    location: "",
+    avatarUrl: null,
+    links: { github: null, linkedin: null, twitter: null, website: null },
+  });
 }
