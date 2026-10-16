@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/integrations/importActions", () => ({
   listGithubReposAction: vi.fn(),
   importGithubReposAction: vi.fn(),
+  previewGithubImportAction: vi.fn(),
 }));
 vi.mock("@/lib/integrations/actions", () => ({
   startGithubConnectAction: vi.fn(),

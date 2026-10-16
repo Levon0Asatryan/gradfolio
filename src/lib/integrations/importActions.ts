@@ -4,10 +4,16 @@ import {
   ApiError,
   importGithubRepos,
   listGithubRepos,
+  previewGithubImport,
   syncGithubProject,
-  type GithubImportEdit,
+  type GithubOverride,
 } from "@/lib/api/client";
-import type { GithubImportResponse, GithubRepoPage, GithubSyncResult } from "@/lib/api/types";
+import type {
+  GithubImportResponse,
+  GithubPreviewResponse,
+  GithubRepoPage,
+  GithubSyncResult,
+} from "@/lib/api/types";
 import { IMPORT_MAX } from "./importLimits";
 import { PROJECT_LIMITS } from "@/lib/projects/limits";
 
@@ -59,32 +65,24 @@ export async function listGithubReposAction(
   }
 }
 
-const isHttpUrl = (value: string): boolean => {
-  try {
-    const u = new URL(value);
-    return u.protocol === "https:" || u.protocol === "http:";
-  } catch {
-    return false;
-  }
-};
-
-/** An edit from the review step: only these fields, each within the project limits. */
-function parseEdit(repoId: number, value: unknown): GithubImportEdit | null {
+/** An override from the review step: only these fields, each within the project limits. */
+function parseOverride(value: unknown): GithubOverride | null {
   if (!isRecord(value)) return null;
-  const edit: GithubImportEdit = { repoId };
+  const out: GithubOverride = {};
   for (const [key, field] of Object.entries(value)) {
     if (key === "title") {
       if (typeof field !== "string") return null;
       const title = field.trim();
       if (title.length < 1 || [...title].length > PROJECT_LIMITS.title.max) return null;
-      edit.title = title;
+      out.title = title;
     } else if (key === "summary") {
-      if (
-        typeof field !== "string" ||
-        new TextEncoder().encode(field).length > PROJECT_LIMITS.summary.max
-      )
-        return null;
-      edit.summary = field.trim();
+      if (field === null) out.summary = null;
+      else if (
+        typeof field === "string" &&
+        new TextEncoder().encode(field).length <= PROJECT_LIMITS.summary.max
+      ) {
+        out.summary = field.trim();
+      } else return null;
     } else if (key === "technologies") {
       if (
         !Array.isArray(field) ||
@@ -93,50 +91,67 @@ function parseEdit(repoId: number, value: unknown): GithubImportEdit | null {
       ) {
         return null;
       }
-      edit.technologies = (field as string[]).map((t) => t.trim());
-    } else if (key === "repoUrl") {
-      if (typeof field !== "string" || field.length > 2048 || !isHttpUrl(field)) return null;
-      edit.repoUrl = field;
+      out.technologies = (field as string[]).map((t) => t.trim());
     } else {
       return null; // an unknown key is a refusal, not an ignore
     }
   }
-  return edit;
+  return out;
+}
+
+/** Validates `repoIds`: 1 to 10 distinct positive integers. */
+function parseRepoIds(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  if (
+    value.length < 1 ||
+    value.length > IMPORT_MAX ||
+    value.some((id) => !Number.isSafeInteger(id) || (id as number) <= 0) ||
+    new Set(value).size !== value.length
+  ) {
+    return null;
+  }
+  return value as number[];
+}
+
+/** The drafts an import would create, for the review step. Saves nothing. */
+export async function previewGithubImportAction(
+  input: unknown,
+): Promise<{ ok: true; response: GithubPreviewResponse } | Failure> {
+  if (!isRecord(input)) return invalid;
+  const repoIds = parseRepoIds(input.repoIds);
+  if (!repoIds) return invalid;
+  try {
+    return { ok: true, response: await previewGithubImport(repoIds) };
+  } catch (error) {
+    return failed(error);
+  }
 }
 
 /**
- * Import the chosen repositories as drafts, with the review step's edits, in one request.
- * Nothing is created without this call, and it is made only by the user's Save.
+ * Import the chosen repositories as drafts, with the review step's overrides, in one request.
+ * Nothing is created without this call, and it is made only by the student's Save.
  */
 export async function importGithubReposAction(
   input: unknown,
 ): Promise<{ ok: true; response: GithubImportResponse } | Failure> {
-  if (!isRecord(input) || !Array.isArray(input.repoIds)) return invalid;
-  const ids = input.repoIds;
-  if (
-    ids.length < 1 ||
-    ids.length > IMPORT_MAX ||
-    ids.some((id) => !Number.isSafeInteger(id) || (id as number) <= 0) ||
-    new Set(ids).size !== ids.length
-  ) {
-    return invalid;
-  }
-  const repoIds = ids as number[];
+  if (!isRecord(input)) return invalid;
+  const repoIds = parseRepoIds(input.repoIds);
+  if (!repoIds) return invalid;
 
-  const edits: GithubImportEdit[] = [];
-  if (input.edits !== undefined) {
-    if (!isRecord(input.edits)) return invalid;
-    for (const [key, value] of Object.entries(input.edits)) {
+  const overrides: Record<string, GithubOverride> = {};
+  if (input.overrides !== undefined) {
+    if (!isRecord(input.overrides)) return invalid;
+    for (const [key, value] of Object.entries(input.overrides)) {
       const repoId = Number(key);
-      // An edit for a repository that is not in this import is a mistake, not a feature.
+      // An override for a repository that is not in this import is a mistake, not a feature.
       if (!Number.isSafeInteger(repoId) || !repoIds.includes(repoId)) return invalid;
-      const edit = parseEdit(repoId, value);
-      if (!edit) return invalid;
-      if (Object.keys(edit).length > 1) edits.push(edit);
+      const override = parseOverride(value);
+      if (!override) return invalid;
+      if (Object.keys(override).length > 0) overrides[String(repoId)] = override;
     }
   }
   try {
-    return { ok: true, response: await importGithubRepos(repoIds, edits) };
+    return { ok: true, response: await importGithubRepos(repoIds, overrides) };
   } catch (error) {
     return failed(error);
   }

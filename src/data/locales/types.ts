@@ -190,6 +190,9 @@ export interface Dictionary {
       selected: string;
       /** `{max}` */
       maxReached: string;
+      previewLoading: string;
+      readmePreview: string;
+      noReadme: string;
       imported: string;
       openProject: string;
       /** `{count}` */

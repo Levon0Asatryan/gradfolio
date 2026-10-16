@@ -12,14 +12,23 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageContext";
-import type { GithubImportOutcome, GithubRepo } from "@/lib/api/types";
-import { importGithubReposAction, listGithubReposAction } from "@/lib/integrations/importActions";
+import type {
+  GithubDraft,
+  GithubImportOutcome,
+  GithubPreviewOutcome,
+  GithubRepo,
+} from "@/lib/api/types";
+import {
+  importGithubReposAction,
+  listGithubReposAction,
+  previewGithubImportAction,
+} from "@/lib/integrations/importActions";
 import { IMPORT_MAX } from "@/lib/integrations/importLimits";
 import { errorCode } from "@/lib/integrations/errors";
 import { ImportResult } from "./ImportResult";
-import { ImportReview, draftProblem } from "./ImportReview";
+import { ImportReview, draftProblem, type ReviewRow } from "./ImportReview";
 import { type PickerState, RepoPicker, timeOf } from "./RepoPicker";
-import { type Draft, editsFor, initialDraft } from "./model";
+import { type Draft, initialDraft, overridesFor } from "./model";
 
 type Step = "pick" | "review" | "result";
 
@@ -53,6 +62,11 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
   const [picker, setPicker] = useState<PickerState>(EMPTY);
   const [selected, setSelected] = useState<Map<number, GithubRepo>>(new Map());
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
+  const [previews, setPreviews] = useState<Record<number, GithubPreviewOutcome>>({});
+  const [previewState, setPreviewState] = useState<{ loading: boolean; error: string | null }>({
+    loading: false,
+    error: null,
+  });
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<{ code: string; retryAfter?: number } | null>(null);
   const [results, setResults] = useState<GithubImportOutcome[]>([]);
@@ -112,6 +126,8 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     setDrafts({});
     setFailure(null);
     setResults([]);
+    setPreviews({});
+    setPreviewState({ loading: false, error: null });
     setPicker(EMPTY);
     void load("");
     // `load` is stable.
@@ -140,19 +156,49 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     });
   };
 
+  // The drafts as the API would create them (README read and sanitized there). Re-run whenever
+  // the review step is entered, so a changed selection is always previewed.
+  const loadPreview = useCallback(
+    async (repos: GithubRepo[]) => {
+      if (repos.length === 0) return;
+      setPreviewState({ loading: true, error: null });
+      const result = await previewGithubImportAction({ repoIds: repos.map((r) => r.repoId) });
+      if (!result.ok) {
+        setPreviewState({ loading: false, error: message(result) });
+        return;
+      }
+      const byId: Record<number, GithubPreviewOutcome> = {};
+      for (const r of result.response.results) byId[r.repoId] = r;
+      setPreviews(byId);
+      setDrafts((prev) => {
+        const next: Record<number, Draft> = {};
+        for (const r of result.response.results) {
+          // A draft the student already edited is kept when they come back to this step.
+          if (r.outcome === "draft" && r.draft)
+            next[r.repoId] = prev[r.repoId] ?? initialDraft(r.draft);
+        }
+        return next;
+      });
+      setPreviewState({ loading: false, error: null });
+    },
+    [message],
+  );
+
   const toReview = () => {
-    setDrafts((prev) => {
-      const next: Record<number, Draft> = {};
-      for (const [id, repo] of selected) next[id] = prev[id] ?? initialDraft(repo);
-      return next;
-    });
     setFailure(null);
     setStep("review");
+    void loadPreview([...selected.values()]);
   };
 
   const chosen = [...selected.values()];
+  // Only repositories the preview turned into a draft (and only they have one) can be saved.
+  const savable = chosen.filter((r) => drafts[r.repoId]);
+  const rows: ReviewRow[] = chosen.map((repo) => ({ repo, preview: previews[repo.repoId] }));
   const canSave =
-    chosen.length > 0 && chosen.every((r) => drafts[r.repoId] && !draftProblem(drafts[r.repoId]!));
+    !previewState.loading &&
+    !previewState.error &&
+    savable.length > 0 &&
+    savable.every((r) => !draftProblem(drafts[r.repoId]!));
 
   async function save() {
     if (saveLock.current || !canSave) return;
@@ -161,14 +207,19 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     setFailure(null);
     try {
       const result = await importGithubReposAction({
-        repoIds: chosen.map((r) => r.repoId),
-        edits: editsFor(chosen, drafts),
+        repoIds: savable.map((r) => r.repoId),
+        overrides: overridesFor(
+          Object.fromEntries(
+            savable.map((r) => [r.repoId, previews[r.repoId]!.draft as GithubDraft]),
+          ),
+          drafts,
+        ),
       });
       if (!result.ok) {
         setFailure({ code: result.code, retryAfter: result.retryAfter });
         return;
       }
-      setNames(Object.fromEntries(chosen.map((r) => [r.repoId, r.fullName])));
+      setNames(Object.fromEntries(savable.map((r) => [r.repoId, r.fullName])));
       setResults(result.response.results);
       setStep("result");
       router.refresh();
@@ -217,7 +268,10 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
         )}
         {step === "review" && (
           <ImportReview
-            repos={chosen}
+            rows={rows}
+            loading={previewState.loading}
+            loadError={previewState.error}
+            onRetry={() => void loadPreview(chosen)}
             drafts={drafts}
             onChange={(id, patch) => setDrafts((d) => ({ ...d, [id]: { ...d[id]!, ...patch } }))}
             onRemove={(repo) =>

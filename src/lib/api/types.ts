@@ -98,6 +98,9 @@ export type GithubConnected = components["schemas"]["GithubConnected"];
 // GitHub import and re-sync (M7 7.3, 7.4).
 export type GithubRepo = components["schemas"]["GithubRepo"];
 export type GithubRateLimit = components["schemas"]["GithubRateLimit"];
+export type GithubDraft = components["schemas"]["GithubDraft"];
+export type GithubPreviewOutcome = components["schemas"]["GithubPreviewResult"];
+export type GithubPreviewResponse = Json<paths["/v1/me/github/import/preview"]["post"]>;
 export type GithubImportOutcome = components["schemas"]["GithubImportResult"];
 export type GithubSyncResult = components["schemas"]["GithubSyncResult"];
 export type GithubRepoPage = Json<paths["/v1/me/github/repos"]["get"]>;

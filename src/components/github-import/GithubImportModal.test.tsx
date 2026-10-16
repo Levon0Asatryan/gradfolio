@@ -2,13 +2,19 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 
-const mocks = vi.hoisted(() => ({ list: vi.fn(), save: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  save: vi.fn(),
+  preview: vi.fn(),
+  refresh: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock("@/lib/integrations/importActions", () => ({
   listGithubReposAction: mocks.list,
   importGithubReposAction: mocks.save,
+  previewGithubImportAction: mocks.preview,
 }));
 
 const { GithubImportModal } = await import("./GithubImportModal");
@@ -30,6 +36,31 @@ const repo = (id: number, over: Record<string, unknown> = {}) => ({
 const page = (items: unknown[], nextCursor: string | null = null) => ({
   ok: true,
   page: { items, nextCursor, rateLimit: { remaining: 4000, resetsAt: null } },
+});
+
+const draft = (id: number) => ({
+  title: `repo-${id}`,
+  summary: `Summary ${id}`,
+  descriptionHtml: `<p>README of <b>repo ${id}</b></p><img src=x onerror=alert(1)>`,
+  technologies: ["Go"],
+  links: [],
+  repoUrl: `https://github.com/ani-p/repo-${id}`,
+  isPublic: true,
+});
+const previewOf = (ids: number[], over: Record<number, Record<string, unknown>> = {}) => ({
+  ok: true,
+  response: {
+    results: ids.map((id) => ({
+      repoId: id,
+      outcome: "draft",
+      reason: null,
+      projectId: null,
+      draft: draft(id),
+      notes: [],
+      ...(over[id] ?? {}),
+    })),
+    rateLimit: { remaining: 100, resetsAt: null },
+  },
 });
 
 const open = (language: "en" | "ru" | "am" = "en", onClose = vi.fn()) => {
@@ -170,6 +201,7 @@ describe("pick", () => {
 
 describe("review and save", () => {
   const toReview = async () => {
+    mocks.preview.mockResolvedValue(previewOf([1, 2]));
     mocks.list.mockResolvedValue(page([repo(1), repo(2)]));
     open();
     fireEvent.click(await screen.findByRole("checkbox", { name: "ani-p/repo-1" }));
@@ -177,6 +209,62 @@ describe("review and save", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByRole("heading", { name: "Review before saving" });
   };
+
+  it("shows the README-derived draft from the preview as text, never as markup", async () => {
+    await toReview();
+    expect(mocks.preview).toHaveBeenCalledWith({ repoIds: [1, 2] });
+    expect(screen.getAllByText(/README of repo 1/).length).toBeGreaterThan(0);
+    expect(document.querySelector("img")).toBeNull();
+    expect(screen.getAllByText("https://github.com/ani-p/repo-1").length).toBeGreaterThan(0);
+  });
+
+  it("a repository the preview skips or already has is shown, and is not saved", async () => {
+    mocks.list.mockResolvedValue(page([repo(1), repo(2), repo(3)]));
+    mocks.preview.mockResolvedValue(
+      previewOf([1, 2, 3], {
+        2: { outcome: "skipped", reason: "not_owner", draft: null },
+        3: { outcome: "exists", projectId: "p3", draft: null },
+      }),
+    );
+    open();
+    for (const i of [1, 2, 3]) {
+      fireEvent.click(await screen.findByRole("checkbox", { name: `ani-p/repo-${i}` }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(
+      await screen.findByText("You neither own this repository nor can push to it."),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open project" })).toHaveAttribute(
+      "href",
+      "/projects/p3",
+    );
+    mocks.save.mockResolvedValue({ ok: true, response: { results: [], rateLimit: {} } });
+    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ repoIds: [1], overrides: {} }));
+  });
+
+  it("a failed preview is an error with Retry, and nothing can be saved meanwhile", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.preview.mockResolvedValueOnce({ ok: false, code: "GITHUB_UNAVAILABLE" });
+    open();
+    fireEvent.click(await screen.findByRole("checkbox", { name: "ani-p/repo-1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("GitHub is not responding");
+    expect(screen.getByRole("button", { name: "Save as drafts" })).toBeDisabled();
+    mocks.preview.mockResolvedValueOnce(previewOf([1]));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByDisplayValue("repo-1")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save as drafts" })).toBeEnabled();
+  });
+
+  it("coming back and failing to preview again leaves nothing saveable from the old preview", async () => {
+    await toReview();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    mocks.preview.mockResolvedValueOnce({ ok: false, code: "GITHUB_UNAVAILABLE" });
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("GitHub is not responding");
+    expect(screen.getByRole("button", { name: "Save as drafts" })).toBeDisabled();
+  });
 
   it("shows an editable draft per selected repository and lets one be removed", async () => {
     await toReview();
@@ -206,7 +294,7 @@ describe("review and save", () => {
     expect(mocks.save).toHaveBeenCalledTimes(1);
     expect(mocks.save).toHaveBeenCalledWith({
       repoIds: [1, 2],
-      edits: { "1": { title: "My thesis" } },
+      overrides: { "1": { title: "My thesis" } },
     });
     expect(mocks.refresh).toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "Edit draft" })).toHaveAttribute(

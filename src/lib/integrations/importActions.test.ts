@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ list: vi.fn(), imp: vi.fn(), sync: vi.fn() }));
+const api = vi.hoisted(() => ({ list: vi.fn(), imp: vi.fn(), sync: vi.fn(), preview: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
@@ -19,12 +19,17 @@ vi.mock("@/lib/api/client", () => {
     ApiError,
     listGithubRepos: api.list,
     importGithubRepos: api.imp,
+    previewGithubImport: api.preview,
     syncGithubProject: api.sync,
   };
 });
 
-const { listGithubReposAction, importGithubReposAction, syncProjectAction } =
-  await import("./importActions");
+const {
+  listGithubReposAction,
+  importGithubReposAction,
+  previewGithubImportAction,
+  syncProjectAction,
+} = await import("./importActions");
 const { ApiError } = await import("@/lib/api/client");
 
 beforeEach(() => vi.resetAllMocks());
@@ -59,22 +64,21 @@ describe("listGithubReposAction", () => {
 });
 
 describe("importGithubReposAction", () => {
-  it("imports the ids, with only the edits it was given", async () => {
+  it("imports the ids, with only the overrides it was given", async () => {
     api.imp.mockResolvedValue({ results: [], rateLimit: {} });
     await importGithubReposAction({
       repoIds: [1, 2],
-      edits: { "2": { title: " My title ", technologies: [" Go ", "Rust"] } },
+      overrides: { "2": { title: " My title ", technologies: [" Go ", "Rust"] } },
     });
-    expect(api.imp).toHaveBeenCalledWith(
-      [1, 2],
-      [{ repoId: 2, title: "My title", technologies: ["Go", "Rust"] }],
-    );
+    expect(api.imp).toHaveBeenCalledWith([1, 2], {
+      "2": { title: "My title", technologies: ["Go", "Rust"] },
+    });
   });
 
-  it("an untouched import sends no edits at all", async () => {
+  it("an untouched import sends no overrides at all", async () => {
     api.imp.mockResolvedValue({ results: [], rateLimit: {} });
-    await importGithubReposAction({ repoIds: [5], edits: {} });
-    expect(api.imp).toHaveBeenCalledWith([5], []);
+    await importGithubReposAction({ repoIds: [5], overrides: {} });
+    expect(api.imp).toHaveBeenCalledWith([5], {});
   });
 
   it.each([
@@ -86,14 +90,20 @@ describe("importGithubReposAction", () => {
     ["a string id", { repoIds: ["1"] }],
     [
       "an edit for a repository not in the import",
-      { repoIds: [1], edits: { "2": { title: "x" } } },
+      { repoIds: [1], overrides: { "2": { title: "x" } } },
     ],
-    ["an unknown edit key", { repoIds: [1], edits: { "1": { isPublic: false } } }],
-    ["an empty title", { repoIds: [1], edits: { "1": { title: "  " } } }],
-    ["a 501-character title", { repoIds: [1], edits: { "1": { title: "x".repeat(501) } } }],
-    ["a javascript: link", { repoIds: [1], edits: { "1": { repoUrl: "javascript:alert(1)" } } }],
-    ["31 technologies", { repoIds: [1], edits: { "1": { technologies: Array(31).fill("a") } } }],
-    ["edits that are not an object", { repoIds: [1], edits: [] }],
+    ["an unknown override key", { repoIds: [1], overrides: { "1": { isPublic: false } } }],
+    ["an empty title", { repoIds: [1], overrides: { "1": { title: "  " } } }],
+    ["a 501-character title", { repoIds: [1], overrides: { "1": { title: "x".repeat(501) } } }],
+    [
+      "a repoUrl (not editable)",
+      { repoIds: [1], overrides: { "1": { repoUrl: "https://x.example" } } },
+    ],
+    [
+      "31 technologies",
+      { repoIds: [1], overrides: { "1": { technologies: Array(31).fill("a") } } },
+    ],
+    ["overrides that are not an object", { repoIds: [1], overrides: [] }],
   ])("refuses %s before any API call", async (_n, input) => {
     expect(await importGithubReposAction(input)).toEqual({ ok: false, code: "VALIDATION_FAILED" });
     expect(api.imp).not.toHaveBeenCalled();
@@ -105,6 +115,24 @@ describe("importGithubReposAction", () => {
       ok: false,
       code: "GITHUB_NOT_CONNECTED",
     });
+  });
+});
+
+describe("previewGithubImportAction", () => {
+  it("asks the API for the drafts of valid ids and saves nothing", async () => {
+    api.preview.mockResolvedValue({ results: [], rateLimit: {} });
+    await previewGithubImportAction({ repoIds: [1, 2] });
+    expect(api.preview).toHaveBeenCalledWith([1, 2]);
+    expect(api.imp).not.toHaveBeenCalled();
+  });
+  it("refuses bad ids before any API call", async () => {
+    for (const bad of [null, {}, { repoIds: [] }, { repoIds: [1, 1] }, { repoIds: ["1"] }]) {
+      expect(await previewGithubImportAction(bad)).toEqual({
+        ok: false,
+        code: "VALIDATION_FAILED",
+      });
+    }
+    expect(api.preview).not.toHaveBeenCalled();
   });
 });
 

@@ -37,6 +37,7 @@ import type {
   GithubConnected,
   GithubRepoPage,
   GithubImportResponse,
+  GithubPreviewResponse,
   GithubSyncResult,
 } from "./types";
 
@@ -231,8 +232,8 @@ export function linkGithub(idToken: string): Promise<GithubConnected> {
 }
 
 /**
- * One page of the caller's public repositories. `q` (a search over the name and description)
- * is part of the contract proposed for PR 3 and ignored by an API that does not have it yet.
+ * One page of the caller's public repositories. `q` is a case-insensitive substring of the name,
+ * description or language (the API scans a few pages and returns every match).
  */
 export function listGithubRepos(query: {
   cursor?: string;
@@ -250,28 +251,36 @@ export function listGithubRepos(query: {
   });
 }
 
-/** What the review step may change before the drafts are created (one request, PR 3 contract). */
-export interface GithubImportEdit {
-  repoId: number;
+/** What the student edited in the review step, per repository (`GithubDraftOverrides`). */
+export interface GithubOverride {
   title?: string;
-  summary?: string;
+  summary?: string | null;
   technologies?: string[];
-  repoUrl?: string;
+}
+
+/** The drafts an import would create; nothing is saved (`POST /v1/me/github/import/preview`). */
+export function previewGithubImport(repoIds: number[]): Promise<GithubPreviewResponse> {
+  return request<GithubPreviewResponse>({
+    method: "POST",
+    path: "/v1/me/github/import/preview",
+    body: { repoIds },
+  });
 }
 
 /**
- * Import the repositories as drafts in one request. `edits` is the optional per-repository
- * override proposed for this PR (the API validates it like a project create); it is sent only
- * when there is one, so an API without it still serves a plain import.
+ * Import the repositories as drafts in one request. `overrides` (keyed by repository id) carry
+ * only the fields the student changed in the review step; an untouched import sends none. The
+ * API reads GitHub again and validates them like a project create: the preview is never trusted
+ * back.
  */
 export function importGithubRepos(
   repoIds: number[],
-  edits: GithubImportEdit[],
+  overrides: Record<string, GithubOverride>,
 ): Promise<GithubImportResponse> {
   return request<GithubImportResponse>({
     method: "POST",
     path: "/v1/me/github/import",
-    body: edits.length > 0 ? { repoIds, edits } : { repoIds },
+    body: Object.keys(overrides).length > 0 ? { repoIds, overrides } : { repoIds },
   });
 }
 

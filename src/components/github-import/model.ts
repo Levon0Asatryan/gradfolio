@@ -1,28 +1,24 @@
-import type { GithubRepo } from "@/lib/api/types";
+import type { GithubDraft, GithubRepo } from "@/lib/api/types";
+import type { GithubOverride } from "@/lib/api/client";
 
-/** What the review step lets the user change for one repository. */
+/** What the review step lets the student change for one repository (links and README stay). */
 export interface Draft {
   title: string;
   summary: string;
   /** Comma-separated in the field, split on save. */
   technologies: string;
-  repoUrl: string;
 }
 
 /** The repository's name without its owner. */
 export const repoName = (repo: GithubRepo): string =>
   repo.fullName.split("/").pop() ?? repo.fullName;
 
-/** The repository's page, from its full name (never from user input). */
-const repoUrl = (repo: GithubRepo): string => `https://github.com/${repo.fullName}`;
-
-/** What the draft starts as: the repository's own facts. The API fills the rest (README). */
-export function initialDraft(repo: GithubRepo): Draft {
+/** The draft as the API's preview has it: what an untouched Save would create. */
+export function initialDraft(draft: GithubDraft): Draft {
   return {
-    title: repoName(repo),
-    summary: repo.description ?? "",
-    technologies: repo.language ?? "",
-    repoUrl: repoUrl(repo),
+    title: draft.title,
+    summary: draft.summary ?? "",
+    technologies: draft.technologies.join(", "),
   };
 }
 
@@ -33,27 +29,39 @@ export const splitTechnologies = (value: string): string[] =>
     .filter(Boolean);
 
 /**
- * The edits to send: only fields that differ from the starting draft, so an import the user
- * did not touch is the plain one, and the API's own defaults (and its re-sync snapshot) stay
- * what GitHub gave. A field the user changed counts as theirs and survives re-sync.
+ * The overrides to send: only fields that differ from the preview, so an import the student did
+ * not touch is the plain one, and the API's own defaults (and its re-sync snapshot) stay what
+ * GitHub gave. A field the student changed counts as theirs and survives a re-sync.
  */
-export function editsFor(repos: GithubRepo[], drafts: Record<number, Draft>) {
-  const edits: Record<
-    string,
-    { title?: string; summary?: string; technologies?: string[]; repoUrl?: string }
-  > = {};
-  for (const repo of repos) {
-    const now = drafts[repo.repoId];
-    if (!now) continue;
-    const start = initialDraft(repo);
-    const edit: (typeof edits)[string] = {};
-    if (now.title.trim() !== start.title) edit.title = now.title.trim();
-    if (now.summary.trim() !== start.summary.trim()) edit.summary = now.summary.trim();
-    if (now.technologies.trim() !== start.technologies.trim()) {
-      edit.technologies = splitTechnologies(now.technologies);
+export function overridesFor(
+  previews: Record<number, GithubDraft>,
+  drafts: Record<number, Draft>,
+): Record<string, GithubOverride> {
+  const out: Record<string, GithubOverride> = {};
+  for (const [key, now] of Object.entries(drafts)) {
+    const preview = previews[Number(key)];
+    if (!preview) continue;
+    const start = initialDraft(preview);
+    const override: GithubOverride = {};
+    if (now.title.trim() !== start.title) override.title = now.title.trim();
+    if (now.summary.trim() !== start.summary.trim()) {
+      override.summary = now.summary.trim() === "" ? null : now.summary.trim();
     }
-    if (now.repoUrl.trim() !== start.repoUrl) edit.repoUrl = now.repoUrl.trim();
-    if (Object.keys(edit).length > 0) edits[String(repo.repoId)] = edit;
+    if (now.technologies.trim() !== start.technologies.trim()) {
+      override.technologies = splitTechnologies(now.technologies);
+    }
+    if (Object.keys(override).length > 0) out[key] = override;
   }
-  return edits;
+  return out;
+}
+
+/**
+ * The README as plain text for a read-only preview. Parsed in an inert document and read with
+ * `textContent`: nothing from the HTML is ever inserted into the page as markup.
+ */
+export function plainText(html: string | null, max = 700): string {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const text = (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
 }

@@ -895,7 +895,7 @@ export interface paths {
         };
         /**
          * The caller’s public GitHub repositories, paged
-         * @description Owned and collaborator repositories, public only (D6), most recently pushed first. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
+         * @description Owned and collaborator repositories, public only (D6), most recently pushed first. `q` searches name, description and language over up to GITHUB_SEARCH_SCAN_PAGES pages. `imported` and `projectId` say which the caller already imported. GitHub’s remaining rate limit is in `rateLimit`.
          */
         get: operations["listGithubRepos"];
         put?: never;
@@ -917,9 +917,29 @@ export interface paths {
         put?: never;
         /**
          * Import repositories as draft projects
-         * @description Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3).
+         * @description Each repository is read again from GitHub (stars, forks, language, README; the client’s numbers are never trusted) and imported only when the caller owns it or may push to it. Drafts: visible to the caller only until published. Deduplicated by repository id, also under concurrent imports. The README becomes the description, sanitized, images dropped (D3). `overrides` (per repository id) are what the student edited in the review step: title, summary, description, technologies, links, validated like a manual create (a bad one is a 400 naming `overrides.<id>.<field>` and nothing is created). They cannot set the source, the repository facts or the visibility, and the re-sync snapshot records what GitHub gave, so a later re-sync keeps them.
          */
         post: operations["importGithubRepos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/github/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The drafts an import would create, for the review step; saves nothing
+         * @description Read from GitHub exactly as the import does (ownership, README sanitized, the project create rules). `draft` is what the student may edit; `exists` and `skipped` say why a repository has none. The save re-reads GitHub: this answer is never trusted back.
+         */
+        post: operations["previewGithubImport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1000,6 +1020,86 @@ export interface paths {
          * @description **Not served yet: arrives with M7 PR (c).** The items are validated again like manual entries. Entries equal to an existing one are skipped; skills merge case-insensitively. Over a section cap nothing is saved. A second identical confirm adds nothing.
          */
         post: operations["confirmLinkedinImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller’s suggestions, newest first
+         * @description Open ones by default (`status=all` adds the answered). A `profile.*` suggestion names the `field`, what it holds now (`current`) and what an accept would write (`proposed`). `openCount` is the caller’s open suggestions in all.
+         */
+        get: operations["listSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/suggestions/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read GitHub’s public profile and recompute the suggestions
+         * @description Reads GitHub at most once per SUGGESTIONS_MIN_INTERVAL_S (conditionally by ETag; a refresh inside the floor uses the stored profile and says `throttled`), then opens what is new, supersedes what GitHub no longer says, and never reopens an answered suggestion with the same value. LinkedIn: a sign-in’s name and photo, and a re-import reminder. Without GitHub connected only the LinkedIn rules run.
+         */
+        post: operations["refreshSuggestions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/suggestions/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a suggestion: write the one field it names
+         * @description Writes that field through the profile’s own rules and marks the suggestion accepted, in one transaction. Idempotent for an accepted one. A reminder is only acknowledged.
+         */
+        post: operations["acceptSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/suggestions/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss a suggestion; it is not offered again until the value changes
+         * @description Remembered by its key, which carries a hash of the proposed value: GitHub saying something else is a new suggestion. Idempotent for a dismissed one.
+         */
+        post: operations["dismissSuggestion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1337,6 +1437,32 @@ export interface components {
             /** @description ISO 8601, UTC; the nonce is refused after it. */
             expiresAt: string;
         };
+        GithubDraft: {
+            title: string;
+            summary: string | null;
+            /** @description The README, sanitized; images dropped. */
+            descriptionHtml: string | null;
+            technologies: string[];
+            links: {
+                label: string;
+                url: string;
+            }[];
+            /** @description Shown, not editable. */
+            repoUrl: string;
+            /** @description The repository is public; not editable here. */
+            isPublic: boolean;
+        };
+        GithubDraftOverrides: {
+            title?: string;
+            summary?: string | null;
+            /** @description Sanitized like any description. Omit to keep the README from GitHub. */
+            descriptionHtml?: string | null;
+            technologies?: string[];
+            links?: {
+                label: string;
+                url: string;
+            }[];
+        };
         GithubImportResult: {
             repoId: number;
             /** @enum {string} */
@@ -1349,6 +1475,18 @@ export interface components {
             /** @description The draft created, or the existing one. */
             projectId: string | null;
             /** @description `README_TOO_LARGE`: created without a description. */
+            notes: "README_TOO_LARGE"[];
+        };
+        GithubPreviewResult: {
+            repoId: number;
+            /** @enum {string} */
+            outcome: "draft" | "exists" | "skipped";
+            /** @enum {string|null} */
+            reason: "not_found" | "not_owner" | "invalid_repository" | null;
+            /** @description The existing project, for `exists`. */
+            projectId: string | null;
+            /** @description What an import would create; null unless `draft`. */
+            draft: components["schemas"]["GithubDraft"] | null;
             notes: "README_TOO_LARGE"[];
         };
         GithubRateLimit: {
@@ -1917,6 +2055,60 @@ export interface components {
             label: string;
             /** @description People only; null for projects. */
             avatarUrl: string | null;
+        };
+        SuggestionItem: {
+            id: string;
+            /** @enum {string} */
+            kind: "profile.name" | "profile.headline" | "profile.bio" | "profile.location" | "profile.avatarUrl" | "profile.links.github" | "profile.links.website" | "linkedin.reimport";
+            /** @enum {string} */
+            source: "github" | "linkedin" | "auth0";
+            /** @enum {string} */
+            status: "open" | "accepted" | "dismissed" | "superseded";
+            /** @description The profile field a `profile.*` suggestion would change (`bio`, `links.github` …); null for a reminder. */
+            field: string | null;
+            /** @description The field’s value now (open suggestions only); null when empty. */
+            current: string | null;
+            /** @description The value an accept would write. */
+            proposed: string | null;
+            /**
+             * @description `fill`: the field is empty now; `replace`: it holds a different value.
+             * @enum {string|null}
+             */
+            mode: "fill" | "replace" | null;
+            /** @description `linkedin.reimport` only: the last confirmed export import, ISO 8601. */
+            lastSyncedAt: string | null;
+            /** @description ISO 8601, UTC. */
+            createdAt: string;
+            resolvedAt: string | null;
+        };
+        SuggestionPage: {
+            items: components["schemas"]["SuggestionItem"][];
+            /** @description Pass as `cursor`; null on the last page. */
+            nextCursor: string | null;
+            /** @description Open suggestions the caller has, in all. */
+            openCount: number;
+        };
+        SuggestionRefresh: {
+            /**
+             * @description `refreshed`: GitHub was read; `unchanged`: GitHub answered 304; `throttled`: read less than SUGGESTIONS_MIN_INTERVAL_S ago, the stored profile was used; `not_connected`.
+             * @enum {string}
+             */
+            github: "refreshed" | "unchanged" | "throttled" | "not_connected";
+            /** @description When GitHub may be read again, ISO 8601; null when not connected. */
+            nextAllowedAt: string | null;
+            /** @description Suggestions this refresh opened. */
+            created: number;
+            openCount: number;
+        };
+        SuggestionResolved: {
+            id: string;
+            /** @enum {string} */
+            status: "accepted" | "dismissed";
+            /** @description What an accept wrote; null for a dismiss or a reminder. */
+            applied: {
+                field: string;
+                value: string | null;
+            } | null;
         };
         Suggestions: {
             /** @description The text as normalized. */
@@ -5209,6 +5401,7 @@ export interface operations {
     listGithubRepos: {
         parameters: {
             query?: {
+                q?: string;
                 cursor?: string;
                 limit?: number;
             };
@@ -5299,6 +5492,10 @@ export interface operations {
                 "application/json": {
                     /** @description 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once. */
                     repoIds: number[];
+                    /** @description Per repository id (a key of `repoIds`), the fields the student edited in the review step. The README still comes from GitHub unless `descriptionHtml` is given. The re-sync snapshot records what GitHub gave, not these, so a later re-sync keeps them. */
+                    overrides?: {
+                        [key: string]: components["schemas"]["GithubDraftOverrides"];
+                    };
                 };
             };
         };
@@ -5311,6 +5508,90 @@ export interface operations {
                 content: {
                     "application/json": {
                         results: components["schemas"]["GithubImportResult"][];
+                        rateLimit: components["schemas"]["GithubRateLimit"];
+                    };
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_CONNECTED: connect GitHub first; GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    previewGithubImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 1 to GITHUB_IMPORT_MAX_BATCH (10) repository ids, each once. */
+                    repoIds: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description One result per repository */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: components["schemas"]["GithubPreviewResult"][];
                         rateLimit: components["schemas"]["GithubRateLimit"];
                     };
                 };
@@ -5716,6 +5997,265 @@ export interface operations {
                 };
             };
             /** @description STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listSuggestions: {
+        parameters: {
+            query?: {
+                status?: "open" | "all";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionPage"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    refreshSuggestions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What was done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionRefresh"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_NOT_LINKED: GitHub refused the token (sign in with GitHub again) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED (the `import` budget) or GITHUB_RATE_LIMITED; see Retry-After */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: GitHub failed or timed out */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTEGRATION_UNAVAILABLE, AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    acceptSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResolved"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such suggestion of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dismissSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dismissed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResolved"];
+                };
+            };
+            /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_FOUND: no such suggestion of the caller's (someone else's id answers the same) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable */
             503: {
                 headers: {
                     [name: string]: unknown;

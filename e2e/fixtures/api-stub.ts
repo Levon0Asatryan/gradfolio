@@ -401,7 +401,7 @@ const REPOS: GithubRepo[] = Array.from({ length: 5 }, (_, i) => ({
   imported: i === 2,
   projectId: i === 2 ? "5c1d9a3e-0000-4000-8000-000000000003" : null,
 }));
-const importBodies: Array<{ token: string; repoIds: number[]; edits?: unknown }> = [];
+const importBodies: Array<{ token: string; repoIds: number[]; overrides?: unknown }> = [];
 
 function githubData(req: IncomingMessage, res: ServerResponse, url: URL) {
   const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
@@ -422,6 +422,55 @@ function githubData(req: IncomingMessage, res: ServerResponse, url: URL) {
       nextCursor: !cursor && all.length > 3 ? "page-2" : null,
       rateLimit,
     });
+  }
+  if (url.pathname === "/v1/me/github/import/preview" && req.method === "POST") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      const body = JSON.parse(raw) as { repoIds: number[] };
+      send(res, 200, {
+        results: body.repoIds.map((id) => {
+          const repo = REPOS.find((r) => r.repoId === id);
+          const name = repo?.fullName.split("/")[1] ?? String(id);
+          if (id === 3)
+            return {
+              repoId: id,
+              outcome: "exists",
+              reason: null,
+              projectId: "5c1d9a3e-0000-4000-8000-000000000003",
+              draft: null,
+              notes: [],
+            };
+          if (id === 5)
+            return {
+              repoId: id,
+              outcome: "skipped",
+              reason: "not_owner",
+              projectId: null,
+              draft: null,
+              notes: [],
+            };
+          return {
+            repoId: id,
+            outcome: "draft",
+            reason: null,
+            projectId: null,
+            draft: {
+              title: name,
+              summary: repo?.description?.trim() ?? null,
+              descriptionHtml: `<h1>${name}</h1><p>README of ${name}, cleaned by the server.</p>`,
+              technologies: repo?.language ? [repo.language] : [],
+              links: [],
+              repoUrl: `https://github.com/${repo?.fullName ?? ""}`,
+              isPublic: true,
+            },
+            notes: [],
+          };
+        }),
+        rateLimit,
+      });
+    });
+    return;
   }
   if (url.pathname === "/v1/me/github/import" && req.method === "POST") {
     let raw = "";

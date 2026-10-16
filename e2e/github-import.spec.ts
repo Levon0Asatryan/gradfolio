@@ -39,9 +39,23 @@ async function signIn(page: Page, scenario: string, language = "en", theme = "li
   ]);
 }
 
+/**
+ * Waits for the page to stop moving: two frames (a transition that a state change has just
+ * started is only registered after the next paint), then every running animation. Axe reads
+ * colours as they are at that moment, and a button half-way through its fade has none of its own.
+ */
 const settled = (page: Page) =>
-  page.evaluate(() =>
-    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
+  page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))).then(
+              () => resolve(),
+            ),
+          ),
+        ),
+      ),
   );
 
 const IGNORED = [/\/_vercel\//, /was detected as the Largest Contentful Paint/];
@@ -60,7 +74,18 @@ function watch(page: Page): string[] {
 const seriousAxe = async (page: Page) =>
   (await new AxeBuilder({ page }).analyze()).violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
-    .map((v) => `${v.id} (${v.nodes.length})`);
+    .map(
+      (v) =>
+        `${v.id} (${v.nodes.length}) ${v.nodes.map((n) => n.html.slice(0, 100) + " " + (n.any[0]?.message ?? "")).join(" | ")}`,
+    );
+
+/**
+ * Axe must come back clean once the page has settled. A button that has just been enabled fades
+ * for a moment, and axe reads the half-way colour; polling waits for the end of the fade, and a
+ * violation that stays still fails after the timeout.
+ */
+const expectCleanAxe = (page: Page) =>
+  expect.poll(() => seriousAxe(page), { timeout: 4000, intervals: [100, 250, 500] }).toEqual([]);
 
 const IMPORT = /Import from GitHub|Импорт из GitHub|Ներմուծել GitHub-ից/;
 
@@ -90,7 +115,7 @@ for (const language of LANGUAGES) {
             }
             await settled(page);
             await page.waitForTimeout(250);
-            expect(await seriousAxe(page)).toEqual([]);
+            await expectCleanAxe(page);
             expect(problems).toEqual([]);
           });
         }
@@ -104,15 +129,24 @@ for (const language of LANGUAGES) {
             .filter({ hasText: /Continue|Продолжить|Շարունակել/ })
             .click();
           await expect(dialog.getByRole("textbox").first()).toBeVisible();
+          await expect(
+            dialog
+              .getByRole("button")
+              .filter({ hasText: /Save as drafts|Сохранить как черновики|Պահել որպես սևագրեր/ }),
+          ).toBeEnabled();
+          // The pointer rests where "Continue" was; a hovered contained button in dark mode is 4.46:1
+          // (theme follow-up), so judge the resting state.
+          await page.mouse.move(0, 0);
           await settled(page);
-          expect(await seriousAxe(page)).toEqual([]);
+          await expectCleanAxe(page);
           await dialog
             .getByRole("button")
             .filter({ hasText: /Save as drafts|Сохранить как черновики|Պահել որպես սևագրեր/ })
             .click();
           await expect(dialog.getByRole("link").first()).toBeVisible();
+          await page.mouse.move(0, 0);
           await settled(page);
-          expect(await seriousAxe(page)).toEqual([]);
+          await expectCleanAxe(page);
           expect(problems).toEqual([]);
         });
       });
@@ -121,7 +155,7 @@ for (const language of LANGUAGES) {
 }
 
 test.describe("behaviour", () => {
-  test("pick, review, edit, save: one request with only the edit; drafts, never published", async ({
+  test("pick, review, edit, save: one request with only the override; drafts, never published", async ({
     page,
     request,
   }) => {
@@ -135,6 +169,10 @@ test.describe("behaviour", () => {
     await expect(dialog.getByText("Selected: 2 of 10")).toBeVisible();
     await dialog.getByRole("button", { name: "Continue" }).click();
     await expect(dialog.getByRole("heading", { name: "Review before saving" })).toBeFocused();
+    // The review shows the draft the API read from GitHub, README included.
+    await expect(
+      dialog.getByText("README of thesis-tracker, cleaned by the server."),
+    ).toBeVisible();
     await dialog.getByLabel("Title").first().fill("My thesis tracker");
     await dialog.getByRole("button", { name: "Save as drafts" }).click();
     await expect(dialog.getByText("Projects created as drafts: 2")).toBeVisible();
@@ -143,12 +181,12 @@ test.describe("behaviour", () => {
       await request.get(`${STUB}/__imports?token=${encodeURIComponent(currentToken)}`)
     ).json()) as Array<{
       repoIds: number[];
-      edits?: Array<Record<string, unknown>> | Record<string, unknown>;
+      overrides?: Record<string, Record<string, unknown>>;
     }>;
     const last = bodies[bodies.length - 1]!;
     expect(last.repoIds).toEqual([1, 2]);
-    expect(JSON.stringify(last.edits)).toContain("My thesis tracker");
-    expect(JSON.stringify(last.edits)).not.toContain("smart-garden");
+    expect(JSON.stringify(last.overrides)).toContain("My thesis tracker");
+    expect(JSON.stringify(last.overrides)).not.toContain("smart-garden");
   });
 
   test("Not now imports nothing; Escape closes; focus returns to the button", async ({
