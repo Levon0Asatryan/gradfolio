@@ -90,7 +90,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
   return (
     <PageContainer maxWidth={1100}>
-      <BackButton />
+      <BackButton isOwner={project.isOwner} />
       <FlashToast />
       {project.isOwner && (
         <OwnerBar projectId={project.id} isDraft={project.isDraft} isPublic={project.isPublic} />
