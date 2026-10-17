@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { consoleProblems } from "./fixtures/console-problems";
 
 /**
  * The bell (docs/m5-plan.md §5, §9).
@@ -62,25 +63,11 @@ const settled = (page: Page) =>
     Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
   );
 
-/** Next's dev-only hint about the brand logo; the production build never prints it. */
-const DEV_ONLY = /was detected as the Largest Contentful Paint/;
-
 const stateA = process.env.E2E_STORAGE_STATE_A;
 
 test.describe("signed in (account A)", () => {
   test.skip(!stateA, "set E2E_STORAGE_STATE_A to a storageState file kept outside the repo");
   test.use({ storageState: stateA });
-
-  const problems = (page: Page): string[] => {
-    const found: string[] = [];
-    page.on("console", (m) => {
-      if (m.type() === "error" || m.type() === "warning") {
-        if (!DEV_ONLY.test(m.text())) found.push(m.text());
-      }
-    });
-    page.on("pageerror", (e) => found.push(`pageerror: ${e.message}`));
-    return found;
-  };
 
   const seriousAxe = async (page: Page) =>
     (await new AxeBuilder({ page }).analyze()).violations
@@ -109,7 +96,7 @@ test.describe("signed in (account A)", () => {
             { name: "theme", value: theme, url: BASE },
           ]);
           await page.setViewportSize({ width: size.width, height: size.height });
-          const found = problems(page);
+          const found = consoleProblems(page);
           await page.goto("/account");
           const closed = await page.screenshot();
           await testInfo.attach("closed", { body: closed, contentType: "image/png" });
@@ -166,6 +153,10 @@ test.describe("signed in (account A)", () => {
       .first()
       .click();
     await expect.poll(api).toBe(before - 1);
+    // MUI hides the background from assistive technology while the modal is
+    // open. Close it before checking the bell's accessible name again.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: /./ }).last()).toBeHidden();
     await expect(bell).toHaveAccessibleName(
       new RegExp(before - 1 === 0 ? "^[^0-9]+$" : String(before - 1)),
     );

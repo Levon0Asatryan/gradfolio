@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { consoleProblems } from "./fixtures/console-problems";
 
 /**
  * The team section (docs/m5-plan.md section 4 and 9).
@@ -45,18 +46,6 @@ const settled = (page: Page) =>
     Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))),
   );
 
-/** Next's dev-only hint about the brand logo; the production build never prints it. */
-const DEV_ONLY = /was detected as the Largest Contentful Paint/;
-
-const consoleProblems = (page: Page): string[] => {
-  const found: string[] = [];
-  page.on("console", (m) => {
-    if ((m.type() === "error" || m.type() === "warning") && !DEV_ONLY.test(m.text()))
-      found.push(m.text());
-  });
-  page.on("pageerror", (e) => found.push(`pageerror: ${e.message}`));
-  return found;
-};
 const seriousAxe = async (page: Page) =>
   (await new AxeBuilder({ page }).analyze()).violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
