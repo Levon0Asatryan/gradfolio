@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { notFound } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ResultsView } from "@/components/search/ResultsView";
 import { SearchError } from "@/components/search/SearchError";
-import { ApiError, getTag, listTagPeople, listTagProjects } from "@/lib/api/client";
+import { TagCloud } from "@/components/browse/TagCloud";
+import { ApiError, getTag, getTagCloud, listTagPeople, listTagProjects } from "@/lib/api/client";
 import {
   SEARCH_PAGE_SIZE,
   parseSearchQuery,
@@ -21,6 +24,8 @@ export const dynamic = "force-dynamic";
 
 /** The grouped view shows this many of each; "See all" leads to the paged list. */
 const GROUP_SIZE = 6;
+/** The cloud under an unknown tag: the same size as the search landing. */
+const CLOUD_SIZE = 30;
 
 interface PageProps {
   params: Promise<{ name: string }>;
@@ -108,10 +113,27 @@ export default async function TagPage({ params, searchParams }: PageProps) {
   const { tag, error } = await loadTag(name);
   if (error?.code === "NOT_FOUND") {
     const t = await requestDictionary();
+    const cloud = await getTagCloud(CLOUD_SIZE).then(
+      (c) => c.items,
+      (failure: unknown) => {
+        if (!(failure instanceof ApiError)) throw failure;
+        return null;
+      },
+    );
     return (
       <PageContainer>
         <PageHeader title={fill(t.tags.title, { tag: name })} />
         <ResultsView query="" emptyTitle={fill(t.tags.empty, { tag: name })} />
+        {/* The frontend M6 plan: an unknown tag is "No results" with the cloud, status 200.
+            The cloud is a way out of the dead end, so if it fails the page still renders. */}
+        {cloud && (
+          <Stack component="section" spacing={2} aria-labelledby="tag-cloud-title" sx={{ mt: 2 }}>
+            <Typography id="tag-cloud-title" variant="h5" component="h2">
+              {t.browse.cloudTitle}
+            </Typography>
+            <TagCloud items={cloud} />
+          </Stack>
+        )}
       </PageContainer>
     );
   }
