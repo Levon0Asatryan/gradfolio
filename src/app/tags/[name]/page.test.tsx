@@ -6,6 +6,7 @@ const api = vi.hoisted(() => ({
   getTag: vi.fn(),
   listTagProjects: vi.fn(),
   listTagPeople: vi.fn(),
+  getTagCloud: vi.fn(),
 }));
 const nav = vi.hoisted(() => ({
   notFound: vi.fn(() => {
@@ -32,11 +33,13 @@ vi.mock("@/lib/requestDictionary", async () => {
 });
 vi.mock("@/components/search/ResultsView", () => ({ ResultsView: () => null }));
 vi.mock("@/components/search/SearchError", () => ({ SearchError: () => null }));
+vi.mock("@/components/browse/TagCloud", () => ({ TagCloud: () => null }));
 
 const { default: TagPage, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 const { ResultsView } = await import("@/components/search/ResultsView");
 const { SearchError } = await import("@/components/search/SearchError");
+const { TagCloud } = await import("@/components/browse/TagCloud");
 
 function find(node: ReactNode, type: unknown): ReactElement | undefined {
   if (!isValidElement(node)) return undefined;
@@ -73,12 +76,28 @@ describe("/tags/[name] (server)", () => {
 
   it("an unknown tag (or one only a draft or private project uses) is an empty page, not a 404", async () => {
     api.getTag.mockRejectedValue(new ApiError(404, "NOT_FOUND", "no"));
+    api.getTagCloud.mockResolvedValue({ items: [] });
     const el = await run("nothing");
     expect(nav.notFound).not.toHaveBeenCalled();
     expect(props(find(el, ResultsView)).emptyTitle).toBe(
       "No public projects or people with nothing yet.",
     );
     expect(api.listTagProjects).not.toHaveBeenCalled();
+  });
+
+  it("an unknown tag also shows the tag cloud, to get out of the dead end", async () => {
+    api.getTag.mockRejectedValue(new ApiError(404, "NOT_FOUND", "no"));
+    api.getTagCloud.mockResolvedValue({ items: [{ name: "IoT", projects: 3, people: 1 }] });
+    const el = await run("nothing");
+    expect(props(find(el, TagCloud)).items).toEqual([{ name: "IoT", projects: 3, people: 1 }]);
+  });
+
+  it("the cloud failing does not break the empty page", async () => {
+    api.getTag.mockRejectedValue(new ApiError(404, "NOT_FOUND", "no"));
+    api.getTagCloud.mockRejectedValue(new ApiError(503, "API_UNREACHABLE", "down"));
+    const el = await run("nothing");
+    expect(find(el, TagCloud)).toBeUndefined();
+    expect(props(find(el, ResultsView)).emptyTitle).toContain("nothing");
   });
 
   it("a name over 255 characters is a 404 without a call", async () => {

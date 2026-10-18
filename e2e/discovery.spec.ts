@@ -308,6 +308,8 @@ test.describe("behaviour", () => {
       "No public projects or people with no-such-tag-anywhere yet.",
     );
     expect(await serverRobots(page)).toMatch(/noindex/);
+    // A way out of the dead end: the cloud, as on the landing.
+    await expect(page.getByRole("list", { name: "Popular tags" })).toBeVisible();
   });
 
   test("public calls carry no token, and the visitor's address reaches the API", async ({
