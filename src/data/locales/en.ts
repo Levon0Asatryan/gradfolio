@@ -678,6 +678,7 @@ export const en: Dictionary = {
     summary: "{projects} projects, {people} people",
     openTag: "Tag {tag}: show its projects and people",
     tagsOf: "Tags",
+    empty: "No public projects or people with {tag} yet.",
   },
   account: {
     title: "My Account",

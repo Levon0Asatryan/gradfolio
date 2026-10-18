@@ -680,6 +680,7 @@ export const ru: Dictionary = {
     summary: "Проектов: {projects}, людей: {people}",
     openTag: "Тег {tag}: показать проекты и людей",
     tagsOf: "Теги",
+    empty: "Пока нет публичных проектов или людей с тегом {tag}.",
   },
   account: {
     title: "Мой аккаунт",

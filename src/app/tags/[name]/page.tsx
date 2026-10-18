@@ -68,8 +68,10 @@ const loadLists = cache(async (name: string, type: string, cursor: string): Prom
 });
 
 /**
- * A tag with no public item is the API's 404 and a real 404 here (no soft-404 page to
- * index). The canonical URL is the tag's own spelling, never a cursor or a list type; a
+ * A tag with no public item is the API's 404. Here it is an empty tag page (Levon,
+ * 2026-10-16), never indexed: a draft's or private project's tag chip must not lead to
+ * the 404 page. Every unknown name gets the same empty page, so it says nothing about
+ * private work. The canonical URL is the tag's own spelling, never a cursor or a list type; a
  * paged list is `noindex`.
  */
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
@@ -104,8 +106,16 @@ export default async function TagPage({ params, searchParams }: PageProps) {
   const name = tagNameFromPageParam((await params).name);
   if (!name) notFound();
   const { tag, error } = await loadTag(name);
+  if (error?.code === "NOT_FOUND") {
+    const t = await requestDictionary();
+    return (
+      <PageContainer>
+        <PageHeader title={fill(t.tags.title, { tag: name })} />
+        <ResultsView query="" emptyTitle={fill(t.tags.empty, { tag: name })} />
+      </PageContainer>
+    );
+  }
   if (error) {
-    if (error.code === "NOT_FOUND") notFound();
     return (
       <PageContainer>
         <SearchError code={error.code} />

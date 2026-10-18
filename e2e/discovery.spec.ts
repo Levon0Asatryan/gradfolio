@@ -300,10 +300,14 @@ test.describe("behaviour", () => {
     expect(await serverRobots(page)).toMatch(/noindex/);
   });
 
-  test("an unknown tag is a real 404 and not indexed", async ({ page }) => {
+  test("an unknown tag is an empty tag page, not a 404, and not indexed", async ({ page }) => {
     const response = await page.goto("/tags/no-such-tag-anywhere");
-    expect(response?.status()).toBe(404);
-    await expect(page.locator("h1")).toHaveCount(1);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator("h1")).toHaveText("Tag: no-such-tag-anywhere");
+    await expect(page.getByRole("status")).toContainText(
+      "No public projects or people with no-such-tag-anywhere yet.",
+    );
+    expect(await serverRobots(page)).toMatch(/noindex/);
   });
 
   test("public calls carry no token, and the visitor's address reaches the API", async ({

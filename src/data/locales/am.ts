@@ -680,6 +680,7 @@ export const am: Dictionary = {
     summary: "Նախագծեր՝ {projects}, մարդիկ՝ {people}",
     openTag: "Պիտակ {tag}՝ ցույց տալ նախագծերն ու մարդկանց",
     tagsOf: "Պիտակներ",
+    empty: "{tag} պիտակով հրապարակային նախագծեր կամ մարդիկ դեռ չկան։",
   },
   account: {
     title: "Իմ հաշիվը",

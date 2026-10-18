@@ -631,6 +631,7 @@ export interface Dictionary {
     summary: string;
     openTag: string;
     tagsOf: string;
+    empty: string;
   };
   account: {
     title: string;

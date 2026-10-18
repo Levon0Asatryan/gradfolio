@@ -71,9 +71,14 @@ describe("/tags/[name] (server)", () => {
     expect(view.people.seeAllHref).toBeUndefined();
   });
 
-  it("an unknown tag is a real 404", async () => {
+  it("an unknown tag (or one only a draft or private project uses) is an empty page, not a 404", async () => {
     api.getTag.mockRejectedValue(new ApiError(404, "NOT_FOUND", "no"));
-    await expect(run("nothing")).rejects.toThrow("NEXT_NOT_FOUND");
+    const el = await run("nothing");
+    expect(nav.notFound).not.toHaveBeenCalled();
+    expect(props(find(el, ResultsView)).emptyTitle).toBe(
+      "No public projects or people with nothing yet.",
+    );
+    expect(api.listTagProjects).not.toHaveBeenCalled();
   });
 
   it("a name over 255 characters is a 404 without a call", async () => {

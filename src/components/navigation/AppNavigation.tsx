@@ -206,7 +206,13 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
           </Avatar>
           <Typography
             variant="subtitle2"
-            sx={{ display: pick("none", "block"), minWidth: 0, overflowWrap: "anywhere" }}
+            sx={(theme) => ({
+              display: pick("none", "block"),
+              minWidth: 0,
+              overflowWrap: "anywhere",
+              // Set, not inherited, like the nav links above: dark mode left it dark on dark.
+              color: theme.palette.text.primary,
+            })}
           >
             {user.name}
           </Typography>
