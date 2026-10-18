@@ -18,13 +18,20 @@ export interface WelcomeCardProps {
   completeness: Completeness | null;
   /** Where the next step is done. */
   editHref: string;
+  /** Optional destination for the current completeness step. */
+  nextHref?: string;
 }
 
 const STEP_LABEL = { basics: "stepBasics", contact: "stepContact", photo: "stepPhoto" } as const;
 const NEXT_LABEL = { basics: "nextBasics", contact: "nextContact", photo: "nextPhoto" } as const;
 
 /** The friendly top of the dashboard: a welcome, how complete the profile is, one next step. */
-export const WelcomeCard: FC<WelcomeCardProps> = ({ firstName, completeness, editHref }) => {
+export const WelcomeCard: FC<WelcomeCardProps> = ({
+  firstName,
+  completeness,
+  editHref,
+  nextHref,
+}) => {
   const { t } = useLanguage();
   const d = t.dashboard;
   const title = firstName ? d.welcomeBack.replace("{name}", firstName) : d.welcomeBackAnon;
@@ -64,7 +71,12 @@ export const WelcomeCard: FC<WelcomeCardProps> = ({ firstName, completeness, edi
             <Typography variant="overline" color="text.secondary" component="p">
               {d.nextStep}
             </Typography>
-            <Button component={Link} href={editHref} variant="contained" sx={{ mt: 0.5 }}>
+            <Button
+              component={Link}
+              href={nextHref ?? editHref}
+              variant="contained"
+              sx={{ mt: 0.5 }}
+            >
               {d[NEXT_LABEL[completeness.next]]}
             </Button>
           </Box>

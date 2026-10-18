@@ -36,7 +36,7 @@ describe("DashboardContent", () => {
     );
     expect(screen.getByText("1 of 3 done")).toBeVisible();
     const next = screen.getByRole("link", { name: "Add a contact email" });
-    expect(next).toHaveAttribute("href", "/profile/edit");
+    expect(next).toHaveAttribute("href", "/account");
   });
 
   it("offers no next step once the profile is complete", () => {
