@@ -12,6 +12,7 @@ import RecentProjects from "@/components/dashboard/RecentProjects";
 import ProjectCard from "@/components/projects/ProjectCard";
 import { projectSummary } from "@/testing/fixtures";
 
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 vi.mock("@/lib/dashboard/actions", () => ({ loadMoreActivitiesAction: vi.fn() }));
 
 /**

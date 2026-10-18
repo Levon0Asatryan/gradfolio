@@ -332,6 +332,35 @@ export interface Dictionary {
     allCategories: string;
     clearSearch: string;
     moreTech: string;
+    publish: {
+      publish: string;
+      publishNow: string;
+      toDraft: string;
+      /** `{name}` */
+      title: string;
+      bodyPublic: string;
+      bodyPrivate: string;
+      /** `{name}` */
+      draftTitle: string;
+      draftBody: string;
+      confirm: string;
+      confirmDraft: string;
+      cancel: string;
+      working: string;
+      done: string;
+      doneDraft: string;
+      refusedTitle: string;
+      reasons: string;
+      edit: string;
+      close: string;
+      errors: {
+        VALIDATION_FAILED: string;
+        LIMIT_REACHED: string;
+        NOT_FOUND: string;
+        UNAUTHENTICATED: string;
+        UNKNOWN: string;
+      };
+    };
     categories: {
       course: string;
       personal: string;

@@ -532,6 +532,30 @@ function githubProject(req: IncomingMessage, res: ServerResponse, path: string) 
   if (!token) return send(res, 404, { code: "NOT_FOUND", message: "no" });
   if (path.endsWith("/team")) return send(res, 200, { items: [], nextCursor: null });
   const id = path.split("/")[3] ?? "";
+  // Publish / move back to drafts: `PATCH { isDraft }`, state kept per token and project. The
+  // project ending in `4` is refused with reasons, like a project the API will not publish.
+  const key = `${token}:${id}`;
+  if (req.method === "PATCH") {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      if (id.endsWith("4"))
+        return send(res, 400, {
+          code: "VALIDATION_FAILED",
+          message: "invalid",
+          details: [{ path: ["summary"], message: "A published project needs a summary" }],
+        });
+      const patch = JSON.parse(raw) as { isDraft?: boolean };
+      if (typeof patch.isDraft === "boolean") projectDraft.set(key, patch.isDraft);
+      send(res, 200, projectBody(id, projectDraft.get(key) ?? true));
+    });
+    return;
+  }
+  return send(res, 200, projectBody(id, projectDraft.get(key) ?? true));
+}
+
+const projectDraft = new Map<string, boolean>();
+function projectBody(id: string, isDraft: boolean): ProjectDetail {
   const body: ProjectDetail = {
     id,
     title: "dotfiles",
@@ -543,8 +567,8 @@ function githubProject(req: IncomingMessage, res: ServerResponse, path: string) 
     tags: [],
     role: "owner",
     technologies: ["Shell"],
-    isPublic: false,
-    isDraft: true,
+    isPublic: true,
+    isDraft,
     isOwner: true,
     ownerId: "0b6f2c1e-1111-4222-8333-444455556666",
     metadata: { startDate: null, endDate: null, course: null, professor: null },
@@ -567,7 +591,7 @@ function githubProject(req: IncomingMessage, res: ServerResponse, path: string) 
     team: [],
     owner: { id: "0b6f2c1e-1111-4222-8333-444455556666", name: "Ani Petrosyan", avatarUrl: null },
   };
-  return send(res, 200, body);
+  return body;
 }
 
 /**

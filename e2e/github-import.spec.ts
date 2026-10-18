@@ -87,6 +87,7 @@ const seriousAxe = async (page: Page) =>
 const expectCleanAxe = (page: Page) =>
   expect.poll(() => seriousAxe(page), { timeout: 4000, intervals: [100, 250, 500] }).toEqual([]);
 
+const PUBLISH = /^(Publish|Опубликовать|Հրապարակել)$/;
 const IMPORT = /Import from GitHub|Импорт из GitHub|Ներմուծել GitHub-ից/;
 
 async function openDialog(page: Page, scenario: string, language = "en", theme = "light") {
@@ -125,6 +126,17 @@ for (const language of LANGUAGES) {
           const dialog = await openDialog(page, "e2e-on", language, theme);
           await dialog.getByRole("tab").nth(1).click();
           await expect(dialog.getByRole("checkbox").first()).toBeAttached();
+          await page.mouse.move(0, 0);
+          await settled(page);
+          await expectCleanAxe(page);
+          expect(problems).toEqual([]);
+        });
+
+        test("draft project page: Draft chip and Publish, axe, clean console", async ({ page }) => {
+          const problems = watch(page);
+          await signIn(page, "e2e-on", language, theme);
+          await page.goto("/projects/5c1d9a3e-0000-4000-8000-000000000003");
+          await expect(page.getByRole("button").filter({ hasText: PUBLISH }).first()).toBeVisible();
           await page.mouse.move(0, 0);
           await settled(page);
           await expectCleanAxe(page);
@@ -217,6 +229,58 @@ test.describe("profile data", () => {
     const dialog = await openDialog(page, "e2e-onempty");
     await dialog.getByRole("tab", { name: "Profile data" }).click();
     await expect(dialog.getByText("Nothing new from your GitHub profile.")).toBeVisible();
+  });
+});
+
+test.describe("publish", () => {
+  const PID = "5c1d9a3e-0000-4000-8000-000000000003";
+
+  test("a draft shows its chip and publishes from the page, without the edit form", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-on");
+    await page.goto(`/projects/${PID}`);
+    await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: /Publish/ });
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+    // It says who sees the project, before anything is sent.
+    await expect(dialog).toContainText(
+      "anyone can see it, including visitors who are not signed in",
+    );
+    await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+    await expect(page.getByText("Published.")).toBeVisible();
+    // The page followed the API: no longer a draft, and the counterpart is offered.
+    await expect(page.getByRole("button", { name: "Move back to drafts" })).toBeVisible();
+    await expect(page.getByText("Draft", { exact: true })).toHaveCount(0);
+    expect(page.url()).not.toContain("/edit");
+  });
+
+  test("when the API refuses, the dialog shows its reasons and an Edit link", async ({ page }) => {
+    await signIn(page, "e2e-on");
+    await page.goto("/projects/5c1d9a3e-0000-4000-8000-000000000004");
+    await page.getByRole("button", { name: "Publish", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: /Publish/ });
+    await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+    await expect(dialog.getByRole("alert")).toContainText("A published project needs a summary");
+    await expect(dialog.getByRole("link", { name: "Edit project" })).toHaveAttribute(
+      "href",
+      "/projects/5c1d9a3e-0000-4000-8000-000000000004/edit",
+    );
+    await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible();
+  });
+
+  test("the import result offers Publish now per created project", async ({ page }) => {
+    const dialog = await openDialog(page, "e2e-on");
+    await dialog.getByRole("checkbox", { name: "ani-p/thesis-tracker" }).check();
+    await dialog.getByRole("button", { name: "Continue" }).click();
+    await dialog.getByRole("button", { name: "Save as drafts" }).click();
+    await expect(dialog.getByText("Projects created as drafts: 1")).toBeVisible();
+    await dialog.getByRole("button", { name: "Publish now" }).click();
+    const confirm = page.getByRole("dialog", { name: /Publish/ }).last();
+    await confirm.getByRole("button", { name: "Publish", exact: true }).click();
+    await expect(dialog.getByText("Published.")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Publish now" })).toHaveCount(0);
   });
 });
 

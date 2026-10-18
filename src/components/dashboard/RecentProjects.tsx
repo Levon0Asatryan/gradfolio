@@ -12,6 +12,8 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import type { DashboardProject } from "@/lib/api/types";
 import Alert from "@mui/material/Alert";
 import { formatDay } from "@/utils/helpers/formatDay";
+import DraftChip from "@/components/shared/DraftChip";
+import { PublishButton } from "@/components/project/PublishButton";
 import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 import TruncatedText from "@/components/shared/TruncatedText";
@@ -28,12 +30,19 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
   const { t, language } = useLanguage();
   const titleId = useId();
   return (
-    <Card sx={{ display: "flex", minWidth: 0 }}>
+    <Card sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
       <CardActionArea
         component={Link}
         href={`/projects/${p.id}`}
         aria-labelledby={titleId}
-        sx={{ p: 3, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 1.5 }}
+        sx={{
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: 1.5,
+          flex: 1,
+        }}
       >
         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
           <CategoryChip category={p.category} />
@@ -42,7 +51,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
             {t.projects.status[p.status]}
           </Typography>
           {p.isDraft ? (
-            <Chip size="small" variant="outlined" label={t.dashboard.statusDraft} />
+            <DraftChip />
           ) : !p.isPublic ? (
             <Chip size="small" variant="outlined" label={t.dashboard.statusPrivate} />
           ) : null}
@@ -63,6 +72,18 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
           {formatDay(p.updatedAt, language)}
         </Typography>
       </CardActionArea>
+      {/* Outside the link: a button inside a link is nested interactive content. */}
+      {p.isDraft && p.role === "owner" && (
+        <Box sx={{ px: 3, pb: 2 }}>
+          <PublishButton
+            projectId={p.id}
+            title={p.title}
+            isPublic={p.isPublic}
+            variant="outlined"
+            size="small"
+          />
+        </Box>
+      )}
     </Card>
   );
 };

@@ -143,6 +143,11 @@ function ProjectsFeed({
         searchQuery={query.q}
         filtered={filtered}
         onClearFilters={onClearFilters}
+        // The feed keeps its own list (and the pages loaded so far), so a publish from a card is
+        // applied here; router.refresh() alone would not re-seed it.
+        onDraftChange={(id, isDraft) =>
+          setItems((prev) => prev.map((p) => (p.id === id ? { ...p, isDraft } : p)))
+        }
       />
       {failed && (
         <Alert severity="error" role="alert">

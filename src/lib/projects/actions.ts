@@ -127,3 +127,46 @@ export async function deleteProjectAction(
     throw error;
   }
 }
+
+export type DraftStateResult =
+  | { ok: true; isDraft: boolean; isPublic: boolean }
+  | { ok: false; code: string; reasons?: Array<{ path: string; message: string }> };
+
+/** The API's `details` for a refused update, cut down to short `{ path, message }` pairs. */
+function reasonsOf(details: unknown): Array<{ path: string; message: string }> | undefined {
+  if (!Array.isArray(details)) return undefined;
+  const out: Array<{ path: string; message: string }> = [];
+  for (const d of details.slice(0, 10)) {
+    if (typeof d !== "object" || d === null) continue;
+    const { path, message } = d as { path?: unknown; message?: unknown };
+    if (typeof message !== "string") continue;
+    out.push({
+      path: Array.isArray(path) ? path.join(".") : typeof path === "string" ? path : "",
+      message: message.slice(0, 200),
+    });
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+/**
+ * Publish a draft, or move a published project back to drafts, without opening the edit form:
+ * `PATCH { isDraft }` on the project (the existing update API; it validates the project as a
+ * whole, so a refusal comes back with its reasons). A public action: the session decides who
+ * is changing what, and the API answers 404 for anyone else's project.
+ */
+export async function setDraftStateAction(input: unknown): Promise<DraftStateResult> {
+  const invalid: DraftStateResult = { ok: false, code: "VALIDATION_FAILED" };
+  if (typeof input !== "object" || input === null) return invalid;
+  const { id, draft } = input as { id?: unknown; draft?: unknown };
+  if (typeof id !== "string" || typeof draft !== "boolean") return invalid;
+  try {
+    const project = await updateProject(id, { isDraft: draft });
+    return { ok: true, isDraft: project.isDraft, isPublic: project.isPublic };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const reasons = reasonsOf(error.details);
+      return { ok: false, code: error.code, ...(reasons ? { reasons } : {}) };
+    }
+    throw error;
+  }
+}

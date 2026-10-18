@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   Dialog,
+  Link,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -92,9 +93,9 @@ export const ResyncCard: FC<{ projectId: string; repoUrl: string | null }> = ({
           {repoUrl && (
             <>
               {" "}
-              <a href={repoUrl} target="_blank" rel="noopener noreferrer">
+              <Link href={repoUrl} target="_blank" rel="noopener noreferrer" underline="always">
                 {repoUrl.replace(/^https?:\/\//, "")}
-              </a>
+              </Link>
             </>
           )}
         </Typography>

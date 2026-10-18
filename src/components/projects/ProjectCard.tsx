@@ -11,6 +11,8 @@ import Typography from "@mui/material/Typography";
 import Tag from "./shared/Tag";
 import HighlightedText from "@/components/shared/HighlightedText";
 import TruncatedText from "@/components/shared/TruncatedText";
+import DraftChip from "@/components/shared/DraftChip";
+import { PublishButton } from "@/components/project/PublishButton";
 import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectSummary } from "@/lib/api/types";
@@ -21,6 +23,8 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 export interface ProjectCardProps {
   project: ProjectSummary;
   highlightQuery?: string;
+  /** The list owns the cards; it is told when a quick publish changed one, so it can show it. */
+  onDraftChange?: (isDraft: boolean) => void;
 }
 
 const MAX_TAGS = 4;
@@ -33,7 +37,7 @@ function truncate(text: string, max = 160) {
   return (cut > 0 ? sliced.slice(0, cut) : sliced).trimEnd() + "…";
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftChange }) => {
   const { id, title, summary, technologies, metadata, category: rawCategory } = project;
   const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const { t, language } = useLanguage();
@@ -53,12 +57,12 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
   const category = isProjectCategory(rawCategory) ? rawCategory : "other";
 
   return (
-    <Card component="article" sx={{ display: "flex", minWidth: 0 }}>
+    <Card component="article" sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
       <CardActionArea
         component={Link}
         href={`/projects/${id}`}
         aria-labelledby={titleId}
-        sx={{ display: "flex", flexDirection: "column", alignItems: "stretch" }}
+        sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", flex: 1 }}
       >
         <Box
           aria-hidden
@@ -92,7 +96,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
             <CategoryChip category={category} />
             <SourceBadge source={project.source} />
             {project.isDraft ? (
-              <Chip size="small" variant="outlined" label={t.projects.draft} />
+              <DraftChip />
             ) : !project.isPublic ? (
               <Chip size="small" variant="outlined" label={t.projects.private} />
             ) : null}
@@ -133,6 +137,19 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
           )}
         </Box>
       </CardActionArea>
+      {/* Outside the link: a button inside a link is nested interactive content. */}
+      {project.isDraft && project.isOwner && (
+        <Box sx={{ px: 3, pb: 2, pt: 1 }}>
+          <PublishButton
+            projectId={id}
+            title={title}
+            isPublic={project.isPublic}
+            variant="outlined"
+            size="small"
+            onDone={({ isDraft }) => onDraftChange?.(isDraft)}
+          />
+        </Box>
+      )}
     </Card>
   );
 };

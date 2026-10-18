@@ -12,7 +12,9 @@ const mocks = vi.hoisted(() => ({
   suggestions: vi.fn(),
   accept: vi.fn(),
   dismiss: vi.fn(),
+  setDraft: vi.fn(),
 }));
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: mocks.setDraft }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, push: vi.fn(), replace: vi.fn() }),
 }));
@@ -312,6 +314,39 @@ describe("review and save", () => {
       "href",
       "/projects/p1/edit",
     );
+  });
+
+  it("the result offers Publish now per created project, and says so once it is published", async () => {
+    await toReview();
+    mocks.save.mockResolvedValue({
+      ok: true,
+      response: {
+        results: [
+          { repoId: 1, outcome: "created", reason: null, projectId: "p1", notes: [] },
+          { repoId: 2, outcome: "exists", reason: null, projectId: "p2", notes: [] },
+        ],
+        rateLimit: { remaining: 1, resetsAt: null },
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    await screen.findByText("Projects created as drafts: 1");
+    // Only the created one: an existing project is not ours to publish from here.
+    expect(screen.getAllByRole("button", { name: "Publish now" })).toHaveLength(1);
+    mocks.setDraft.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    fireEvent.click(screen.getByRole("button", { name: "Publish now" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /Publish/ })).getByRole("button", {
+        name: "Publish",
+      }),
+    );
+    await waitFor(() => expect(mocks.setDraft).toHaveBeenCalledWith({ id: "p1", draft: false }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Publish now" })).toBeNull());
+    // The button that had the focus is gone: the focus is on the row's status line, not lost.
+    await waitFor(() => {
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent("Published.");
+      expect(status).toHaveFocus();
+    });
   });
 
   it("a double click on Save sends one request", async () => {

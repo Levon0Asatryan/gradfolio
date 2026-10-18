@@ -15,6 +15,8 @@ export interface ProjectsListProps {
   /** A search or category filter is on: an empty list then means "no match", not "no projects". */
   filtered?: boolean;
   onClearFilters?: () => void;
+  /** A card's quick publish changed its draft state. */
+  onDraftChange?: (id: string, isDraft: boolean) => void;
 }
 
 const ProjectsList: FC<ProjectsListProps> = ({
@@ -22,6 +24,7 @@ const ProjectsList: FC<ProjectsListProps> = ({
   searchQuery,
   filtered = false,
   onClearFilters,
+  onDraftChange,
 }) => {
   const { t } = useLanguage();
 
@@ -60,7 +63,12 @@ const ProjectsList: FC<ProjectsListProps> = ({
       }}
     >
       {projects.map((p) => (
-        <ProjectCard key={p.id} project={p} highlightQuery={searchQuery} />
+        <ProjectCard
+          key={p.id}
+          project={p}
+          highlightQuery={searchQuery}
+          onDraftChange={onDraftChange ? (isDraft) => onDraftChange(p.id, isDraft) : undefined}
+        />
       ))}
     </Box>
   );

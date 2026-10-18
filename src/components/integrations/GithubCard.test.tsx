@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
   assign: vi.fn(),
 }));
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, replace: vi.fn(), push: vi.fn() }),
 }));

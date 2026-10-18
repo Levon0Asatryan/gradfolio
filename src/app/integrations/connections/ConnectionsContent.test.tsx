@@ -2,6 +2,7 @@ import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),

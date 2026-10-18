@@ -309,7 +309,12 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
           setFailure({ code: result.code, retryAfter: result.retryAfter });
           return;
         }
-        setNames(Object.fromEntries(savable.map((r) => [r.repoId, r.fullName])));
+        // The title as saved (the student may have changed it), else the repository name.
+        setNames(
+          Object.fromEntries(
+            savable.map((r) => [r.repoId, drafts[r.repoId]?.title.trim() || r.fullName]),
+          ),
+        );
         setResults(result.response.results);
       } else {
         setResults([]);
