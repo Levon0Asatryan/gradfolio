@@ -38,7 +38,7 @@ export const PublishButton: FC<{
   variant?: "contained" | "outlined" | "text";
   size?: "small" | "medium";
   /** Called once the API has changed the project. */
-  onDone?: () => void;
+  onDone?: (state: { isDraft: boolean }) => void;
 }> = ({
   projectId,
   title,
@@ -72,7 +72,7 @@ export const PublishButton: FC<{
         return;
       }
       setOpen(false);
-      onDone?.();
+      onDone?.({ isDraft: result.isDraft });
       setDone(toDraft ? text.doneDraft : text.done);
       router.refresh();
     } catch {

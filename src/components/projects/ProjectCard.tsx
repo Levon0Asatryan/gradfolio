@@ -23,6 +23,8 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 export interface ProjectCardProps {
   project: ProjectSummary;
   highlightQuery?: string;
+  /** The list owns the cards; it is told when a quick publish changed one, so it can show it. */
+  onDraftChange?: (isDraft: boolean) => void;
 }
 
 const MAX_TAGS = 4;
@@ -35,7 +37,7 @@ function truncate(text: string, max = 160) {
   return (cut > 0 ? sliced.slice(0, cut) : sliced).trimEnd() + "…";
 }
 
-const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
+const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftChange }) => {
   const { id, title, summary, technologies, metadata, category: rawCategory } = project;
   const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const { t, language } = useLanguage();
@@ -144,6 +146,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery }) => {
             isPublic={project.isPublic}
             variant="outlined"
             size="small"
+            onDone={({ isDraft }) => onDraftChange?.(isDraft)}
           />
         </Box>
       )}

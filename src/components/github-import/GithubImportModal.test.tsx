@@ -339,6 +339,12 @@ describe("review and save", () => {
     );
     await waitFor(() => expect(mocks.setDraft).toHaveBeenCalledWith({ id: "p1", draft: false }));
     await waitFor(() => expect(screen.queryByRole("button", { name: "Publish now" })).toBeNull());
+    // The button that had the focus is gone: the focus is on the row's status line, not lost.
+    await waitFor(() => {
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent("Published.");
+      expect(status).toHaveFocus();
+    });
   });
 
   it("a double click on Save sends one request", async () => {

@@ -1,17 +1,20 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { projectSummary } from "@/testing/fixtures";
 import ProjectsContent from "./ProjectsContent";
 
-const nav = vi.hoisted(() => ({ replace: vi.fn() }));
+const nav = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: nav.replace }),
+  useRouter: () => ({ replace: nav.replace, refresh: nav.refresh }),
   usePathname: () => "/projects",
   useSearchParams: () => new URLSearchParams(),
 }));
-const more = vi.hoisted(() => ({ action: vi.fn() }));
-vi.mock("@/lib/projects/actions", () => ({ loadMoreProjectsAction: more.action }));
+const more = vi.hoisted(() => ({ action: vi.fn(), setDraft: vi.fn() }));
+vi.mock("@/lib/projects/actions", () => ({
+  loadMoreProjectsAction: more.action,
+  setDraftStateAction: more.setDraft,
+}));
 
 const cards = () => screen.queryAllByRole("article");
 const two = [
@@ -22,6 +25,8 @@ const two = [
 beforeEach(() => {
   nav.replace.mockReset();
   more.action.mockReset();
+  more.setDraft.mockReset();
+  nav.refresh.mockReset();
 });
 afterEach(() => vi.useRealTimers());
 
@@ -104,5 +109,34 @@ describe("/projects", () => {
     renderInApp(<ProjectsContent items={two} nextCursor={null} query={{}} />, "ru");
     expect(screen.getByRole("button", { name: "Хакатон" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 1, name: "Проекты" })).toBeVisible();
+  });
+});
+
+describe("/projects quick publish", () => {
+  it("a published draft stops being a draft in the feed (the feed keeps its own list)", async () => {
+    more.setDraft.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    renderInApp(
+      <ProjectsContent
+        items={[
+          projectSummary({ id: "a", title: "Alpha", isDraft: true, isOwner: true }),
+          projectSummary({ id: "b", title: "Beta", isDraft: true, isOwner: true }),
+        ]}
+        nextCursor={null}
+        query={{}}
+      />,
+    );
+    expect(screen.getAllByText("Draft")).toHaveLength(2);
+    // Publish the first card only.
+    fireEvent.click(screen.getAllByRole("button", { name: "Publish" })[0]!);
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /Publish/ })).getByRole("button", {
+        name: "Publish",
+      }),
+    );
+    await waitFor(() => expect(screen.getAllByText("Draft")).toHaveLength(1));
+    expect(more.setDraft).toHaveBeenCalledWith({ id: "a", draft: false });
+    expect(nav.refresh).toHaveBeenCalled();
+    // Beta is untouched.
+    expect(screen.getAllByRole("button", { name: "Publish" })).toHaveLength(1);
   });
 });
