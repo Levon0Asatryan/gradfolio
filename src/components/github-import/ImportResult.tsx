@@ -1,8 +1,9 @@
 "use client";
 
-import { type FC } from "react";
 import Link from "next/link";
+import { type FC, useState } from "react";
 import { Alert, Link as MuiLink, List, ListItem, Stack, Typography } from "@mui/material";
+import { PublishButton } from "@/components/project/PublishButton";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { GithubImportOutcome } from "@/lib/api/types";
 
@@ -16,6 +17,8 @@ export const ImportResult: FC<{
   const created = results.filter((r) => r.outcome === "created");
   const exists = results.filter((r) => r.outcome === "exists");
   const skipped = results.filter((r) => r.outcome === "skipped");
+  // Rows published from here: the row says so instead of offering Publish again.
+  const [published, setPublished] = useState<Set<number>>(new Set());
 
   return (
     <Stack spacing={2}>
@@ -48,9 +51,28 @@ export const ImportResult: FC<{
               </Typography>
             ))}
             {r.projectId && r.outcome !== "skipped" && (
-              <MuiLink component={Link} href={`/projects/${r.projectId}/edit`} variant="body2">
-                {text.editDraft}
-              </MuiLink>
+              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+                <MuiLink component={Link} href={`/projects/${r.projectId}/edit`} variant="body2">
+                  {text.editDraft}
+                </MuiLink>
+                {r.outcome === "created" &&
+                  (published.has(r.repoId) ? (
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {t.projects.publish.done}
+                    </Typography>
+                  ) : (
+                    // GitHub imports are of public repositories, so a published one is public.
+                    <PublishButton
+                      projectId={r.projectId}
+                      title={names[r.repoId] ?? ""}
+                      isPublic
+                      label={t.projects.publish.publishNow}
+                      variant="text"
+                      size="small"
+                      onDone={() => setPublished((prev) => new Set(prev).add(r.repoId))}
+                    />
+                  ))}
+              </Stack>
             )}
           </ListItem>
         ))}

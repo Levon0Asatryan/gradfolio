@@ -5,6 +5,7 @@ import { profileCompleteness } from "@/lib/profile/completeness";
 import { dashboard } from "@/testing/fixtures";
 import { DashboardContent } from "./DashboardContent";
 
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 vi.mock("@/lib/dashboard/actions", () => ({ loadMoreActivitiesAction: vi.fn() }));
 
 const PARTIAL = profileCompleteness({

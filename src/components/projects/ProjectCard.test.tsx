@@ -1,8 +1,13 @@
 import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { projectSummary } from "@/testing/fixtures";
 import ProjectCard from "./ProjectCard";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
+}));
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 
 describe("ProjectCard", () => {
   it("prints the date range in the UI language, in UTC", () => {
@@ -43,5 +48,20 @@ describe("ProjectCard", () => {
   it("falls back to the first letter without a summary", () => {
     renderInApp(<ProjectCard project={projectSummary({ summary: null })} />);
     expect(screen.getByRole("article")).toBeVisible();
+  });
+});
+
+describe("ProjectCard publish", () => {
+  it("offers Publish outside the link to the owner of a draft, with the Draft chip", () => {
+    renderInApp(<ProjectCard project={projectSummary({ isDraft: true, isOwner: true })} />);
+    expect(screen.getByText("Draft")).toBeVisible();
+    const publish = screen.getByRole("button", { name: "Publish" });
+    expect(publish.closest("a")).toBeNull();
+  });
+  it("offers nothing to publish on a published project or a draft that is not the caller's", () => {
+    renderInApp(<ProjectCard project={projectSummary({ isDraft: false })} />);
+    expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
+    renderInApp(<ProjectCard project={projectSummary({ isDraft: true, isOwner: false })} />);
+    expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
   });
 });

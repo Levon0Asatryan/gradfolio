@@ -15,6 +15,7 @@ import { FlashToast } from "@/components/shared/FlashToast";
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { ApiError, getMe, getProject, listProjectTeam } from "@/lib/api/client";
 import { auth0 } from "@/lib/auth0";
+import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import { requestDictionary } from "@/lib/requestDictionary";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
       <BackButton isOwner={project.isOwner} />
       <FlashToast />
       {project.isOwner && (
-        <OwnerBar projectId={project.id} isDraft={project.isDraft} isPublic={project.isPublic} />
+        <OwnerBar
+          projectId={project.id}
+          title={project.title}
+          isDraft={project.isDraft}
+          isPublic={project.isPublic}
+        />
       )}
 
       <ProjectHeader
@@ -107,7 +113,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
       />
 
       {project.isOwner && project.source === "github" && (
-        <ResyncCard projectId={project.id} repoUrl={project.repo.url} />
+        <ResyncCard projectId={project.id} repoUrl={safeHttpUrl(project.repo.url) ?? null} />
       )}
 
       <Box

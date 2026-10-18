@@ -3,6 +3,7 @@
 import { FC, memo } from "react";
 import { Button, Card, CardActionArea, CardContent, Stack, Chip, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import DraftChip from "@/components/shared/DraftChip";
 import SectionCard from "./shared/SectionCard";
 import Tag from "./shared/Tag";
 import type { ProfileProject } from "@/lib/api/types";
@@ -70,7 +71,7 @@ const ProjectsGrid: FC<ProjectsGridProps> = ({ items, onAddProject }) => {
                     )}
                     <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
                       <Chip size="small" variant="outlined" label={categories[p.category]} />
-                      {p.isDraft && <Chip size="small" color="warning" label={t.profile.draft} />}
+                      {p.isDraft && <DraftChip />}
                       {!p.isPublic && (
                         <Chip size="small" color="warning" label={t.profile.privateProject} />
                       )}

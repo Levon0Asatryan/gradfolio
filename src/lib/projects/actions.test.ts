@@ -30,8 +30,13 @@ vi.mock("@/lib/api/client", () => {
   };
 });
 
-const { loadMoreProjectsAction, createProjectAction, updateProjectAction, deleteProjectAction } =
-  await import("./actions");
+const {
+  loadMoreProjectsAction,
+  createProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
+  setDraftStateAction,
+} = await import("./actions");
 const { EMPTY_PROJECT, fieldsFromDetails } = await import("./form");
 const { ApiError } = await import("@/lib/api/client");
 
@@ -223,5 +228,42 @@ describe("createProjectAction with attachments", () => {
       code: "LIMIT_REACHED",
     });
     expect(api.addAttachment).not.toHaveBeenCalled();
+  });
+});
+
+describe("setDraftStateAction", () => {
+  it("patches only isDraft, and returns the state the API stored", async () => {
+    api.updateProject.mockResolvedValue({ isDraft: false, isPublic: true });
+    const result = await setDraftStateAction({ id: "p1", draft: false });
+    expect(result).toEqual({ ok: true, isDraft: false, isPublic: true });
+    expect(api.updateProject).toHaveBeenCalledWith("p1", { isDraft: false });
+  });
+  it("refuses a malformed argument before any API call", async () => {
+    for (const bad of [null, "x", { id: 5, draft: true }, { id: "p", draft: "yes" }, { id: "p" }]) {
+      expect(await setDraftStateAction(bad)).toEqual({ ok: false, code: "VALIDATION_FAILED" });
+    }
+    expect(api.updateProject).not.toHaveBeenCalled();
+  });
+  it("carries the API's code and short reasons, never a long message", async () => {
+    api.updateProject.mockRejectedValue(
+      new ApiError(400, "VALIDATION_FAILED", "x", [
+        { path: ["summary"], message: "m".repeat(500) },
+        { path: "title", message: "required" },
+        { nope: true },
+      ]),
+    );
+    const result = await setDraftStateAction({ id: "p1", draft: false });
+    expect(result).toMatchObject({ ok: false, code: "VALIDATION_FAILED" });
+    expect(result.ok === false && result.reasons).toEqual([
+      { path: "summary", message: "m".repeat(200) },
+      { path: "title", message: "required" },
+    ]);
+  });
+  it("a 404 is a failure, not a success", async () => {
+    api.updateProject.mockRejectedValue(new ApiError(404, "NOT_FOUND", "x"));
+    expect(await setDraftStateAction({ id: "p1", draft: false })).toEqual({
+      ok: false,
+      code: "NOT_FOUND",
+    });
   });
 });
