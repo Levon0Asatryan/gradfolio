@@ -119,7 +119,7 @@ describe("AccountSummary", () => {
   it("offers to sign in again when the session has expired", () => {
     show({ errorCode: "UNAUTHENTICATED" });
     expect(screen.getByRole("alert")).toHaveTextContent("Your session has expired.");
-    expect(screen.getByRole("link", { name: "Auth0 Login" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/auth/login?returnTo=/account",
     );

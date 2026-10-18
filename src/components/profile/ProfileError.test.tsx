@@ -26,7 +26,7 @@ describe("ProfileError", () => {
 
   it("asks an expired session to sign in again, back to the same page", () => {
     show("UNAUTHENTICATED");
-    expect(screen.getByRole("link", { name: "Auth0 Login" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/auth/login?returnTo=%2Fprofile%2Fabc",
     );

@@ -8,6 +8,11 @@ export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
   common: {
+    myProjects: string;
+    publicProjects: string;
+    people: string;
+    signInRequired: string;
+    continueBrowsing: string;
     myProfile: string;
     explore: string;
     account: string;

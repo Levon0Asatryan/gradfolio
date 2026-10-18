@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const am: Dictionary = {
   common: {
+    myProjects: "Իմ նախագծերը",
+    publicProjects: "Հանրային նախագծեր",
+    people: "Մարդիկ",
+    signInRequired: "Այս բաժինը բացելու համար մուտք գործեք։",
+    continueBrowsing: "Շարունակել դիտել",
     myProfile: "Իմ պրոֆիլը",
     explore: "Բացահայտել",
     account: "Հաշիվ",
@@ -20,7 +25,7 @@ export const am: Dictionary = {
     themeHelp: "Բաց կամ մուգ։ Ընտրությունը պահվում է այս սարքում։",
     dark: "Մուգ",
     dashboard: "Վահանակ",
-    login: "Auth0 Մուտք",
+    login: "Մուտք գործել",
     logout: "Ելք",
     loginConnections: "Մուտքի կարգավորումներ",
     myAccount: "Իմ հաշիվը",

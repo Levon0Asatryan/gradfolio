@@ -126,7 +126,7 @@ describe("ProjectForm, create", () => {
     renderInApp(<ProjectForm mode="create" />);
     type(title(), "x");
     save("Create project");
-    expect(await screen.findByRole("link", { name: "Auth0 Login" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/auth/login?returnTo=%2Fprojects%2Fnew",
     );
