@@ -1,6 +1,6 @@
 import type { PaletteMode, ThemeOptions } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
-import { RADIUS, TOKENS, surfaces } from "@/components/theme/tokens";
+import { RADIUS, TOKENS, mix, surfaces } from "@/components/theme/tokens";
 
 /**
  * Nunito covers Latin and Cyrillic; Noto Sans Armenian covers Armenian, which
@@ -15,7 +15,15 @@ const heading = { fontWeight: 800, textWrap: "balance" } as const;
 export const getTheme = (mode: PaletteMode): ThemeOptions => {
   const k = TOKENS[mode];
   const s = surfaces(mode);
-  const color = (main: string) => ({ main, contrastText: k.on });
+  // The hover fill of a contained button is `dark`. MUI would derive it by darkening `main`,
+  // which in dark mode (a dark label on a mid-blue fill) takes the label under 4.5:1 (4.46 on
+  // the primary button). So it is set: lighter in dark mode, darker in light mode, each moving
+  // the fill away from the label's colour. hoverContrast.test.ts holds every colour to 4.5:1.
+  const color = (main: string) => ({
+    main,
+    contrastText: k.on,
+    dark: mode === "dark" ? mix(main, 85, "#FFFFFF") : mix(main, 85, "#000000"),
+  });
   const focusRing = `3px solid ${k.primary}`;
   // Touch devices get 44px targets; a mouse keeps the compact size.
   const coarse = "@media (pointer: coarse)";
