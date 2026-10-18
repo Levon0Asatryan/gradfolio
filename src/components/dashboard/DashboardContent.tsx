@@ -34,7 +34,7 @@ export const DashboardContent: FC<DashboardContentProps> = ({
       firstName={firstName}
       completeness={completeness}
       editHref={EDIT_PROFILE}
-      nextHref="/account"
+      nextHref={completeness?.next === "contact" ? "/account" : undefined}
     />
     <DashboardStats stats={dashboard?.stats ?? null} />
     <RecentProjects items={dashboard?.recentProjects ?? null} />
