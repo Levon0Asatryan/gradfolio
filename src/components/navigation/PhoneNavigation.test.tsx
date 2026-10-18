@@ -34,7 +34,7 @@ describe("PhoneNavigation", () => {
   it("shows the four main places with labels, and More", () => {
     show({ name: "Ani" });
     const bar = screen.getByRole("navigation", { name: "Main menu" });
-    for (const name of ["Dashboard", "My profile", "Projects", "Explore"]) {
+    for (const name of ["Dashboard", "My profile", "My projects", "Explore"]) {
       expect(within(bar).getByRole("link", { name })).toBeInTheDocument();
     }
     expect(within(bar).getByRole("button", { name: "More" })).toBeInTheDocument();
@@ -58,14 +58,20 @@ describe("PhoneNavigation", () => {
     );
   });
 
-  it("offers sign in under More to a visitor, and no logout", () => {
+  it("shows public browsing and sign in directly in the guest bar", () => {
     show(null);
+    const bar = screen.getByRole("navigation", { name: "Main menu" });
+    for (const name of ["Explore", "Public projects", "People", "Sign in"]) {
+      expect(within(bar).getByRole("link", { name })).toBeVisible();
+    }
+    expect(within(bar).queryByRole("link", { name: "My projects" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "More" }));
     const sheet = screen.getByRole("dialog", { name: "More" });
-    expect(within(sheet).getByRole("link", { name: "Auth0 Login" })).toHaveAttribute(
+    expect(within(sheet).getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
-      "/auth/login",
+      "/settings",
     );
+    expect(within(sheet).queryByRole("link", { name: "Account" })).toBeNull();
     expect(within(sheet).queryByRole("link", { name: "Log out" })).toBeNull();
   });
 });

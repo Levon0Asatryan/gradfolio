@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const ru: Dictionary = {
   common: {
+    myProjects: "Мои проекты",
+    publicProjects: "Публичные проекты",
+    people: "Люди",
+    signInRequired: "Войдите, чтобы открыть этот раздел.",
+    continueBrowsing: "Продолжить просмотр",
     myProfile: "Мой профиль",
     explore: "Обзор",
     account: "Аккаунт",
@@ -20,7 +25,7 @@ export const ru: Dictionary = {
     themeHelp: "Светлая или тёмная. Выбор запоминается на этом устройстве.",
     dark: "Темная",
     dashboard: "Дашборд",
-    login: "Вход Auth0",
+    login: "Войти",
     logout: "Выйти",
     loginConnections: "Подключения входа",
     myAccount: "Мой аккаунт",

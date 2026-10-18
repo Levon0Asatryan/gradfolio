@@ -32,7 +32,7 @@ describe("ProjectsError", () => {
 
   it("sends an expired session back to the same page after login", () => {
     show("UNAUTHENTICATED");
-    expect(screen.getByRole("link", { name: "Auth0 Login" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/auth/login?returnTo=%2Fprojects%3Fq%3Da%2526b",
     );

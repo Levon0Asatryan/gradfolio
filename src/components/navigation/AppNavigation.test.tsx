@@ -59,10 +59,16 @@ describe("AppNavigation (tracker 2.13)", () => {
     expect(document.querySelector('img[src^="javascript:"]')).toBeNull();
   });
 
-  it("offers login and the login-connections stepper to a visitor, and no logout", () => {
+  it("offers public browsing and sign in to a visitor, without personal links", () => {
     show(null);
     expect(hrefs()).toContain("/auth/login");
-    expect(hrefs()).toContain("/integrations/connections");
+    expect(hrefs()).toEqual([
+      "/search",
+      "/browse/projects",
+      "/browse/people",
+      "/settings",
+      "/auth/login",
+    ]);
     expect(hrefs()).not.toContain("/auth/logout");
     expect(screen.queryByTestId("nav-user")).toBeNull();
   });
@@ -75,18 +81,11 @@ describe("AppNavigation (tracker 2.13)", () => {
     expect(within(screen.getByTestId("nav-user")).getByText("Ani Petrosyan")).toBeInTheDocument();
   });
 
-  it("keeps every other item for both", () => {
+  it("keeps public browsing for both", () => {
     for (const user of [null, { name: "Ani" }]) {
       const { unmount } = show(user);
       expect(hrefs()).toEqual(
-        expect.arrayContaining([
-          "/",
-          "/projects",
-          "/teams",
-          "/integrations",
-          "/search",
-          "/settings",
-        ]),
+        expect.arrayContaining(["/browse/projects", "/browse/people", "/search", "/settings"]),
       );
       unmount();
     }
@@ -97,7 +96,9 @@ describe("AppNavigation (tracker 2.13)", () => {
     for (const name of [
       "Dashboard",
       "My profile",
-      "Projects",
+      "My projects",
+      "Public projects",
+      "People",
       "Teams",
       "Explore",
       "Integrations",

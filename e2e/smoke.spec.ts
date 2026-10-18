@@ -134,7 +134,7 @@ test("a protected page without a session is a redirect to login, as an HTTP resp
     const response = await request.get(path, { maxRedirects: 0 });
     expect(response.status(), path).toBe(307);
     const location = response.headers().location ?? "";
-    expect(location, path).toContain("/auth/login");
+    expect(new URL(location, "http://x").pathname, path).toBe("/sign-in");
     expect(new URL(location, "http://x").searchParams.get("returnTo"), path).toBe(path);
   }
 });

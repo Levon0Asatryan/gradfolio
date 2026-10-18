@@ -40,7 +40,7 @@ test("without a session /teams is a redirect to login that keeps the way back", 
   const response = await request.get("/teams", { maxRedirects: 0 });
   expect(response.status()).toBe(307);
   const location = response.headers().location ?? "";
-  expect(location).toContain("/auth/login");
+  expect(new URL(location, "http://x").pathname).toBe("/sign-in");
   expect(new URL(location, "http://x").searchParams.get("returnTo")).toBe("/teams");
 });
 

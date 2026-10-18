@@ -2,6 +2,11 @@ import { Dictionary } from "./types";
 
 export const en: Dictionary = {
   common: {
+    myProjects: "My projects",
+    publicProjects: "Public projects",
+    people: "People",
+    signInRequired: "Sign in to open this section.",
+    continueBrowsing: "Continue browsing",
     myProfile: "My profile",
     explore: "Explore",
     account: "Account",
@@ -20,7 +25,7 @@ export const en: Dictionary = {
     themeHelp: "Light or dark. Your choice is remembered on this device.",
     dark: "Dark",
     dashboard: "Dashboard",
-    login: "Auth0 Login",
+    login: "Sign in",
     logout: "Log out",
     loginConnections: "Login Connections",
     myAccount: "My Account",

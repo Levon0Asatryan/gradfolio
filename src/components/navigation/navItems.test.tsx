@@ -3,12 +3,15 @@ import { en } from "@/data/locales/en";
 import { navItems } from "./navItems";
 
 describe("navItems and full page loads (M4 F3)", () => {
-  it("marks every protected page a visitor sees, so no client-side fetch is redirected to Auth0", () => {
+  it("offers only public destinations and an explicit sign-in link to guests", () => {
     const items = navItems(en, false);
-    const full = items.filter((i) => i.fullLoad).map((i) => i.href);
-    expect(full).toEqual(
-      expect.arrayContaining(["/", "/profile", "/projects", "/teams", "/integrations", "/account"]),
-    );
+    expect(items.map((i) => i.href)).toEqual([
+      "/search",
+      "/browse/projects",
+      "/browse/people",
+      "/settings",
+      "/auth/login",
+    ]);
     // Public pages keep client-side navigation and prefetch.
     for (const href of ["/search", "/settings"]) {
       expect(items.find((i) => i.href === href)?.fullLoad).toBeFalsy();
@@ -17,5 +20,9 @@ describe("navItems and full page loads (M4 F3)", () => {
 
   it("marks nothing for a signed-in user", () => {
     expect(navItems(en, true).some((i) => i.fullLoad)).toBe(false);
+    expect(navItems(en, true).find((i) => i.href === "/projects")?.label).toBe("My projects");
+    expect(navItems(en, true).find((i) => i.href === "/browse/projects")?.label).toBe(
+      "Public projects",
+    );
   });
 });

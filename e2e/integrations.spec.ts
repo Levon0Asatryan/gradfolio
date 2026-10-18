@@ -259,6 +259,6 @@ test.describe("behaviour", () => {
       maxRedirects: 0,
     });
     expect(response.status()).toBe(307);
-    expect(response.headers().location).toContain("/auth/login");
+    expect(new URL(response.headers().location ?? "", "http://x").pathname).toBe("/sign-in");
   });
 });

@@ -8,8 +8,8 @@ import Link from "next/link";
  * browser then follows that redirect as a cross-origin fetch, which Auth0
  * rejects (CORS). Those routes must be full page navigations: a plain `<a>`.
  *
- * The same holds for a protected page seen by a visitor with no session: the proxy
- * redirects it to `/auth/login` and on to Auth0 (M4 F3). `fullLoad` marks those.
+ * `fullLoad` can also opt a destination into a full page navigation. Guest menus
+ * contain public routes; protected direct links now open the local sign-in prompt.
  */
 export function navLinkComponent(href: string, fullLoad = false): typeof Link | "a" {
   return fullLoad || href.startsWith("/auth/") ? "a" : Link;
