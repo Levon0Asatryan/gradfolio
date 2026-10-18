@@ -40,11 +40,11 @@ describe("proxy", () => {
     expect(sdk.getSession).not.toHaveBeenCalled();
   });
 
-  it("sends a signed-out visitor of a protected page to login, and back after", async () => {
+  it("sends a signed-out visitor to a local prompt with the original destination", async () => {
     const res = await proxy(request("/projects/new?draft=1"));
     expect(res.status).toBe(307);
     const location = new URL(res.headers.get("location") ?? "");
-    expect(location.pathname).toBe("/auth/login");
+    expect(location.pathname).toBe("/sign-in");
     expect(location.searchParams.get("returnTo")).toBe("/projects/new?draft=1");
   });
 
@@ -109,7 +109,7 @@ describe("proxy renews an expired access token", () => {
     expect(sdk.getAccessToken).not.toHaveBeenCalled();
   });
 
-  it("a protected page whose token cannot be renewed is sent to login, not served", async () => {
+  it("a protected page whose token cannot be renewed is sent to the prompt, not served", async () => {
     sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
     sdk.getAccessToken.mockRejectedValue(
       new AccessTokenError(AccessTokenErrorCode.FAILED_TO_REFRESH_TOKEN, "revoked"),
@@ -117,7 +117,7 @@ describe("proxy renews an expired access token", () => {
     const res = await proxy(request("/projects?sort=oldest"));
     expect(res.status).toBe(307);
     const location = new URL(res.headers.get("location") ?? "");
-    expect(location.pathname).toBe("/auth/login");
+    expect(location.pathname).toBe("/sign-in");
     expect(location.searchParams.get("returnTo")).toBe("/projects?sort=oldest");
   });
 
@@ -144,5 +144,47 @@ describe("proxy matcher", () => {
     expect(re.test("/fonts/nunito-variable.woff2")).toBe(false);
     expect(re.test("/profile/u_001")).toBe(true);
     expect(re.test("/auth/login")).toBe(true);
+  });
+});
+
+describe("logout landing", () => {
+  it("pins the SDK return destination to public Explore, preserving the session cookie", async () => {
+    const req = new NextRequest(
+      `${ORIGIN}/auth/logout?returnTo=https://evil.test&federated=false`,
+      { headers: { cookie: "session=test" } },
+    );
+    const response = await proxy(req);
+    const forwarded = sdk.middleware.mock.calls[0]?.[0] as NextRequest;
+    expect(forwarded.nextUrl.pathname).toBe("/auth/logout");
+    expect(forwarded.nextUrl.searchParams.get("returnTo")).toBe(`${ORIGIN}/`);
+    expect(forwarded.nextUrl.searchParams.get("federated")).toBe("false");
+    expect(forwarded.headers.get("cookie")).toBe("session=test");
+    expect(response.cookies.get("gradfolio_logout_landing")?.value).toBe("1");
+  });
+  it("lands on Explore after the SDK clears the session, and consumes the hint", async () => {
+    const res = await proxy(
+      new NextRequest(`${ORIGIN}/`, { headers: { cookie: "gradfolio_logout_landing=1" } }),
+    );
+    expect(res.headers.get("location")).toBe(`${ORIGIN}/search`);
+    expect(res.cookies.get("gradfolio_logout_landing")?.value).toBe("");
+  });
+  it("a landing hint never grants access to a personal page", async () => {
+    const res = await proxy(
+      new NextRequest(`${ORIGIN}/account`, { headers: { cookie: "gradfolio_logout_landing=1" } }),
+    );
+    expect(new URL(res.headers.get("location")!).pathname).toBe("/sign-in");
+  });
+  it("does not redirect a still-authenticated session based on a landing hint", async () => {
+    sdk.getSession.mockResolvedValue({ user: { sub: "google-oauth2|1" } });
+    const res = await proxy(
+      new NextRequest(`${ORIGIN}/`, { headers: { cookie: "gradfolio_logout_landing=1" } }),
+    );
+    expect(res.headers.get("x-from-sdk")).toBe("1");
+    expect(res.headers.has("location")).toBe(false);
+  });
+  it("keeps the sign-in prompt public instead of looping back to itself", async () => {
+    const res = await proxy(request("/sign-in?returnTo=/account"));
+    expect(res.status).toBe(200);
+    expect(sdk.getSession).not.toHaveBeenCalled();
   });
 });
