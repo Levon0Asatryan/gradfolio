@@ -30,7 +30,12 @@ export const DashboardContent: FC<DashboardContentProps> = ({
   dashboard,
 }) => (
   <PageContainer>
-    <WelcomeCard firstName={firstName} completeness={completeness} editHref={EDIT_PROFILE} />
+    <WelcomeCard
+      firstName={firstName}
+      completeness={completeness}
+      editHref={EDIT_PROFILE}
+      nextHref="/account"
+    />
     <DashboardStats stats={dashboard?.stats ?? null} />
     <RecentProjects items={dashboard?.recentProjects ?? null} />
     <Box
