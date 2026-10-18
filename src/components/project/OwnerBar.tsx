@@ -7,6 +7,7 @@ import EditOutlined from "@mui/icons-material/EditOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import DraftChip from "@/components/shared/DraftChip";
 import { PublishButton } from "./PublishButton";
+import { PublishStatus, usePublishStatus } from "./PublishStatus";
 
 /**
  * Shown to the owner only (the API answers 404 to everyone else): the Edit link, the state of
@@ -20,6 +21,7 @@ export const OwnerBar: FC<{
   isPublic: boolean;
 }> = ({ projectId, title, isDraft, isPublic }) => {
   const { t } = useLanguage();
+  const publishStatus = usePublishStatus();
   return (
     <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
       <Button
@@ -37,6 +39,7 @@ export const OwnerBar: FC<{
             title={title}
             isPublic={isPublic}
             variant="outlined"
+            onDone={publishStatus.onDone}
           />
           <DraftChip size="medium" />
         </>
@@ -48,10 +51,13 @@ export const OwnerBar: FC<{
             isPublic={isPublic}
             mode="draft"
             variant="text"
+            onDone={publishStatus.onDone}
           />
           {!isPublic && <Chip variant="outlined" label={t.projects.private} />}
         </>
       )}
+      {/* Outlives the button: the page swaps Publish for Move back to drafts. */}
+      <PublishStatus text={publishStatus.status} lineRef={publishStatus.line} />
     </Box>
   );
 };

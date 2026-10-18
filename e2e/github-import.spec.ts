@@ -256,6 +256,27 @@ test.describe("publish", () => {
     expect(page.url()).not.toContain("/edit");
   });
 
+  test("keyboard: Enter opens, Tab to Publish, Enter confirms; the focus lands on the status line, not on removed DOM", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-on");
+    await page.goto(`/projects/${PID}`);
+    await page.getByRole("button", { name: "Publish", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: /Publish/ });
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Publish", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    const status = page.getByRole("status").filter({ hasText: "Published." });
+    await expect(status).toBeVisible();
+    await expect(status).toBeFocused();
+    expect(await status.evaluate((el) => el.isConnected)).toBe(true);
+    // The page followed the API underneath, and the status line is still the focused element.
+    await expect(page.getByRole("button", { name: "Move back to drafts" })).toBeVisible();
+    await expect(status).toBeFocused();
+  });
+
   test("when the API refuses, the dialog shows its reasons and an Edit link", async ({ page }) => {
     await signIn(page, "e2e-on");
     await page.goto("/projects/5c1d9a3e-0000-4000-8000-000000000004");
