@@ -100,6 +100,8 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
   const [names, setNames] = useState<Record<number, string>>({});
   const heading = useRef<HTMLHeadingElement>(null);
   const saveLock = useRef(false);
+  // Same idea for the profile read: an answer for an earlier opening is dropped.
+  const profileSequence = useRef(0);
   // A newer search must win over a slower older one.
   const sequence = useRef(0);
 
@@ -156,6 +158,7 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     setPreviews({});
     setPreviewState({ loading: false, error: null });
     setTab("repos");
+    profileSequence.current += 1; // invalidates a profile read still in flight
     setProfile(NO_PROFILE);
     setChecked(new Set());
     setDismissError(null);
@@ -182,8 +185,11 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
   // GitHub's profile data is read when the student first opens its tab (the API throttles its
   // own reads of GitHub), not when the dialog opens: it costs nothing until it is asked for.
   const loadProfile = useCallback(async () => {
+    const mine = ++profileSequence.current;
     setProfile((p) => ({ ...p, loading: true, error: null }));
     const result = await loadProfileSuggestionsAction();
+    // An answer for an earlier opening of the dialog must not fill (or tick) this one.
+    if (mine !== profileSequence.current) return;
     if (!result.ok) {
       setProfile({ ...NO_PROFILE, loaded: true, error: result.code });
       return;
@@ -278,9 +284,9 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
     chosen.length === 0 ||
     (!previewState.loading &&
       !previewState.error &&
-      savable.length > 0 &&
       savable.every((r) => !draftProblem(drafts[r.repoId]!)));
-  const canSave = reposOk && (chosen.length > 0 || profileChosen.length > 0);
+  // Repositories that need no import (already imported, or skipped) do not veto the profile.
+  const canSave = reposOk && (savable.length > 0 || profileChosen.length > 0);
 
   async function save() {
     if (saveLock.current || !canSave) return;

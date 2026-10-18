@@ -1,5 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LanguageProvider } from "@/components/i18n/LanguageContext";
+import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { renderInApp } from "@/testing/render";
 
 const mocks = vi.hoisted(() => ({
@@ -427,6 +429,84 @@ describe("profile data tab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("GitHub is not responding");
     expect(mocks.accept).not.toHaveBeenCalled();
+  });
+
+  it("an answer for an earlier opening of the dialog is ignored", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    let late!: (v: unknown) => void;
+    mocks.suggestions.mockReturnValueOnce(new Promise((resolve) => (late = resolve)));
+    const { rerender } = renderInApp(<GithubImportModal open onClose={vi.fn()} />);
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
+    await waitFor(() => expect(mocks.suggestions).toHaveBeenCalledTimes(1));
+    // Close and reopen while the read is in flight.
+    rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider initialLanguage="en">
+          <GithubImportModal open={false} onClose={vi.fn()} />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    rerender(
+      <ThemeWrapper initialMode="light">
+        <LanguageProvider initialLanguage="en">
+          <GithubImportModal open onClose={vi.fn()} />
+        </LanguageProvider>
+      </ThemeWrapper>,
+    );
+    await screen.findByRole("checkbox", { name: "ani-p/repo-1" });
+    await act(async () =>
+      late({
+        ok: true,
+        items: [item(A, "profile.bio", null, "Stale bio", "fill")],
+        refresh: null,
+        refreshError: null,
+      }),
+    );
+    // The fresh opening is untouched: still on Repositories, nothing pre-ticked, Continue off.
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(screen.queryByText("Stale bio")).toBeNull();
+  });
+
+  it("profile fields can be saved when every selected repository is already imported or skipped", async () => {
+    mocks.list.mockResolvedValue(page([repo(1), repo(2)]));
+    mocks.suggestions.mockResolvedValue({
+      ok: true,
+      items: [item(A, "profile.bio", null, "I build things", "fill")],
+      refresh: null,
+      refreshError: null,
+    });
+    mocks.preview.mockResolvedValue(
+      previewOf([1, 2], {
+        1: { outcome: "exists", projectId: "p1", draft: null },
+        2: { outcome: "skipped", reason: "not_owner", draft: null },
+      }),
+    );
+    open();
+    fireEvent.click(await screen.findByRole("checkbox", { name: "ani-p/repo-1" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "ani-p/repo-2" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
+    await screen.findByText("I build things");
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("You neither own this repository nor can push to it.");
+    const save = screen.getByRole("button", { name: "Save as drafts" });
+    expect(save).toBeEnabled();
+    mocks.accept.mockResolvedValue({ ok: true, results: [{ id: A, ok: true }] });
+    fireEvent.click(save);
+    expect(await screen.findByText("Profile fields updated: 1")).toBeVisible();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("with nothing to import and no profile field ticked, Save stays off", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.preview.mockResolvedValue(
+      previewOf([1], { 1: { outcome: "exists", projectId: "p1", draft: null } }),
+    );
+    open();
+    fireEvent.click(await screen.findByRole("checkbox", { name: "ani-p/repo-1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByText("Imported", { exact: false });
+    expect(screen.getByRole("button", { name: "Save as drafts" })).toBeDisabled();
   });
 
   it("a field that fails to update is reported, not hidden", async () => {
