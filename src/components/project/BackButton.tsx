@@ -6,13 +6,13 @@ import Link from "next/link";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 
-const BackButton: FC = () => {
+const BackButton: FC<{ isOwner: boolean }> = ({ isOwner }) => {
   const { t } = useLanguage();
 
   return (
     <Button
       component={Link}
-      href="/projects"
+      href={isOwner ? "/projects" : "/browse/projects"}
       variant="text"
       startIcon={<ArrowBackIcon />}
       sx={{ alignSelf: "flex-start", ml: -1.5 }}

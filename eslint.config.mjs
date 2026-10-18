@@ -17,6 +17,8 @@ export default [
       "**/build/**",
       "**/dist/**",
       "**/coverage/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
       "**/.env*",
       "next-env.d.ts",
       "src/lib/api/schema.d.ts",
