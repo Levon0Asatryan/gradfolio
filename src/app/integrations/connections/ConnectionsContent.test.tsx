@@ -12,6 +12,11 @@ vi.mock("@/lib/integrations/importActions", () => ({
   importGithubReposAction: vi.fn(),
   previewGithubImportAction: vi.fn(),
 }));
+vi.mock("@/lib/integrations/suggestionActions", () => ({
+  loadProfileSuggestionsAction: vi.fn(),
+  acceptSuggestionsAction: vi.fn(),
+  dismissSuggestionAction: vi.fn(),
+}));
 vi.mock("@/lib/integrations/actions", () => ({
   startGithubConnectAction: vi.fn(),
   disconnectGithubAction: vi.fn(),

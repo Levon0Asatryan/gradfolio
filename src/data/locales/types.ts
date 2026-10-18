@@ -195,6 +195,31 @@ export interface Dictionary {
       selected: string;
       /** `{max}` */
       maxReached: string;
+      tabRepos: string;
+      tabProfile: string;
+      profile: {
+        intro: string;
+        loading: string;
+        empty: string;
+        now: string;
+        github: string;
+        emptyNow: string;
+        dismiss: string;
+        summaryTitle: string;
+        /** `{count}` */
+        updated: string;
+        /** `{count}` */
+        failed: string;
+        fields: {
+          name: string;
+          headline: string;
+          bio: string;
+          location: string;
+          avatarUrl: string;
+          linksGithub: string;
+          linksWebsite: string;
+        };
+      };
       previewLoading: string;
       readmePreview: string;
       noReadme: string;
