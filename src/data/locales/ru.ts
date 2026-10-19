@@ -464,6 +464,7 @@ export const ru: Dictionary = {
       attachmentMoveDown: "Переместить ниже: {name}",
       attachmentRemove: "Убрать: {name}",
       attachmentRemoveTitle: "Убрать «{name}»?",
+      attachmentRemoveConfirm: "Убрать вложение",
       attachmentRemoveBody:
         "Вложение и загруженный файл (если есть) будут удалены. Это нельзя отменить.",
       attachmentMoved: "Позиция {n} из {m}.",

@@ -462,6 +462,7 @@ export const am: Dictionary = {
       attachmentMoveDown: "Տեղափոխել ներքև՝ {name}",
       attachmentRemove: "Հեռացնել՝ {name}",
       attachmentRemoveTitle: "Հեռացնե՞լ «{name}»-ը",
+      attachmentRemoveConfirm: "Հեռացնել կցորդը",
       attachmentRemoveBody:
         "Կկորցվեն կցորդը և դրա վերբեռնված ֆայլը (եթե կա)։ Սա հնարավոր չէ չեղարկել։",
       attachmentMoved: "Դիրքը՝ {n}-ը {m}-ից։",

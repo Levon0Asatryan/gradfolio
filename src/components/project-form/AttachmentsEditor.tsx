@@ -385,7 +385,7 @@ export const AttachmentsEditor: FC<AttachmentsEditorProps> = ({
             disabled={busy}
             onClick={() => removing !== null && void remove(removing)}
           >
-            {t.projects.form.deleteConfirm}
+            {text.attachmentRemoveConfirm}
           </Button>
         </DialogActions>
       </Dialog>
