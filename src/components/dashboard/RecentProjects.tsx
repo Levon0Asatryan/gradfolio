@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, memo, useId, useMemo } from "react";
+import { FC, memo, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -14,6 +14,7 @@ import Alert from "@mui/material/Alert";
 import { formatDay } from "@/utils/helpers/formatDay";
 import DraftChip from "@/components/shared/DraftChip";
 import { PublishButton } from "@/components/project/PublishButton";
+import { PublishStatus, usePublishStatus } from "@/components/project/PublishStatus";
 import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 import TruncatedText from "@/components/shared/TruncatedText";
@@ -29,6 +30,10 @@ const SHOWN = 3;
 const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) => {
   const { t, language } = useLanguage();
   const titleId = useId();
+  const publishStatus = usePublishStatus();
+  // The dashboard's list comes from the server; show a quick publish at once, then the refresh agrees.
+  const [publishedHere, setPublishedHere] = useState(false);
+  const isDraft = p.isDraft && !publishedHere;
   return (
     <Card sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
       <CardActionArea
@@ -50,7 +55,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
           <Typography variant="caption" color="text.secondary">
             {t.projects.status[p.status]}
           </Typography>
-          {p.isDraft ? (
+          {isDraft ? (
             <DraftChip />
           ) : !p.isPublic ? (
             <Chip size="small" variant="outlined" label={t.dashboard.statusPrivate} />
@@ -73,7 +78,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
         </Typography>
       </CardActionArea>
       {/* Outside the link: a button inside a link is nested interactive content. */}
-      {p.isDraft && p.role === "owner" && (
+      {isDraft && p.role === "owner" && (
         <Box sx={{ px: 3, pb: 2 }}>
           <PublishButton
             projectId={p.id}
@@ -81,9 +86,16 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
             isPublic={p.isPublic}
             variant="outlined"
             size="small"
+            onDone={(state) => {
+              publishStatus.onDone(state);
+              setPublishedHere(!state.isDraft);
+            }}
           />
         </Box>
       )}
+      <Box sx={{ px: 3, pb: publishStatus.status ? 2 : 0 }}>
+        <PublishStatus text={publishStatus.status} lineRef={publishStatus.line} />
+      </Box>
     </Card>
   );
 };

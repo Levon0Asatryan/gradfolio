@@ -186,6 +186,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     return githubData(req, res, url);
   if (url.pathname.startsWith("/v1/projects/5c1d9a3e-0000-4000-8000-"))
     return githubProject(req, res, url.pathname);
+  if (url.pathname === "/v1/me/projects" && req.method === "GET") return myProjects(req, res);
 
   const failure = FAIL[q as keyof typeof FAIL];
   if (failure && url.pathname.startsWith("/v1/search")) return send(res, failure[0], failure[1]);
@@ -555,6 +556,20 @@ function githubProject(req: IncomingMessage, res: ServerResponse, path: string) 
 }
 
 const projectDraft = new Map<string, boolean>();
+
+/**
+ * `GET /v1/me/projects`: the owner's feed, one GitHub-imported draft (the same `...0003` as the
+ * project page, a detail is a superset of a summary, so a publish from either place is seen by both). Its state follows the PATCH above.
+ */
+function myProjects(req: IncomingMessage, res: ServerResponse) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no" });
+  const id = "5c1d9a3e-0000-4000-8000-000000000003";
+  send(res, 200, {
+    items: [projectBody(id, projectDraft.get(`${token}:${id}`) ?? true)],
+    nextCursor: null,
+  });
+}
 function projectBody(id: string, isDraft: boolean): ProjectDetail {
   const body: ProjectDetail = {
     id,

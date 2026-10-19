@@ -136,7 +136,34 @@ describe("/projects quick publish", () => {
     await waitFor(() => expect(screen.getAllByText("Draft")).toHaveLength(1));
     expect(more.setDraft).toHaveBeenCalledWith({ id: "a", draft: false });
     expect(nav.refresh).toHaveBeenCalled();
-    // Beta is untouched.
-    expect(screen.getAllByRole("button", { name: "Publish" })).toHaveLength(1);
+    // Beta is untouched. The page is aria-hidden until Alpha's dialog has finished closing.
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Publish" })).toHaveLength(1));
+  });
+
+  it("focus moves to a connected status line that announces the result, after the button is gone (Codex P2 on #121)", async () => {
+    more.setDraft.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    renderInApp(
+      <ProjectsContent
+        items={[projectSummary({ id: "a", title: "Alpha", isDraft: true, isOwner: true })]}
+        nextCursor={null}
+        query={{}}
+      />,
+    );
+    const publish = screen.getByRole("button", { name: "Publish" });
+    publish.focus();
+    fireEvent.click(publish);
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /Publish/ })).getByRole("button", {
+        name: "Publish",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Publish" })).toBeNull());
+    // The button, its dialog and the element that had the focus are gone from the document.
+    expect(publish.isConnected).toBe(false);
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Published.");
+    await waitFor(() => expect(status).toHaveFocus());
+    expect(status.isConnected).toBe(true);
+    expect(document.body).not.toBe(document.activeElement);
   });
 });

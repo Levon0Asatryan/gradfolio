@@ -41,20 +41,23 @@ describe("PublishButton", () => {
     show({ onDone });
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Publish" }));
-    expect(await screen.findByText("Published.")).toBeVisible();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ isDraft: false }));
     expect(mocks.set).toHaveBeenCalledWith({ id: ID, draft: false });
     expect(mocks.refresh).toHaveBeenCalled();
     expect(onDone).toHaveBeenCalledTimes(1);
+    // The announcement is the caller's: this button is usually gone by then.
+    expect(screen.queryByText("Published.")).toBeNull();
   });
 
   it("moves a published project back to drafts when asked", async () => {
     mocks.set.mockResolvedValue({ ok: true, isDraft: true, isPublic: true });
-    show({ mode: "draft" });
+    const onDone = vi.fn();
+    show({ mode: "draft", onDone });
     fireEvent.click(screen.getByRole("button", { name: "Move back to drafts" }));
     const dialog = screen.getByRole("dialog", { name: "Move “Thesis” back to drafts?" });
     expect(dialog).toHaveTextContent("Only you will see it again");
     fireEvent.click(within(dialog).getByRole("button", { name: "Move to drafts" }));
-    expect(await screen.findByText("Moved back to drafts.")).toBeVisible();
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith({ isDraft: true }));
     expect(mocks.set).toHaveBeenCalledWith({ id: ID, draft: true });
   });
 

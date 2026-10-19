@@ -1,11 +1,12 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
-vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
+const setDraftMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: setDraftMock }));
 
 const { OwnerBar } = await import("./OwnerBar");
 
@@ -29,5 +30,19 @@ describe("OwnerBar", () => {
   it("a published private project says Private", () => {
     show(false, false);
     expect(screen.getByText("Private")).toBeVisible();
+  });
+});
+
+describe("OwnerBar after a quick publish", () => {
+  it("says it in a status line that holds the focus, as the Publish button is replaced", async () => {
+    setDraftMock.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    // The page re-renders the bar as published once the server data arrives; here the bar
+    // itself keeps its draft props, which is the harder case: the status must not depend on it.
+    show(true);
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Publish" }));
+    const status = await screen.findByText("Published.");
+    expect(status).toHaveAttribute("role", "status");
+    await waitFor(() => expect(status).toHaveFocus());
   });
 });

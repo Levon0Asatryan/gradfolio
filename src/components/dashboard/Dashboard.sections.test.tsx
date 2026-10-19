@@ -12,7 +12,8 @@ const actions = vi.hoisted(() => ({ more: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
-vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
+const setDraftMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: setDraftMock }));
 vi.mock("@/lib/dashboard/actions", () => ({ loadMoreActivitiesAction: actions.more }));
 
 beforeEach(() => vi.resetAllMocks());
@@ -47,6 +48,23 @@ describe("DashboardStats", () => {
     renderInApp(<DashboardStats stats={null} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Couldn’t load your numbers.");
     expect(screen.queryByRole("list")).toBeNull();
+  });
+});
+
+describe("RecentProjects quick publish", () => {
+  it("the card shows it at once and keeps the focus on a status line when the button goes", async () => {
+    setDraftMock.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    const base = dashboard().recentProjects[0]!;
+    renderInApp(
+      <RecentProjects items={[{ ...base, id: "d1", title: "Draft one", isDraft: true }]} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Publish" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Publish" })).toBeNull());
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Published.");
+    await waitFor(() => expect(status).toHaveFocus());
+    expect(screen.queryByText("Draft")).toBeNull();
   });
 });
 

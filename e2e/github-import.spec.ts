@@ -256,6 +256,55 @@ test.describe("publish", () => {
     expect(page.url()).not.toContain("/edit");
   });
 
+  test("keyboard: Enter opens, Tab to Publish, Enter confirms; the focus lands on the status line, not on removed DOM", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-on");
+    await page.goto(`/projects/${PID}`);
+    await page.getByRole("button", { name: "Publish", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: /Publish/ });
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Publish", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    const status = page.getByRole("status").filter({ hasText: "Published." });
+    await expect(status).toBeVisible();
+    await expect(status).toBeFocused();
+    expect(await status.evaluate((el) => el.isConnected)).toBe(true);
+    // The page followed the API underneath, and the status line is still the focused element.
+    await expect(page.getByRole("button", { name: "Move back to drafts" })).toBeVisible();
+    await expect(status).toBeFocused();
+  });
+
+  test("keyboard on /projects: confirming Publish on a card leaves the focus on its status line", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-on");
+    await page.goto("/projects");
+    const card = page.getByRole("article").filter({ hasText: "dotfiles" });
+    await expect(card.getByText("Draft", { exact: true })).toBeVisible();
+    await card.getByRole("button", { name: "Publish", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: /Publish/ });
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Publish", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    const status = card.getByRole("status");
+    await expect(status).toHaveText("Published.");
+    await expect(status).toBeFocused();
+    expect(await status.evaluate((el) => el.isConnected)).toBe(true);
+    // The button is gone and so is the chip; the focus stayed on the status line.
+    await expect(card.getByRole("button", { name: "Publish", exact: true })).toHaveCount(0);
+    await expect(card.getByText("Draft", { exact: true })).toHaveCount(0);
+    await expect(status).toBeFocused();
+    // getByRole reads the accessibility tree: the status is there, with its text.
+    await expect(page.getByRole("status").filter({ hasText: "Published." })).toHaveCount(1);
+    await settled(page);
+    await expectCleanAxe(page);
+  });
+
   test("when the API refuses, the dialog shows its reasons and an Edit link", async ({ page }) => {
     await signIn(page, "e2e-on");
     await page.goto("/projects/5c1d9a3e-0000-4000-8000-000000000004");
