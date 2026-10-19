@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
@@ -59,6 +61,21 @@ describe("loadProfileSuggestionsAction", () => {
     const result = await loadProfileSuggestionsAction();
     expect(result).toMatchObject({ ok: true, refreshError: null });
     expect(result.ok && result.items.map((i) => i.id)).toEqual([A]);
+  });
+
+  it("asks for no more than the contract copy allows `limit` to be (M7-T28)", async () => {
+    // The API's published document, as copied into this repository: the `limit` parameter of
+    // GET /v1/me/suggestions. Production answered 400 to a limit above what the API accepted.
+    const yaml = readFileSync(join(__dirname, "../api/openapi.yaml"), "utf8");
+    const path = yaml.split("\n  /v1/me/suggestions:\n")[1]?.split("\n  /v1/")[0] ?? "";
+    const published = Number(/- name: limit\n(?:.*\n)*?\s+maximum: (\d+)/.exec(path)?.[1]);
+    expect(Number.isInteger(published) && published > 0).toBe(true);
+
+    api.refresh.mockResolvedValue({ github: "refreshed", created: 0 });
+    api.list.mockResolvedValue({ items: [] });
+    await loadProfileSuggestionsAction();
+    const query = api.list.mock.calls[0]?.[0] as { limit?: number };
+    expect(query.limit).toBeLessThanOrEqual(published);
   });
 
   it("a failed refresh still shows the stored suggestions, with the reason", async () => {
