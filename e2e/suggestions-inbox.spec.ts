@@ -283,3 +283,24 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("link", { name: "Integrations 7 to review" })).toBeVisible();
   });
 });
+
+test.describe("without a session", () => {
+  test("GET /api/suggestions answers 401 with a code, uncached, and does not redirect", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/suggestions", { maxRedirects: 0 });
+    expect(response.status()).toBe(401);
+    expect(response.headers()["cache-control"]).toBe("no-store");
+    expect(await response.json()).toEqual({ code: "UNAUTHENTICATED" });
+  });
+
+  test("a visitor's pages never ask for suggestions and show no count", async ({ page }) => {
+    const asked: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/api/suggestions")) asked.push(r.url());
+    });
+    await page.goto("/settings", { waitUntil: "networkidle" });
+    expect(asked).toEqual([]);
+    await expect(page.getByTestId("nav-suggestions-count")).toHaveCount(0);
+  });
+});
