@@ -26,6 +26,10 @@ const fill = (template: string, values: Record<string, string>) =>
 export function notificationText(item: Notification, t: Dictionary): string {
   const p = item.params;
   if (p === null) return item.title;
+  if (item.type === "suggestions_available") {
+    return "count" in p ? fill(t.suggestions.notification, { count: String(p.count) }) : item.title;
+  }
+  if (!("actorName" in p)) return item.title;
   const values = {
     actor: p.actorName,
     project: p.projectTitle,
@@ -55,12 +59,14 @@ export const NotificationItem: FC<{ item: Notification; onNavigate: () => void }
   const n = t.notifications;
   const { markRead, failedIds, respondingIds, respond } = useNotifications();
   const text = notificationText(item, t);
-  const href = safeAppPath(item.link);
+  // The API computes a link for team rows only; the suggestions open the inbox.
+  const href = item.type === "suggestions_available" ? "/integrations" : safeAppPath(item.link);
   const failed = failedIds.has(item.id);
   const responding = respondingIds.has(item.id);
-  const projectTitle = item.params?.projectTitle ?? "";
+  const team = item.params !== null && "projectTitle" in item.params ? item.params : null;
+  const projectTitle = team?.projectTitle ?? "";
   const actionable =
-    item.type === "team_invite" && item.invite?.status === "pending" && item.params !== null;
+    item.type === "team_invite" && item.invite?.status === "pending" && team !== null;
 
   const body = (
     <>

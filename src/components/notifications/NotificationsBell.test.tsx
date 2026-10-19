@@ -356,3 +356,26 @@ describe("the phone sheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("a suggestions_available row (M7-T32)", () => {
+  it("reads in the reader's language and opens the inbox", async () => {
+    page = {
+      items: [
+        notification({
+          id: ID(1),
+          type: "suggestions_available",
+          title: "New suggestions",
+          params: { count: 3, kinds: ["project.new"] },
+          link: null,
+        }),
+      ],
+      nextCursor: null,
+    };
+    show();
+    const dialog = await open();
+    const row = await within(dialog).findByRole("link", {
+      name: /New suggestions to review: 3/,
+    });
+    expect(row).toHaveAttribute("href", "/integrations");
+  });
+});

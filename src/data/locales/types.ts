@@ -817,6 +817,101 @@ export interface Dictionary {
     error: string;
     errorGithub: string;
   };
+  suggestions: {
+    intro: string;
+    /** `{count}` */
+    stripTitle: string;
+    /** `{count}`: read after the item's name in the navigation */
+    navCount: string;
+    /** `{count}` */
+    notification: string;
+    loading: string;
+    loadError: string;
+    retry: string;
+    empty: string;
+    stripDone: string;
+    moreNote: string;
+    checkNow: string;
+    checking: string;
+    checked: {
+      refreshed: string;
+      unchanged: string;
+      throttled: string;
+      discarded: string;
+      not_connected: string;
+    };
+    groups: {
+      profile: string;
+      skills: string;
+      links: string;
+      projects: string;
+      university: string;
+    };
+    now: string;
+    suggested: string;
+    emptyNow: string;
+    modeFill: string;
+    modeReplace: string;
+    accept: string;
+    fillIn: string;
+    dismiss: string;
+    titles: {
+      /** `{skill}` */
+      skill: string;
+      /** `{project}`, `{field}` */
+      projectUpdate: string;
+      /** `{institution}` */
+      education: string;
+      /** `{organization}` */
+      experience: string;
+    };
+    /** `{repositories}`, `{projects}` */
+    evidence: string;
+    fields: {
+      name: string;
+      headline: string;
+      bio: string;
+      location: string;
+      avatarUrl: string;
+      linksGithub: string;
+      linksWebsite: string;
+      linksLinkedin: string;
+      linksTwitter: string;
+      summary: string;
+      descriptionHtml: string;
+    };
+    form: {
+      needsDetails: string;
+      intro: string;
+      educationLabel: string;
+      experienceLabel: string;
+      degree: string;
+      field: string;
+      startYear: string;
+      jobTitle: string;
+      start: string;
+      submit: string;
+      cancel: string;
+      required: string;
+      tooLong: string;
+      invalidYear: string;
+      invalidMonth: string;
+    };
+    done: {
+      /** `{title}` */
+      accepted: string;
+      /** `{title}` */
+      dismissed: string;
+    };
+    errors: {
+      SUGGESTION_STALE: string;
+      SUGGESTION_RESOLVED: string;
+      SUGGESTION_INVALID: string;
+      LIMIT_REACHED: string;
+      VALIDATION_FAILED: string;
+      NOT_FOUND: string;
+    };
+  };
   notifications: {
     title: string;
     bellLabel: string;

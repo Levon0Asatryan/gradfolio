@@ -289,7 +289,10 @@ export const NotificationsProvider: FC<{ children: ReactNode; pollMs?: number }>
     async (id: string, decision: "accept" | "reject") => {
       const target = itemsRef.current.find((n) => n.id === id);
       // Only an invitation that is still pending can be answered; a double click is one call.
-      if (!target || !target.params || target.invite?.status !== "pending") return;
+      const params = target?.params;
+      if (!target || !params || !("projectId" in params) || target.invite?.status !== "pending") {
+        return;
+      }
       // A double click is one call: the guard is a ref (synchronous), the state only drives the UI.
       if (answering.current.has(id)) return;
       answering.current.add(id);
@@ -299,7 +302,7 @@ export const NotificationsProvider: FC<{ children: ReactNode; pollMs?: number }>
         next.delete(id);
         return next;
       });
-      const result = await respondToInviteAction(target.params.projectId, decision);
+      const result = await respondToInviteAction(params.projectId, decision);
       answering.current.delete(id);
       setRespondingIds(new Set(answering.current));
       // The answer is about the project, not the row: a second pending invitation row for the
@@ -309,7 +312,9 @@ export const NotificationsProvider: FC<{ children: ReactNode; pollMs?: number }>
           n.id === id ||
           (n.type === "team_invite" &&
             n.invite?.status === "pending" &&
-            n.params?.projectId === target.params?.projectId),
+            n.params !== null &&
+            "projectId" in n.params &&
+            n.params.projectId === params.projectId),
       );
       const ids = new Set(rows.map((n) => n.id));
       const show = (status: "accepted" | "rejected" | "gone") =>
