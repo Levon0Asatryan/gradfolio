@@ -2,7 +2,7 @@
 import { isValidElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ listMyProjects: vi.fn() }));
+const api = vi.hoisted(() => ({ listMyProjects: vi.fn(), getIntegrations: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
@@ -14,7 +14,11 @@ vi.mock("@/lib/api/client", () => {
       super(message);
     }
   }
-  return { ApiError, listMyProjects: api.listMyProjects };
+  return {
+    ApiError,
+    listMyProjects: api.listMyProjects,
+    getIntegrations: api.getIntegrations,
+  };
 });
 vi.mock("./ProjectsContent", () => ({ default: () => null }));
 vi.mock("@/components/projects/ProjectsError", () => ({ ProjectsError: () => null }));
@@ -22,9 +26,34 @@ vi.mock("@/components/projects/ProjectsError", () => ({ ProjectsError: () => nul
 const { default: ProjectsPage } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 
-beforeEach(() => vi.resetAllMocks());
+const connected = (status: "connected" | "not_connected") => ({
+  github: { available: true, status, login: null, lastSyncedAt: null },
+  linkedin: { status: "not_connected", lastSyncedAt: null },
+});
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  api.getIntegrations.mockResolvedValue(connected("not_connected"));
+});
 
 describe("/projects (server)", () => {
+  it("offers the import only on the API's word that GitHub is connected", async () => {
+    api.listMyProjects.mockResolvedValue({ items: [], nextCursor: null });
+    api.getIntegrations.mockResolvedValue(connected("connected"));
+    let el = await ProjectsPage({ searchParams: Promise.resolve({}) });
+    expect(isValidElement(el) && el.props).toMatchObject({ githubConnected: true });
+    api.getIntegrations.mockResolvedValue(connected("not_connected"));
+    el = await ProjectsPage({ searchParams: Promise.resolve({}) });
+    expect(isValidElement(el) && el.props).toMatchObject({ githubConnected: false });
+  });
+
+  it("a status that cannot be read is not 'connected', and the list still shows", async () => {
+    api.listMyProjects.mockResolvedValue({ items: [], nextCursor: null });
+    api.getIntegrations.mockRejectedValue(new ApiError(503, "API_UNREACHABLE", "down"));
+    const el = await ProjectsPage({ searchParams: Promise.resolve({}) });
+    expect(isValidElement(el) && el.props).toMatchObject({ githubConnected: false, items: [] });
+  });
+
   it("awaits searchParams and asks the API only for checked filters", async () => {
     api.listMyProjects.mockResolvedValue({ items: [], nextCursor: null });
     const el = await ProjectsPage({

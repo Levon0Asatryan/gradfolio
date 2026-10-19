@@ -10,6 +10,16 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/projects",
   useSearchParams: () => new URLSearchParams(),
 }));
+vi.mock("@/lib/integrations/importActions", () => ({
+  listGithubReposAction: vi.fn(),
+  importGithubReposAction: vi.fn(),
+  previewGithubImportAction: vi.fn(),
+}));
+vi.mock("@/lib/integrations/suggestionActions", () => ({
+  loadProfileSuggestionsAction: vi.fn(),
+  acceptSuggestionsAction: vi.fn(),
+  dismissSuggestionAction: vi.fn(),
+}));
 const more = vi.hoisted(() => ({ action: vi.fn(), setDraft: vi.fn() }));
 vi.mock("@/lib/projects/actions", () => ({
   loadMoreProjectsAction: more.action,
@@ -32,7 +42,9 @@ afterEach(() => vi.useRealTimers());
 
 describe("/projects", () => {
   it("shows the API's projects with a header and one primary action", () => {
-    renderInApp(<ProjectsContent items={two} nextCursor={null} query={{}} />);
+    renderInApp(
+      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+    );
     expect(screen.getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
     expect(screen.getByRole("link", { name: "New Project" })).toHaveAttribute(
       "href",
@@ -43,12 +55,19 @@ describe("/projects", () => {
   });
 
   it("puts a category in the URL, and marks the chip the URL holds as pressed", () => {
-    const { unmount } = renderInApp(<ProjectsContent items={two} nextCursor={null} query={{}} />);
+    const { unmount } = renderInApp(
+      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Research" }));
     expect(nav.replace).toHaveBeenCalledWith("/projects?category=research");
     unmount();
     renderInApp(
-      <ProjectsContent items={[two[1]!]} nextCursor={null} query={{ category: "research" }} />,
+      <ProjectsContent
+        items={[two[1]!]}
+        nextCursor={null}
+        query={{ category: "research" }}
+        githubConnected={false}
+      />,
     );
     expect(screen.getByRole("button", { name: "Research" })).toHaveAttribute(
       "aria-pressed",
@@ -59,7 +78,9 @@ describe("/projects", () => {
 
   it("puts a search in the URL 300 ms after the last key, not on every key", () => {
     vi.useFakeTimers();
-    renderInApp(<ProjectsContent items={two} nextCursor={null} query={{}} />);
+    renderInApp(
+      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+    );
     const box = screen.getByRole("textbox", { name: "Search projects…" });
     fireEvent.change(box, { target: { value: "C+" } });
     fireEvent.change(box, { target: { value: "C++ & Go" } });
@@ -71,7 +92,14 @@ describe("/projects", () => {
   });
 
   it("says 'no match', not 'no projects yet', for an empty filtered list, and clears it", () => {
-    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{ q: "zzzzqq" }} />);
+    renderInApp(
+      <ProjectsContent
+        items={[]}
+        nextCursor={null}
+        query={{ q: "zzzzqq" }}
+        githubConnected={false}
+      />,
+    );
     expect(screen.getByText("No projects match your search.")).toBeVisible();
     expect(screen.queryByText("No projects yet")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
@@ -79,7 +107,9 @@ describe("/projects", () => {
   });
 
   it("says 'no projects yet' only for an unfiltered empty list", () => {
-    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} />);
+    renderInApp(
+      <ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected={false} />,
+    );
     expect(screen.getByText("No projects yet")).toBeVisible();
   });
 
@@ -89,7 +119,14 @@ describe("/projects", () => {
       items: [projectSummary({ id: "c", title: "Gamma" })],
       nextCursor: null,
     });
-    renderInApp(<ProjectsContent items={two} nextCursor="cur1" query={{ category: "course" }} />);
+    renderInApp(
+      <ProjectsContent
+        items={two}
+        nextCursor="cur1"
+        query={{ category: "course" }}
+        githubConnected={false}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     await waitFor(() => expect(cards()).toHaveLength(3));
     expect(more.action).toHaveBeenCalledWith({ category: "course", cursor: "cur1" });
@@ -98,7 +135,9 @@ describe("/projects", () => {
 
   it("shows a failed 'load more' as an error and keeps what is on screen and the button", async () => {
     more.action.mockResolvedValue({ ok: false, code: "API_UNREACHABLE" });
-    renderInApp(<ProjectsContent items={two} nextCursor="cur1" query={{}} />);
+    renderInApp(
+      <ProjectsContent items={two} nextCursor="cur1" query={{}} githubConnected={false} />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("More projects could not be loaded");
     expect(cards()).toHaveLength(2);
@@ -106,7 +145,10 @@ describe("/projects", () => {
   });
 
   it("labels the page in Russian", () => {
-    renderInApp(<ProjectsContent items={two} nextCursor={null} query={{}} />, "ru");
+    renderInApp(
+      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+      "ru",
+    );
     expect(screen.getByRole("button", { name: "Хакатон" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 1, name: "Проекты" })).toBeVisible();
   });
@@ -123,6 +165,7 @@ describe("/projects quick publish", () => {
         ]}
         nextCursor={null}
         query={{}}
+        githubConnected={false}
       />,
     );
     expect(screen.getAllByText("Draft")).toHaveLength(2);
@@ -147,6 +190,7 @@ describe("/projects quick publish", () => {
         items={[projectSummary({ id: "a", title: "Alpha", isDraft: true, isOwner: true })]}
         nextCursor={null}
         query={{}}
+        githubConnected={false}
       />,
     );
     const publish = screen.getByRole("button", { name: "Publish" });
@@ -165,5 +209,46 @@ describe("/projects quick publish", () => {
     await waitFor(() => expect(status).toHaveFocus());
     expect(status.isConnected).toBe(true);
     expect(document.body).not.toBe(document.activeElement);
+  });
+});
+
+describe("Projects → Add", () => {
+  it("without GitHub: Add is the form itself, with a small link to connect", () => {
+    renderInApp(
+      <ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected={false} />,
+    );
+    expect(screen.getByRole("link", { name: "New Project" })).toHaveAttribute(
+      "href",
+      "/projects/new",
+    );
+    expect(screen.getByRole("link", { name: "Connect GitHub to import repos" })).toHaveAttribute(
+      "href",
+      "/integrations",
+    );
+    expect(screen.queryByRole("button", { name: "New Project" })).toBeNull();
+  });
+
+  it("with GitHub: Add offers two choices; the import opens the dialog and nothing imports", async () => {
+    const actions = await import("@/lib/integrations/importActions");
+    vi.mocked(actions.listGithubReposAction).mockResolvedValue({
+      ok: true,
+      page: { items: [], nextCursor: null, rateLimit: { remaining: null, resetsAt: null } },
+    });
+    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected />);
+    expect(screen.queryByRole("link", { name: "Connect GitHub to import repos" })).toBeNull();
+    const add = screen.getByRole("button", { name: "New Project" });
+    fireEvent.click(add);
+    const menu = await screen.findByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Create manually" })).toHaveAttribute(
+      "href",
+      "/projects/new",
+    );
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Import from GitHub" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(actions.listGithubReposAction).toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(actions.importGithubReposAction).not.toHaveBeenCalled();
+    await waitFor(() => expect(add).toHaveFocus());
   });
 });

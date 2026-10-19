@@ -364,6 +364,11 @@ export const ru: Dictionary = {
     loading: "Загрузка проектов…",
     loadMore: "Показать ещё",
     loadMoreFailed: "Не удалось загрузить ещё проекты. Повторите.",
+    addChoices: {
+      createManually: "Создать вручную",
+      importFromGithub: "Импорт из GitHub",
+      connectToImport: "Подключите GitHub, чтобы импортировать репозитории",
+    },
     private: "Приватный",
     draft: "Черновик",
     subtitle: "Всё, что вы создали, с подтверждениями.",

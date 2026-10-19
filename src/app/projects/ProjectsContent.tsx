@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import AddIcon from "@mui/icons-material/Add";
+import { AddProjectButton } from "@/components/projects/AddProjectButton";
 import ProjectsList from "@/components/projects/ProjectsList";
 import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
 import { FlashToast } from "@/components/shared/FlashToast";
@@ -27,6 +26,8 @@ export interface ProjectsContentProps {
   items: ProjectSummary[];
   nextCursor: string | null;
   query: ProjectsQuery;
+  /** From the API (`GET /v1/me/integrations`): GitHub is connected, so Add offers the import. */
+  githubConnected: boolean;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -38,7 +39,12 @@ function href(query: ProjectsQuery): string {
   return qs ? `/projects?${qs}` : "/projects";
 }
 
-export default function ProjectsContent({ items, nextCursor, query }: ProjectsContentProps) {
+export default function ProjectsContent({
+  items,
+  nextCursor,
+  query,
+  githubConnected,
+}: ProjectsContentProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const [search, setSearch] = useState(query.q ?? "");
@@ -69,11 +75,7 @@ export default function ProjectsContent({ items, nextCursor, query }: ProjectsCo
       <PageHeader
         title={t.common.projects}
         subtitle={t.projects.subtitle}
-        action={
-          <Button component={Link} href="/projects/new" variant="contained" startIcon={<AddIcon />}>
-            {t.common.addNewProject}
-          </Button>
-        }
+        action={<AddProjectButton githubConnected={githubConnected} />}
       />
       <ProjectsListToolbar
         search={search}
