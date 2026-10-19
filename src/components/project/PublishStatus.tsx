@@ -12,9 +12,8 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
  */
 export function usePublishStatus() {
   const { t } = useLanguage();
-  const [status, setStatus] = useState<{ text: string; n: number } | null>(null);
+  const [status, setStatus] = useState<{ text: string } | null>(null);
   const line = useRef<HTMLElement | null>(null);
-  const counter = useRef(0);
 
   // After the render that shows the message (and removes the button), not before.
   useEffect(() => {
@@ -23,11 +22,8 @@ export function usePublishStatus() {
 
   const onDone = useCallback(
     ({ isDraft }: { isDraft: boolean }) => {
-      counter.current += 1;
-      setStatus({
-        text: isDraft ? t.projects.publish.doneDraft : t.projects.publish.done,
-        n: counter.current,
-      });
+      // A new object each time: the effect re-focuses on a second publish with the same text.
+      setStatus({ text: isDraft ? t.projects.publish.doneDraft : t.projects.publish.done });
     },
     [t],
   );
