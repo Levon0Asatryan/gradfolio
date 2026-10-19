@@ -1,3 +1,5 @@
+import { DEFAULT_GITHUB_CONNECTION } from "@/lib/auth/auth0Settings";
+
 /**
  * The secondary GitHub sign-in that links a GitHub account (API plan 2.3), as pure helpers.
  *
@@ -77,44 +79,9 @@ export function appOrigin(
   return null;
 }
 
-/**
- * An Auth0 domain as the SDK takes it: a bare host. A scheme, trailing slashes, surrounding
- * space and capitals (all easy to paste into a dashboard) are removed; a path or port is not
- * a domain and is left for `isDomain` to refuse.
- */
-export function normalizeDomain(raw: string | undefined): string | undefined {
-  if (raw === undefined) return undefined;
-  return raw
-    .trim()
-    .replace(/^https?:\/\//i, "")
-    .replace(/\/+$/, "")
-    .toLowerCase();
-}
-
-/** Auth0's default for the GitHub social connection; its Name (immutable) may differ. */
-const DEFAULT_GITHUB_CONNECTION = "github";
-
-/**
- * The Auth0 connection **Name** the secondary sign-in asks for (`connection=` is matched
- * against the name, case-sensitively). From `AUTH0_GITHUB_CONNECTION`; unset or invalid falls
- * back to `github`, and an invalid value is reported so it is not silently ignored. The
- * identity's `sub` prefix (`github|…`) comes from the connection's strategy, not its name, so
- * this setting does not affect the API.
- */
-export function githubConnectionName(raw: string | undefined): {
-  name: string;
-  invalid: boolean;
-} {
-  const value = raw?.trim();
-  if (!value) return { name: DEFAULT_GITHUB_CONNECTION, invalid: false };
-  return /^[A-Za-z0-9_-]{1,128}$/.test(value)
-    ? { name: value, invalid: false }
-    : { name: DEFAULT_GITHUB_CONNECTION, invalid: true };
-}
-
 export interface AuthorizeInput {
   domain: string;
-  /** The connection's Name in Auth0 (`githubConnectionName`). */
+  /** The connection's Name in Auth0 (`auth0ConnectSettings`). */
   connection?: string;
   clientId: string;
   redirectUri: string;
@@ -147,10 +114,6 @@ export function authorizeUrl({
   }).toString();
   return url;
 }
-
-/** Auth0 domains are host names; anything with a scheme, path or whitespace is a misconfiguration. */
-export const isDomain = (value: string | undefined): value is string =>
-  typeof value === "string" && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(value);
 
 /** Constant-time comparison of two strings. */
 export function sameState(a: string | undefined, b: string | null): boolean {

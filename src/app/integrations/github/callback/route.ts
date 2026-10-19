@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ApiError, linkGithub } from "@/lib/api/client";
 import { previewAppBaseUrl } from "@/lib/auth/appBaseUrl";
+import { auth0ConnectSettings } from "@/lib/auth/auth0Settings";
 import {
   CALLBACK_PATH,
   IMPORT_HINT,
@@ -10,8 +11,6 @@ import {
   RETURN_TARGETS,
   returnTarget,
   appOrigin,
-  isDomain,
-  normalizeDomain,
   sameState,
   toReturnReason,
   type ReturnReason,
@@ -90,29 +89,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const code = params.get("code");
-  const domain = normalizeDomain(process.env.AUTH0_DOMAIN);
-  const clientId = process.env.AUTH0_CLIENT_ID;
-  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
   if (!code || code.length > 2048) return failed("no_code", {});
-  if (!isDomain(domain) || !clientId || !clientSecret) {
-    return failed("not_configured", {
-      unusable: [
-        !isDomain(domain) && "AUTH0_DOMAIN",
-        !clientId && "AUTH0_CLIENT_ID",
-        !clientSecret && "AUTH0_CLIENT_SECRET",
-      ].filter(Boolean),
-    });
-  }
+  const settings = auth0ConnectSettings(process.env, { needSecret: true });
+  if (!settings.ok) return failed("not_configured", { unusable: settings.unusable });
 
   let idToken: string | undefined;
   try {
-    const response = await fetch(`https://${domain}/oauth/token`, {
+    const response = await fetch(`https://${settings.domain}/oauth/token`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         grant_type: "authorization_code",
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: settings.clientId,
+        client_secret: settings.clientSecret,
         code,
         redirect_uri: new URL(CALLBACK_PATH, origin).toString(),
       }),
