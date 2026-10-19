@@ -19,6 +19,11 @@ vi.mock("@/lib/profile/actions", () => ({
   replaceSkillsAction: vi.fn(),
 }));
 
+vi.mock("@/lib/integrations/suggestionActions", () => ({
+  acceptOneSuggestionAction: vi.fn(),
+  dismissSuggestionAction: vi.fn(),
+}));
+
 beforeEach(() => vi.resetAllMocks());
 
 const show = (over: Partial<typeof PROFILE> = {}) =>

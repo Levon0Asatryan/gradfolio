@@ -8,6 +8,10 @@ const nav = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => nav }));
 const action = vi.hoisted(() => ({ replaceSkillsAction: vi.fn() }));
 vi.mock("@/lib/profile/actions", () => action);
+vi.mock("@/lib/integrations/suggestionActions", () => ({
+  acceptOneSuggestionAction: vi.fn(),
+  dismissSuggestionAction: vi.fn(),
+}));
 
 const show = (skills = ["TypeScript"], edit = true) => {
   render(
