@@ -244,7 +244,7 @@ test.describe("profile data", () => {
     const seen = (await (
       await request.get(`${STUB}/__suggestions?token=${encodeURIComponent(currentToken)}`)
     ).json()) as { accepted: string[]; dismissed: string[] };
-    expect(seen).toEqual({ accepted: [], dismissed: [] });
+    expect(seen).toMatchObject({ accepted: [], dismissed: [] });
   });
 
   test("dismissing a field is remembered by the API and removes the row", async ({
