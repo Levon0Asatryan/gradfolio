@@ -88,13 +88,15 @@ const TAGS: Record<string, TagSummary> = {
  * `e2e-off-*` GitHub not connected; `e2e-on-*` connected; `e2e-on502-*` connected, and
  * disconnecting answers 502 after the grant is gone (the ambiguous case); `e2e-unavailable-*`
  * the server has no GitHub config; `e2e-down-*` the load fails; `e2e-inuse-*` connect answers 409
- * GITHUB_ACCOUNT_IN_USE.
+ * GITHUB_ACCOUNT_IN_USE; `e2e-onzero-*` connected with no GitHub-imported project (the import is
+ * offered); `e2e-late-*` not connected until connect answers `connected` at once (the account was
+ * already linked), and no GitHub-imported project.
  */
 const github = new Map<string, Integrations["github"]>();
 const githubFor = (token: string): Integrations["github"] => {
   let state = github.get(token);
   if (!state) {
-    const on = /^e2e-on(502|rl|empty|err)?-/.test(token);
+    const on = /^e2e-on(502|rl|empty|err|zero)?-/.test(token);
     state = {
       available: !token.startsWith("e2e-unavailable-"),
       status: on ? "connected" : "not_connected",
@@ -320,6 +322,11 @@ function integrations(req: IncomingMessage, res: ServerResponse, path: string) {
       return send(res, 503, { code: "INTEGRATION_UNAVAILABLE", message: "not configured" });
     if (token.startsWith("e2e-inuse-"))
       return send(res, 409, { code: "GITHUB_ACCOUNT_IN_USE", message: "taken" });
+    if (token.startsWith("e2e-late-") && state.status !== "connected") {
+      state.status = "connected";
+      state.login = "ani-p";
+      state.lastSyncedAt = "2026-10-09T12:00:00.000Z";
+    }
     if (state.status === "connected")
       return send(res, 200, { state: "connected", login: state.login ?? "ani-p" });
     return send(res, 200, {
@@ -565,8 +572,11 @@ function myProjects(req: IncomingMessage, res: ServerResponse) {
   const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
   if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no" });
   const id = "5c1d9a3e-0000-4000-8000-000000000003";
+  const item = projectBody(id, projectDraft.get(`${token}:${id}`) ?? true);
+  // No GitHub-imported project: one the student made by hand.
+  if (/^e2e-(onzero|late)-/.test(token)) item.source = "manual";
   send(res, 200, {
-    items: [projectBody(id, projectDraft.get(`${token}:${id}`) ?? true)],
+    items: [item],
     nextCursor: null,
   });
 }

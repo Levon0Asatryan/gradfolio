@@ -247,3 +247,97 @@ test.describe("Projects → Add", () => {
     await expect(page).toHaveURL(/\/integrations$/);
   });
 });
+
+const OFFER = /Bring your repositories and profile details from GitHub/;
+
+test.describe("immediate connect and the standing offer (M7-T34)", () => {
+  test("connect answers connected at once: the dialog opens, Not now imports nothing", async ({
+    page,
+    request,
+  }) => {
+    await signIn(page, "e2e-late");
+    await page.goto("/integrations");
+    await page.getByRole("button", { name: "Connect" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("checkbox").first()).toBeAttached();
+    await dialog.getByRole("button", { name: NOT_NOW }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByText("Connected").first()).toBeVisible();
+    expect((await apiCalls(request)).filter((c) => c.includes("POST /v1/me/github"))).toEqual([]);
+    // Zero imports and it was only skipped: the standing offer is there, and focus is on Import.
+    await expect(page.getByText(OFFER)).toBeVisible();
+  });
+
+  test("connected with no GitHub project: the offer, on both pages; Import opens the dialog", async ({
+    page,
+  }) => {
+    await signIn(page, "e2e-onzero");
+    for (const path of ["/integrations", "/integrations/connections"]) {
+      await page.goto(path);
+      await expect(page.getByText(OFFER)).toBeVisible();
+    }
+    const offer = page.getByRole("region", { name: OFFER });
+    await offer.getByRole("button", { name: IMPORT_ITEM }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(offer.getByRole("button", { name: IMPORT_ITEM })).toBeFocused();
+  });
+
+  test("Not now is remembered across a reload, in this browser only", async ({ page }) => {
+    await signIn(page, "e2e-onzero");
+    await page.goto("/integrations");
+    await page.getByRole("region", { name: OFFER }).getByRole("button", { name: NOT_NOW }).click();
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: IMPORT_ITEM })).toBeFocused();
+    await page.reload();
+    await expect(page.getByRole("button", { name: IMPORT_ITEM })).toBeVisible();
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+    await page.goto("/integrations/connections");
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+  });
+
+  test("a GitHub project exists: no offer. Not connected: no offer", async ({ page }) => {
+    await signIn(page, "e2e-on");
+    await page.goto("/integrations");
+    await expect(page.getByRole("button", { name: IMPORT_ITEM })).toBeVisible();
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+    await signIn(page, "e2e-off");
+    await page.goto("/integrations");
+    await expect(page.getByText("Not connected").first()).toBeVisible();
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+  });
+
+  test("a forged hint on a not-connected account still opens nothing", async ({ page }) => {
+    await signIn(page, "e2e-late");
+    await page.goto("/integrations?github=connected&import=1");
+    await expect(page.getByText("Not connected").first()).toBeVisible();
+    await page.waitForTimeout(500);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText(OFFER)).toHaveCount(0);
+  });
+});
+
+for (const language of LANGUAGES) {
+  for (const theme of THEMES) {
+    for (const size of SIZES) {
+      test(`offer card ${language} ${theme} ${size.name}: axe, clean console, no overflow`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: size.width, height: size.height });
+        const problems = watch(page);
+        await signIn(page, "e2e-onzero", language, theme);
+        await page.goto("/integrations");
+        const offer = page.locator("section", { has: page.getByRole("heading", { level: 3 }) });
+        await expect(offer.first()).toBeVisible();
+        await page.mouse.move(0, 0);
+        await settled(page);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        ).toBe(true);
+        await expectCleanAxe(page);
+        expect(problems).toEqual([]);
+      });
+    }
+  }
+}
