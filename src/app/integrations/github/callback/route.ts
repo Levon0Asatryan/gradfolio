@@ -3,6 +3,7 @@ import { ApiError, linkGithub } from "@/lib/api/client";
 import { previewAppBaseUrl } from "@/lib/auth/appBaseUrl";
 import {
   CALLBACK_PATH,
+  IMPORT_HINT,
   LINK_COOKIE_PATH,
   LINK_STATE_COOKIE,
   RETURN_COOKIE,
@@ -50,8 +51,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const finish = (result: "connected" | { reason: ReturnReason }): NextResponse => {
     const url = new URL(back, origin);
-    if (result === "connected") url.searchParams.set("github", "connected");
-    else {
+    if (result === "connected") {
+      url.searchParams.set("github", "connected");
+      url.searchParams.set(IMPORT_HINT, "1");
+    } else {
       url.searchParams.set("github", "error");
       url.searchParams.set("reason", result.reason);
     }

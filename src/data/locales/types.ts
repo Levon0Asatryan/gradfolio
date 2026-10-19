@@ -322,6 +322,13 @@ export interface Dictionary {
     loading: string;
     loadMore: string;
     loadMoreFailed: string;
+    addChoices: {
+      createManually: string;
+      importFromGithub: string;
+      connectToImport: string;
+      statusUnavailable: string;
+      retry: string;
+    };
     private: string;
     draft: string;
     subtitle: string;

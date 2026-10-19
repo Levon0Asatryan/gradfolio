@@ -362,6 +362,13 @@ export const en: Dictionary = {
     loading: "Loading projects…",
     loadMore: "Load more",
     loadMoreFailed: "More projects could not be loaded. Try again.",
+    addChoices: {
+      createManually: "Create manually",
+      importFromGithub: "Import from GitHub",
+      connectToImport: "Connect GitHub to import repos",
+      statusUnavailable: "GitHub status is unavailable.",
+      retry: "Retry",
+    },
     private: "Private",
     draft: "Draft",
     subtitle: "Everything you have built, with the evidence.",

@@ -25,6 +25,15 @@ export const RETURN_TARGETS = {
 export type ReturnTarget = keyof typeof RETURN_TARGETS;
 export const RETURN_COOKIE = "gh_link_return";
 
+/**
+ * The hint the callback adds on success (`?github=connected&import=1`): "open the import
+ * dialog". It is a hint only. The page opens the dialog only when the API, in the same render,
+ * says GitHub is connected, and the dialog imports nothing until the student clicks.
+ */
+export const IMPORT_HINT = "import";
+export const wantsImport = (params: { get(name: string): string | null }): boolean =>
+  params.get(IMPORT_HINT) === "1";
+
 /** Anything but a known target is the integrations page. */
 export function returnTarget(value: unknown): ReturnTarget {
   return typeof value === "string" && Object.hasOwn(RETURN_TARGETS, value)

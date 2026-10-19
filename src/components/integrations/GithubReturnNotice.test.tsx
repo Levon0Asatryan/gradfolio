@@ -24,6 +24,12 @@ describe("GithubReturnNotice", () => {
     expect(nav.replace).toHaveBeenCalledWith("/integrations");
   });
 
+  it("removes the import hint with the rest, so a reload cannot reopen the dialog", async () => {
+    nav.query = "github=connected&import=1&tab=x";
+    renderInApp(<GithubReturnNotice connected />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/integrations?tab=x"));
+  });
+
   it("a forged ?github=connected on a disconnected account claims nothing", async () => {
     nav.query = "github=connected";
     renderInApp(<GithubReturnNotice connected={false} />);
