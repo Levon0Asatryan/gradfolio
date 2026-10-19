@@ -70,10 +70,12 @@ const EMPTY: PickerState = {
  * Nothing is imported or changed until Save; "Not now" closes it and leaves everything as it
  * was. Every call is a server action (Q11).
  */
-export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
-  open,
-  onClose,
-}) => {
+export const GithubImportModal: FC<{
+  open: boolean;
+  onClose: () => void;
+  /** Where focus goes when the dialog has closed: the control that opened it. */
+  returnFocusTo?: () => HTMLElement | null;
+}> = ({ open, onClose, returnFocusTo }) => {
   const { t, language } = useLanguage();
   const router = useRouter();
   const text = t.integrations.import;
@@ -354,6 +356,7 @@ export const GithubImportModal: FC<{ open: boolean; onClose: () => void }> = ({
       maxWidth="md"
       scroll="paper"
       aria-labelledby="github-import-title"
+      slotProps={{ transition: { onExited: () => returnFocusTo?.()?.focus() } }}
     >
       <DialogTitle component="div" sx={{ pb: 1 }}>
         <Typography

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 
@@ -7,10 +7,12 @@ const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   disconnect: vi.fn(),
   assign: vi.fn(),
+  query: "",
 }));
 vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh, replace: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mocks.query),
 }));
 vi.mock("@/lib/integrations/importActions", () => ({
   listGithubReposAction: vi.fn(),
@@ -39,6 +41,7 @@ const on = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.query = "";
   Object.defineProperty(window, "location", {
     configurable: true,
     value: { ...window.location, assign: mocks.assign },
@@ -171,5 +174,52 @@ describe("disconnect", () => {
       button.click();
     });
     expect(mocks.disconnect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the import dialog right after connecting", () => {
+  const list = async () => (await import("@/lib/integrations/importActions")).listGithubReposAction;
+  beforeEach(async () => {
+    vi.mocked(await list()).mockResolvedValue({
+      ok: true,
+      page: { items: [], nextCursor: null, rateLimit: { remaining: null, resetsAt: null } },
+    });
+  });
+
+  it("opens when the callback's hint arrives and the API says GitHub is connected", async () => {
+    mocks.query = "github=connected&import=1";
+    renderInApp(<GithubCard github={on} />);
+    expect(await screen.findByRole("dialog")).toBeVisible();
+  });
+
+  it("opens nothing for a forged hint when the API says not connected", async () => {
+    mocks.query = "github=connected&import=1";
+    renderInApp(<GithubCard github={off} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await list()).not.toHaveBeenCalled();
+  });
+
+  it("opens nothing without the hint, and imports nothing when closed with Not now", async () => {
+    renderInApp(<GithubCard github={on} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    cleanup();
+    mocks.query = "import=1";
+    renderInApp(<GithubCard github={on} />);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const actions = await import("@/lib/integrations/importActions");
+    expect(actions.importGithubReposAction).not.toHaveBeenCalled();
+  });
+
+  it("returns focus to the Import button when the dialog closes", async () => {
+    mocks.query = "import=1";
+    renderInApp(<GithubCard github={on} />);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Import from GitHub" })).toHaveFocus(),
+    );
   });
 });

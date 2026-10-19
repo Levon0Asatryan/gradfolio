@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Button,
@@ -17,6 +17,7 @@ import {
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { disconnectGithubAction, startGithubConnectAction } from "@/lib/integrations/actions";
 import { errorCode } from "@/lib/integrations/errors";
+import { wantsImport } from "@/lib/integrations/githubLink";
 import type { Integrations } from "@/lib/api/types";
 import { GithubImportModal } from "@/components/github-import/GithubImportModal";
 import IntegrationCard from "./IntegrationCard";
@@ -45,12 +46,16 @@ export const GithubCard: FC<{
   const [problem, setProblem] = useState<Problem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
+  const connected = github.status === "connected";
+  // Right after the callback returns, open the dialog: but only on the API's word that GitHub is
+  // connected, never on the URL's alone (a forged `?import=1` opens nothing).
+  const params = useSearchParams();
+  const [importing, setImporting] = useState(() => connected && wantsImport(params));
+  const importButton = useRef<HTMLButtonElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   // State updates land after the click handler returns, so a fast double click would pass a
   // `busy` check twice. The ref closes that gap.
   const inflight = useRef(false);
-  const connected = github.status === "connected";
 
   function release() {
     inflight.current = false;
@@ -154,7 +159,7 @@ export const GithubCard: FC<{
         }
       >
         {connected && (
-          <Button variant="contained" onClick={() => setImporting(true)}>
+          <Button ref={importButton} variant="contained" onClick={() => setImporting(true)}>
             {text.importButton}
           </Button>
         )}
@@ -179,7 +184,11 @@ export const GithubCard: FC<{
         )}
       </IntegrationCard>
 
-      <GithubImportModal open={importing} onClose={() => setImporting(false)} />
+      <GithubImportModal
+        open={importing}
+        onClose={() => setImporting(false)}
+        returnFocusTo={() => importButton.current}
+      />
 
       <Dialog
         open={confirming}

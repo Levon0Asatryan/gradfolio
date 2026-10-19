@@ -54,6 +54,7 @@ describe("GitHub link callback", () => {
     const response = await call("code=C1&state=S1");
     expect(location(response).pathname).toBe("/integrations");
     expect(location(response).searchParams.get("github")).toBe("connected");
+    expect(location(response).searchParams.get("import")).toBe("1");
     // The exchange is a server-to-server POST with the secret; the API gets only the id token.
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe("https://tenant.us.auth0.com/oauth/token");
@@ -193,6 +194,16 @@ describe("GitHub link callback", () => {
     );
     mocks.link.mockRejectedValue(new ApiError(500, "SOMETHING_NEW", "x"));
     expect(location(await call("code=C1&state=S1")).searchParams.get("reason")).toBe("UNKNOWN");
+  });
+
+  it("adds the import hint to a success only, never to a failure", async () => {
+    expect(location(await call("code=C1&state=WRONG")).searchParams.has("import")).toBe(false);
+    expect(location(await call("error=access_denied&state=S1")).searchParams.has("import")).toBe(
+      false,
+    );
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ id_token: "T" })));
+    mocks.link.mockRejectedValue(new ApiError(409, "GITHUB_LINK_IN_PROGRESS", "x"));
+    expect(location(await call("code=C1&state=S1")).searchParams.has("import")).toBe(false);
   });
 
   it("returns to the onboarding page that started the flow", async () => {
