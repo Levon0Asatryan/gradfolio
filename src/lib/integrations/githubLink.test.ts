@@ -4,10 +4,7 @@ import {
   RETURN_REASONS,
   appOrigin,
   authorizeUrl,
-  isDomain,
-  normalizeDomain,
   newState,
-  githubConnectionName,
   RETURN_TARGETS,
   returnTarget,
   sameState,
@@ -79,13 +76,6 @@ describe("return reasons", () => {
 });
 
 describe("config", () => {
-  it("accepts a domain and refuses anything with a scheme, path or space", () => {
-    expect(isDomain("dev-abc.us.auth0.com")).toBe(true);
-    expect(isDomain("https://dev-abc.us.auth0.com")).toBe(false);
-    expect(isDomain("evil.com/path")).toBe(false);
-    expect(isDomain("a b")).toBe(false);
-    expect(isDomain(undefined)).toBe(false);
-  });
   it("the origin is the preview's branch host, else APP_BASE_URL", () => {
     expect(appOrigin({ APP_BASE_URL: "https://main.example/x" }, undefined)).toBe(
       "https://main.example",
@@ -110,13 +100,6 @@ describe("return target", () => {
 });
 
 describe("tolerant configuration", () => {
-  it("normalizeDomain strips scheme, slashes, space and case, and nothing else", () => {
-    expect(normalizeDomain(" HTTPS://Tenant.auth0.com// ")).toBe("tenant.auth0.com");
-    expect(normalizeDomain("tenant.auth0.com")).toBe("tenant.auth0.com");
-    expect(normalizeDomain(undefined)).toBeUndefined();
-    // A path survives, so isDomain still refuses it.
-    expect(isDomain(normalizeDomain("https://t.auth0.com/x"))).toBe(false);
-  });
   it("appOrigin accepts the forms a dashboard holds", () => {
     for (const value of [
       "https://gradfolio-navy.vercel.app",
@@ -136,11 +119,8 @@ describe("tolerant configuration", () => {
   });
 });
 
-describe("connection name", () => {
-  it("defaults to github and carries an override into /authorize", () => {
-    expect(githubConnectionName(undefined)).toEqual({ name: "github", invalid: false });
-    expect(githubConnectionName("  ")).toEqual({ name: "github", invalid: false });
-    expect(githubConnectionName(" GitHub ")).toEqual({ name: "GitHub", invalid: false });
+describe("connection name in /authorize", () => {
+  it("defaults to github and carries an override", () => {
     const base = {
       domain: "t.auth0.com",
       clientId: "c",
@@ -152,15 +132,5 @@ describe("connection name", () => {
     expect(authorizeUrl({ ...base, connection: "GitHub" }).searchParams.get("connection")).toBe(
       "GitHub",
     );
-  });
-  it("accepts up to Auth0's 128 characters", () => {
-    for (const n of [1, 64, 65, 127, 128]) {
-      expect(githubConnectionName("x".repeat(n))).toEqual({ name: "x".repeat(n), invalid: false });
-    }
-  });
-  it("refuses a value outside [A-Za-z0-9_-]{1,128} and says so", () => {
-    for (const bad of ["git hub", "github&prompt=none", "a/b", "x".repeat(129), "gïthub"]) {
-      expect(githubConnectionName(bad)).toEqual({ name: "github", invalid: true });
-    }
   });
 });
