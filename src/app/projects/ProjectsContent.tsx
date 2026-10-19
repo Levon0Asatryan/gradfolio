@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import { AddProjectButton } from "@/components/projects/AddProjectButton";
+import { AddProjectButton, type GithubStatus } from "@/components/projects/AddProjectButton";
 import ProjectsList from "@/components/projects/ProjectsList";
 import ProjectsListToolbar from "@/components/projects/ProjectsListToolbar";
 import { FlashToast } from "@/components/shared/FlashToast";
@@ -26,8 +26,8 @@ export interface ProjectsContentProps {
   items: ProjectSummary[];
   nextCursor: string | null;
   query: ProjectsQuery;
-  /** From the API (`GET /v1/me/integrations`): GitHub is connected, so Add offers the import. */
-  githubConnected: boolean;
+  /** From the API (`GET /v1/me/integrations`); "unknown" when that read failed. */
+  github: GithubStatus;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -43,7 +43,7 @@ export default function ProjectsContent({
   items,
   nextCursor,
   query,
-  githubConnected,
+  github,
 }: ProjectsContentProps) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -75,7 +75,7 @@ export default function ProjectsContent({
       <PageHeader
         title={t.common.projects}
         subtitle={t.projects.subtitle}
-        action={<AddProjectButton githubConnected={githubConnected} />}
+        action={<AddProjectButton github={github} />}
       />
       <ProjectsListToolbar
         search={search}

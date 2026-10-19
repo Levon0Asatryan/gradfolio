@@ -1,6 +1,7 @@
 import { ProjectsError } from "@/components/projects/ProjectsError";
 import { ApiError, getIntegrations, listMyProjects } from "@/lib/api/client";
 import { parseListQuery, PROJECTS_PAGE_SIZE } from "@/lib/projects/listQuery";
+import type { GithubStatus } from "@/components/projects/AddProjectButton";
 import ProjectsContent from "./ProjectsContent";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +12,14 @@ interface PageProps {
 }
 
 /**
- * Whether Add should offer the GitHub import. Only the API's word counts; if it cannot be read
- * the list still shows and Add is the plain form (nothing claims a connection).
+ * Whether Add should offer the GitHub import. Only the API's word counts. If it cannot be read
+ * the status is "unknown", never "not connected": the list still shows and Add says so.
  */
-async function githubIsConnected(): Promise<boolean> {
+async function githubStatus(): Promise<GithubStatus> {
   try {
-    return (await getIntegrations()).github.status === "connected";
+    return (await getIntegrations()).github.status === "connected" ? "connected" : "not_connected";
   } catch (error) {
-    if (error instanceof ApiError) return false;
+    if (error instanceof ApiError) return "unknown";
     throw error;
   }
 }
@@ -31,11 +32,11 @@ async function githubIsConnected(): Promise<boolean> {
 export default async function ProjectsPage({ searchParams }: PageProps) {
   const query = parseListQuery(await searchParams);
   let page;
-  let githubConnected: boolean;
+  let github: GithubStatus;
   try {
-    [page, githubConnected] = await Promise.all([
+    [page, github] = await Promise.all([
       listMyProjects({ ...query, limit: PROJECTS_PAGE_SIZE }),
-      githubIsConnected(),
+      githubStatus(),
     ]);
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;
@@ -46,7 +47,7 @@ export default async function ProjectsPage({ searchParams }: PageProps) {
       items={page.items}
       nextCursor={page.nextCursor}
       query={{ q: query.q, category: query.category, sort: query.sort }}
-      githubConnected={githubConnected}
+      github={github}
     />
   );
 }

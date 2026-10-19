@@ -367,6 +367,8 @@ export const am: Dictionary = {
       createManually: "Ստեղծել ձեռքով",
       importFromGithub: "Ներմուծել GitHub-ից",
       connectToImport: "Միացրեք GitHub-ը՝ ռեպոզիտորիաները ներմուծելու համար",
+      statusUnavailable: "GitHub-ի կարգավիճակը հասանելի չէ։",
+      retry: "Կրկնել",
     },
     private: "Մասնավոր",
     draft: "Սևագիր",

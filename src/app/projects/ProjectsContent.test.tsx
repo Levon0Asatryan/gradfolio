@@ -43,7 +43,7 @@ afterEach(() => vi.useRealTimers());
 describe("/projects", () => {
   it("shows the API's projects with a header and one primary action", () => {
     renderInApp(
-      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+      <ProjectsContent items={two} nextCursor={null} query={{}} github="not_connected" />,
     );
     expect(screen.getByRole("heading", { level: 1, name: "Projects" })).toBeVisible();
     expect(screen.getByRole("link", { name: "New Project" })).toHaveAttribute(
@@ -56,7 +56,7 @@ describe("/projects", () => {
 
   it("puts a category in the URL, and marks the chip the URL holds as pressed", () => {
     const { unmount } = renderInApp(
-      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+      <ProjectsContent items={two} nextCursor={null} query={{}} github="not_connected" />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Research" }));
     expect(nav.replace).toHaveBeenCalledWith("/projects?category=research");
@@ -66,7 +66,7 @@ describe("/projects", () => {
         items={[two[1]!]}
         nextCursor={null}
         query={{ category: "research" }}
-        githubConnected={false}
+        github="not_connected"
       />,
     );
     expect(screen.getByRole("button", { name: "Research" })).toHaveAttribute(
@@ -79,7 +79,7 @@ describe("/projects", () => {
   it("puts a search in the URL 300 ms after the last key, not on every key", () => {
     vi.useFakeTimers();
     renderInApp(
-      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+      <ProjectsContent items={two} nextCursor={null} query={{}} github="not_connected" />,
     );
     const box = screen.getByRole("textbox", { name: "Search projects…" });
     fireEvent.change(box, { target: { value: "C+" } });
@@ -97,7 +97,7 @@ describe("/projects", () => {
         items={[]}
         nextCursor={null}
         query={{ q: "zzzzqq" }}
-        githubConnected={false}
+        github="not_connected"
       />,
     );
     expect(screen.getByText("No projects match your search.")).toBeVisible();
@@ -107,9 +107,7 @@ describe("/projects", () => {
   });
 
   it("says 'no projects yet' only for an unfiltered empty list", () => {
-    renderInApp(
-      <ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected={false} />,
-    );
+    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} github="not_connected" />);
     expect(screen.getByText("No projects yet")).toBeVisible();
   });
 
@@ -124,7 +122,7 @@ describe("/projects", () => {
         items={two}
         nextCursor="cur1"
         query={{ category: "course" }}
-        githubConnected={false}
+        github="not_connected"
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
@@ -136,7 +134,7 @@ describe("/projects", () => {
   it("shows a failed 'load more' as an error and keeps what is on screen and the button", async () => {
     more.action.mockResolvedValue({ ok: false, code: "API_UNREACHABLE" });
     renderInApp(
-      <ProjectsContent items={two} nextCursor="cur1" query={{}} githubConnected={false} />,
+      <ProjectsContent items={two} nextCursor="cur1" query={{}} github="not_connected" />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("More projects could not be loaded");
@@ -146,7 +144,7 @@ describe("/projects", () => {
 
   it("labels the page in Russian", () => {
     renderInApp(
-      <ProjectsContent items={two} nextCursor={null} query={{}} githubConnected={false} />,
+      <ProjectsContent items={two} nextCursor={null} query={{}} github="not_connected" />,
       "ru",
     );
     expect(screen.getByRole("button", { name: "Хакатон" })).toBeVisible();
@@ -165,7 +163,7 @@ describe("/projects quick publish", () => {
         ]}
         nextCursor={null}
         query={{}}
-        githubConnected={false}
+        github="not_connected"
       />,
     );
     expect(screen.getAllByText("Draft")).toHaveLength(2);
@@ -190,7 +188,7 @@ describe("/projects quick publish", () => {
         items={[projectSummary({ id: "a", title: "Alpha", isDraft: true, isOwner: true })]}
         nextCursor={null}
         query={{}}
-        githubConnected={false}
+        github="not_connected"
       />,
     );
     const publish = screen.getByRole("button", { name: "Publish" });
@@ -214,9 +212,7 @@ describe("/projects quick publish", () => {
 
 describe("Projects → Add", () => {
   it("without GitHub: Add is the form itself, with a small link to connect", () => {
-    renderInApp(
-      <ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected={false} />,
-    );
+    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} github="not_connected" />);
     expect(screen.getByRole("link", { name: "New Project" })).toHaveAttribute(
       "href",
       "/projects/new",
@@ -234,7 +230,7 @@ describe("Projects → Add", () => {
       ok: true,
       page: { items: [], nextCursor: null, rateLimit: { remaining: null, resetsAt: null } },
     });
-    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} githubConnected />);
+    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} github="connected" />);
     expect(screen.queryByRole("link", { name: "Connect GitHub to import repos" })).toBeNull();
     const add = screen.getByRole("button", { name: "New Project" });
     fireEvent.click(add);
@@ -250,5 +246,13 @@ describe("Projects → Add", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(actions.importGithubReposAction).not.toHaveBeenCalled();
     await waitFor(() => expect(add).toHaveFocus());
+  });
+
+  it("an unreadable status is said to be unavailable, never 'Connect GitHub', and Retry refreshes", () => {
+    renderInApp(<ProjectsContent items={[]} nextCursor={null} query={{}} github="unknown" />);
+    expect(screen.getByText("GitHub status is unavailable.")).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Connect GitHub to import repos" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(nav.refresh).toHaveBeenCalled();
   });
 });

@@ -326,6 +326,8 @@ export interface Dictionary {
       createManually: string;
       importFromGithub: string;
       connectToImport: string;
+      statusUnavailable: string;
+      retry: string;
     };
     private: string;
     draft: string;

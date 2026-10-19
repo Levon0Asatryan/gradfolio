@@ -2,7 +2,8 @@
 
 import { type FC, useRef, useState } from "react";
 import Link from "next/link";
-import { Box, Button, Link as MuiLink, Menu, MenuItem } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { Box, Button, Link as MuiLink, Menu, MenuItem, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { GithubImportModal } from "@/components/github-import/GithubImportModal";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -10,10 +11,13 @@ import { useLanguage } from "@/components/i18n/LanguageContext";
 /**
  * Projects → Add. With GitHub connected it offers two choices: "Create manually" (the form) and
  * "Import from GitHub" (the one import dialog, on the repos tab). Without it, Add goes straight
- * to the form, with a small link to connect. `githubConnected` is the API's answer, read on the
- * server; a failed read counts as not connected, which only costs the extra choice.
+ * to the form, with a small link to connect. `github` is the API's answer, read on the server; a
+ * failed read is "unknown" (said so, with Retry), never "not connected".
  */
-export const AddProjectButton: FC<{ githubConnected: boolean }> = ({ githubConnected }) => {
+export type GithubStatus = "connected" | "not_connected" | "unknown";
+
+export const AddProjectButton: FC<{ github: GithubStatus }> = ({ github }) => {
+  const router = useRouter();
   const { t } = useLanguage();
   const text = t.projects.addChoices;
   const trigger = useRef<HTMLButtonElement>(null);
@@ -21,15 +25,31 @@ export const AddProjectButton: FC<{ githubConnected: boolean }> = ({ githubConne
   const menu = anchor !== null;
   const [importing, setImporting] = useState(false);
 
-  if (!githubConnected) {
+  if (github !== "connected") {
     return (
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5 }}>
         <Button component={Link} href="/projects/new" variant="contained" startIcon={<AddIcon />}>
           {t.common.addNewProject}
         </Button>
-        <MuiLink component={Link} href="/integrations" variant="caption">
-          {text.connectToImport}
-        </MuiLink>
+        {github === "unknown" ? (
+          <Box sx={{ display: "flex", gap: 1, alignItems: "baseline" }}>
+            <Typography variant="caption" color="text.secondary" role="status">
+              {text.statusUnavailable}
+            </Typography>
+            <MuiLink
+              component="button"
+              type="button"
+              variant="caption"
+              onClick={() => router.refresh()}
+            >
+              {text.retry}
+            </MuiLink>
+          </Box>
+        ) : (
+          <MuiLink component={Link} href="/integrations" variant="caption">
+            {text.connectToImport}
+          </MuiLink>
+        )}
       </Box>
     );
   }

@@ -368,6 +368,8 @@ export const ru: Dictionary = {
       createManually: "Создать вручную",
       importFromGithub: "Импорт из GitHub",
       connectToImport: "Подключите GitHub, чтобы импортировать репозитории",
+      statusUnavailable: "Не удалось проверить статус GitHub.",
+      retry: "Повторить",
     },
     private: "Приватный",
     draft: "Черновик",
