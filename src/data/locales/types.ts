@@ -207,8 +207,11 @@ export interface Dictionary {
         emptyNow: string;
         dismiss: string;
         summaryTitle: string;
-        /** `{count}` */
+        /** `{fields}`: the names of the fields that were written */
         updated: string;
+        viewProfile: string;
+        reviewTitle: string;
+        reviewHelp: string;
         /** `{count}` */
         failed: string;
         fields: {
@@ -254,6 +257,8 @@ export interface Dictionary {
       remove: string;
       nothingLeft: string;
       save: string;
+      saveProfile: string;
+      saveBoth: string;
       saving: string;
       resultTitle: string;
       /** `{count}` */

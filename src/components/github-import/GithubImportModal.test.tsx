@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/components/i18n/LanguageContext";
 import { ThemeWrapper } from "@/components/theme/ThemeWrapper";
 import { renderInApp } from "@/testing/render";
+import { am } from "@/data/locales/am";
+import { en } from "@/data/locales/en";
+import { ru } from "@/data/locales/ru";
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
@@ -447,8 +450,8 @@ describe("profile data tab", () => {
     expect(await screen.findByText("Profile fields to update")).toBeVisible();
     expect(mocks.accept).not.toHaveBeenCalled();
     mocks.accept.mockResolvedValue({ ok: true, results: [{ id: A, ok: true }] });
-    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
-    expect(await screen.findByText("Profile fields updated: 1")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Update my profile" }));
+    expect(await screen.findByText("Profile updated: Bio")).toBeVisible();
     expect(mocks.accept).toHaveBeenCalledWith({ ids: [A] });
     expect(mocks.save).not.toHaveBeenCalled();
   });
@@ -461,7 +464,7 @@ describe("profile data tab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByDisplayValue("repo-1");
     mocks.save.mockResolvedValue({ ok: false, code: "GITHUB_UNAVAILABLE" });
-    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("GitHub is not responding");
     expect(mocks.accept).not.toHaveBeenCalled();
   });
@@ -524,11 +527,11 @@ describe("profile data tab", () => {
     await screen.findByText("I build things");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByText("You neither own this repository nor can push to it.");
-    const save = screen.getByRole("button", { name: "Save as drafts" });
+    const save = screen.getByRole("button", { name: "Update my profile" });
     expect(save).toBeEnabled();
     mocks.accept.mockResolvedValue({ ok: true, results: [{ id: A, ok: true }] });
     fireEvent.click(save);
-    expect(await screen.findByText("Profile fields updated: 1")).toBeVisible();
+    expect(await screen.findByText("Profile updated: Bio")).toBeVisible();
     expect(mocks.save).not.toHaveBeenCalled();
   });
 
@@ -552,7 +555,7 @@ describe("profile data tab", () => {
       ok: true,
       results: [{ id: A, ok: false, code: "SUGGESTION_INVALID" }],
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save as drafts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update my profile" }));
     expect(await screen.findByText("Profile fields not updated: 1")).toBeVisible();
   });
 
@@ -597,5 +600,160 @@ describe("profile data tab", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Profile data" }));
     expect(await screen.findByText("GitHub’s request limit is reached.")).toBeVisible();
     expect(screen.getByText("Hi")).toBeVisible();
+  });
+});
+
+// The save button, the review title and the result say what was actually saved.
+describe("wording follows what was saved", () => {
+  const WORDS = Object.fromEntries(
+    (["en", "ru", "am"] as const).map((l) => {
+      const x = { en, ru, am }[l].integrations.import;
+      return [
+        l,
+        {
+          drafts: x.save,
+          profile: x.saveProfile,
+          both: x.saveBoth,
+          reviewProfile: x.profile.reviewTitle,
+          projects: x.goToProjects,
+          view: x.profile.viewProfile,
+        },
+      ];
+    }),
+  ) as Record<
+    "en" | "ru" | "am",
+    Record<"drafts" | "profile" | "both" | "reviewProfile" | "projects" | "view", string>
+  >;
+
+  const run = async (language: "en" | "ru" | "am", withRepo: boolean, withProfile: boolean) => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    mocks.preview.mockResolvedValue(previewOf([1]));
+    mocks.suggestions.mockResolvedValue({
+      ok: true,
+      items: [item(A, "profile.bio", null, "I build things", "fill")],
+      refresh: null,
+      refreshError: null,
+    });
+    mocks.save.mockResolvedValue({
+      ok: true,
+      response: {
+        results: [{ repoId: 1, outcome: "created", reason: null, projectId: "p1", notes: [] }],
+        rateLimit: { remaining: 1, resetsAt: null },
+      },
+    });
+    mocks.accept.mockResolvedValue({ ok: true, results: [{ id: A, ok: true }] });
+    open(language);
+    await screen.findByRole("checkbox");
+    const [reposTab, profileTab] = screen.getAllByRole("tab") as [HTMLElement, HTMLElement];
+    if (withProfile) {
+      fireEvent.click(profileTab);
+      await screen.findByText("I build things");
+      if (withRepo) fireEvent.click(reposTab);
+    }
+    if (withRepo) fireEvent.click(await screen.findByRole("checkbox"));
+    const dialog = screen.getByRole("dialog");
+    const buttons = within(dialog).getAllByRole("button");
+    fireEvent.click(buttons[buttons.length - 1]!); // Continue
+    if (withRepo) await screen.findByDisplayValue("repo-1");
+    else await screen.findAllByRole("heading", { level: 3 });
+  };
+  const label = (name: string) => screen.getByRole("button", { name });
+
+  for (const language of ["en", "ru", "am"] as const) {
+    const w = WORDS[language];
+    describe(language, () => {
+      it("projects only: Save as drafts, created, projects link, no profile text", async () => {
+        await run(language, true, false);
+        expect(label(w.drafts)).toBeEnabled();
+        fireEvent.click(label(w.drafts));
+        expect(await screen.findByRole("link", { name: w.projects })).toHaveAttribute(
+          "href",
+          "/projects",
+        );
+        expect(screen.queryByRole("link", { name: w.view })).toBeNull();
+        expect(mocks.accept).not.toHaveBeenCalled();
+        expect(mocks.save).toHaveBeenCalledTimes(1);
+      });
+
+      it("profile only: Update my profile, a profile title, no projects words or link", async () => {
+        await run(language, false, true);
+        expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(w.reviewProfile);
+        expect(screen.queryByRole("button", { name: w.drafts })).toBeNull();
+        fireEvent.click(label(w.profile));
+        expect(await screen.findByRole("link", { name: w.view })).toHaveAttribute(
+          "href",
+          "/profile",
+        );
+        expect(screen.queryByRole("link", { name: w.projects })).toBeNull();
+        expect(screen.queryByText(/черновик|սևագր|draft/i)).toBeNull();
+        expect(within(screen.getByRole("dialog")).queryByText(/\{/)).toBeNull();
+        expect(mocks.save).not.toHaveBeenCalled();
+        expect(mocks.accept).toHaveBeenCalledWith({ ids: [A] });
+      });
+
+      it("both: Save, both outcomes listed, both links", async () => {
+        await run(language, true, true);
+        expect(screen.queryByRole("button", { name: w.drafts })).toBeNull();
+        expect(screen.queryByRole("button", { name: w.profile })).toBeNull();
+        fireEvent.click(label(w.both));
+        expect(await screen.findByRole("link", { name: w.view })).toBeVisible();
+        expect(screen.getByRole("link", { name: w.projects })).toBeVisible();
+        expect(mocks.save).toHaveBeenCalledTimes(1);
+        expect(mocks.accept).toHaveBeenCalledTimes(1);
+      });
+    });
+  }
+
+  it("en: the result names the fields and the created count only when they happened", async () => {
+    await run("en", false, true);
+    fireEvent.click(label("Update my profile"));
+    expect(await screen.findByText("Profile updated: Bio")).toBeVisible();
+    expect(screen.queryByText(/created/i)).toBeNull();
+    expect(screen.queryByText(/Publish them/)).toBeNull();
+  });
+
+  it("en: both shows the created count and the field names", async () => {
+    await run("en", true, true);
+    fireEvent.click(label("Save"));
+    expect(await screen.findByText("Projects created as drafts: 1")).toBeVisible();
+    expect(screen.getByText("Profile updated: Bio")).toBeVisible();
+  });
+
+  it("none: Save stays off and nothing is sent", async () => {
+    mocks.list.mockResolvedValue(page([repo(1)]));
+    open();
+    await screen.findByRole("checkbox");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(mocks.accept).not.toHaveBeenCalled();
+  });
+
+  it("a repository that was only skipped is never reported as created", async () => {
+    await run("en", true, false);
+    mocks.save.mockResolvedValue({
+      ok: true,
+      response: {
+        results: [
+          { repoId: 1, outcome: "skipped", reason: "not_owner", projectId: null, notes: [] },
+        ],
+        rateLimit: { remaining: 1, resetsAt: null },
+      },
+    });
+    fireEvent.click(label("Save as drafts"));
+    expect(await screen.findByText("Skipped: 1")).toBeVisible();
+    expect(screen.queryByText(/Projects created/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "Go to my projects" })).toBeNull();
+  });
+
+  it("a profile field that fails is counted, and no field names or profile link are claimed", async () => {
+    await run("en", false, true);
+    mocks.accept.mockResolvedValue({
+      ok: true,
+      results: [{ id: A, ok: false, code: "SUGGESTION_INVALID" }],
+    });
+    fireEvent.click(label("Update my profile"));
+    expect(await screen.findByText("Profile fields not updated: 1")).toBeVisible();
+    expect(screen.queryByText(/Profile updated:/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "View my profile" })).toBeNull();
   });
 });

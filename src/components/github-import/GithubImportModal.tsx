@@ -93,9 +93,10 @@ export const GithubImportModal: FC<{
   const [profile, setProfile] = useState<ProfileState>(NO_PROFILE);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [dismissError, setDismissError] = useState<string | null>(null);
-  const [profileOutcome, setProfileOutcome] = useState<{ updated: number; failed: number } | null>(
-    null,
-  );
+  const [profileOutcome, setProfileOutcome] = useState<{
+    updated: SuggestionItem[];
+    failed: number;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<{ code: string; retryAfter?: number } | null>(null);
   const [results, setResults] = useState<GithubImportOutcome[]>([]);
@@ -327,10 +328,12 @@ export const GithubImportModal: FC<{
         setProfileOutcome(
           accepted.ok
             ? {
-                updated: accepted.results.filter((r) => r.ok).length,
+                updated: profileChosen.filter((i) =>
+                  accepted.results.some((r) => r.id === i.id && r.ok),
+                ),
                 failed: accepted.results.filter((r) => !r.ok).length,
               }
-            : { updated: 0, failed: profileChosen.length },
+            : { updated: [], failed: profileChosen.length },
         );
       } else {
         setProfileOutcome(null);
@@ -345,8 +348,23 @@ export const GithubImportModal: FC<{
     }
   }
 
+  // The words follow what Save will do: drafts, profile fields, or both.
+  const saveLabel =
+    savable.length > 0 && profileChosen.length > 0
+      ? text.saveBoth
+      : savable.length === 0 && profileChosen.length > 0
+        ? text.saveProfile
+        : text.save;
+  const profileOnly = chosen.length === 0;
   const title =
-    step === "pick" ? text.title : step === "review" ? text.reviewTitle : text.resultTitle;
+    step === "pick"
+      ? text.title
+      : step === "review"
+        ? profileOnly
+          ? text.profile.reviewTitle
+          : text.reviewTitle
+        : text.resultTitle;
+  const madeProjects = results.some((r) => r.projectId && r.outcome !== "skipped");
 
   return (
     <Dialog
@@ -418,7 +436,7 @@ export const GithubImportModal: FC<{
           </div>
         )}
         {step === "review" && chosen.length === 0 && (
-          <ProfileSummary items={profileChosen} failure={failure ? message(failure) : null} />
+          <ProfileSummary items={profileChosen} failure={failure ? message(failure) : null} help />
         )}
         {step === "review" && chosen.length > 0 && (
           <ImportReview
@@ -448,9 +466,14 @@ export const GithubImportModal: FC<{
             {results.length > 0 && <ImportResult results={results} names={names} />}
             {profileOutcome && (
               <Stack spacing={1} sx={{ mt: results.length > 0 ? 2 : 0 }}>
-                {profileOutcome.updated > 0 && (
+                {profileOutcome.updated.length > 0 && (
                   <Alert severity="success">
-                    {text.profile.updated.replace("{count}", String(profileOutcome.updated))}
+                    {text.profile.updated.replace(
+                      "{fields}",
+                      profileOutcome.updated
+                        .map((i) => fieldLabel(i, text.profile.fields))
+                        .join(", "),
+                    )}
                   </Alert>
                 )}
                 {profileOutcome.failed > 0 && (
@@ -482,15 +505,22 @@ export const GithubImportModal: FC<{
               {text.back}
             </Button>
             <Button variant="contained" disabled={!canSave || saving} onClick={() => void save()}>
-              {saving ? text.saving : text.save}
+              {saving ? text.saving : saveLabel}
             </Button>
           </>
         )}
         {step === "result" && (
           <>
-            <Button component={Link} href="/projects">
-              {text.goToProjects}
-            </Button>
+            {madeProjects && (
+              <Button component={Link} href="/projects">
+                {text.goToProjects}
+              </Button>
+            )}
+            {profileOutcome && profileOutcome.updated.length > 0 && (
+              <Button component={Link} href="/profile">
+                {text.profile.viewProfile}
+              </Button>
+            )}
             <Button variant="contained" onClick={onClose}>
               {text.close}
             </Button>
@@ -502,9 +532,10 @@ export const GithubImportModal: FC<{
 };
 
 /** What the ticked profile fields will become, shown once more before Save. */
-const ProfileSummary: FC<{ items: SuggestionItem[]; failure: string | null }> = ({
+const ProfileSummary: FC<{ items: SuggestionItem[]; failure: string | null; help?: boolean }> = ({
   items,
   failure,
+  help,
 }) => {
   const { t } = useLanguage();
   const text = t.integrations.import.profile;
@@ -513,6 +544,11 @@ const ProfileSummary: FC<{ items: SuggestionItem[]; failure: string | null }> = 
       <Typography component="h3" variant="subtitle1">
         {text.summaryTitle}
       </Typography>
+      {help && (
+        <Typography variant="body2" color="text.secondary">
+          {text.reviewHelp}
+        </Typography>
+      )}
       {failure && (
         <Alert severity="error" role="alert">
           {failure}
