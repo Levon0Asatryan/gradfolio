@@ -31,8 +31,13 @@ vi.mock("@/lib/api/client", () => {
   };
 });
 
-const { loadProfileSuggestionsAction, acceptSuggestionsAction, dismissSuggestionAction } =
-  await import("./suggestionActions");
+const {
+  loadProfileSuggestionsAction,
+  acceptSuggestionsAction,
+  dismissSuggestionAction,
+  loadInboxAction,
+  acceptOneSuggestionAction,
+} = await import("./suggestionActions");
 const { ApiError } = await import("@/lib/api/client");
 
 const A = "0b6f2c1e-1111-4222-8333-444455556661";
@@ -146,5 +151,82 @@ describe("dismissSuggestionAction", () => {
       code: "VALIDATION_FAILED",
     });
     expect(api.dismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe("loadInboxAction (M7-T32)", () => {
+  it("reads one page of 100 and keeps the open, listed kinds of every source", async () => {
+    api.list.mockResolvedValue({
+      items: [
+        item({ kind: "skill.add", source: "github" }),
+        item({ id: B, kind: "profile.links.twitter", source: "github" }),
+        item({ id: "c", kind: "linkedin.reimport", source: "linkedin" }),
+        item({ id: "d", kind: "skill.add", status: "dismissed" }),
+      ],
+      nextCursor: "next",
+    });
+    const result = await loadInboxAction();
+    expect(api.list).toHaveBeenCalledWith({ limit: 100 });
+    expect(result.ok && result.items.map((i) => i.id)).toEqual([A, B]);
+    expect(result.ok && result.more).toBe(true);
+  });
+
+  it("a failed read is a failure, never an empty inbox", async () => {
+    api.list.mockRejectedValue(new ApiError(503, "DATABASE_UNAVAILABLE", "x"));
+    expect(await loadInboxAction()).toEqual({ ok: false, code: "DATABASE_UNAVAILABLE" });
+  });
+});
+
+describe("the profile dialog's list", () => {
+  it("leaves out the links the dialog has no label for", async () => {
+    api.refresh.mockResolvedValue({});
+    api.list.mockResolvedValue({
+      items: [
+        item({}),
+        item({ id: B, kind: "profile.links.linkedin" }),
+        item({ id: "c", kind: "profile.links.twitter" }),
+      ],
+    });
+    const result = await loadProfileSuggestionsAction();
+    expect(result.ok && result.items.map((i) => i.id)).toEqual([A]);
+  });
+});
+
+describe("acceptOneSuggestionAction", () => {
+  it("accepts one id, with no body for a kind that takes none", async () => {
+    api.accept.mockResolvedValue({ projectId: null });
+    expect(await acceptOneSuggestionAction({ id: A })).toEqual({ ok: true, projectId: null });
+    expect(api.accept).toHaveBeenCalledWith(A, undefined);
+  });
+
+  it("sends the student's overrides, and hands back a new draft's id", async () => {
+    api.accept.mockResolvedValue({ projectId: B });
+    const overrides = { title: "Intern", start: "2025-06" };
+    expect(await acceptOneSuggestionAction({ id: A, overrides })).toEqual({
+      ok: true,
+      projectId: B,
+    });
+    expect(api.accept).toHaveBeenCalledWith(A, overrides);
+  });
+
+  it.each([
+    ["a non-UUID", { id: "../x" }],
+    ["no id", {}],
+    ["bad overrides", { id: A, overrides: { startYear: 1 } }],
+    ["not an object", null],
+  ])("refuses %s before any API call", async (_n, input) => {
+    expect(await acceptOneSuggestionAction(input)).toEqual({
+      ok: false,
+      code: "VALIDATION_FAILED",
+    });
+    expect(api.accept).not.toHaveBeenCalled();
+  });
+
+  it("passes the API's refusal on by code (stale, resolved, validation)", async () => {
+    api.accept.mockRejectedValue(new ApiError(409, "SUGGESTION_STALE", "x"));
+    expect(await acceptOneSuggestionAction({ id: A })).toEqual({
+      ok: false,
+      code: "SUGGESTION_STALE",
+    });
   });
 });
