@@ -17,7 +17,11 @@ vi.mock("@/lib/api/client", () => ({
 const { offerGithubImport } = await import("./importOffer");
 const { ApiError } = await import("@/lib/api/client");
 
-const project = (source: "manual" | "github") => ({ id: source, source });
+const project = (source: "manual" | "github", role: "owner" | "member" = "owner") => ({
+  id: source,
+  source,
+  role,
+});
 beforeEach(() => vi.resetAllMocks());
 
 describe("offerGithubImport", () => {
@@ -33,6 +37,11 @@ describe("offerGithubImport", () => {
 
   it("offers when the student has no projects at all", async () => {
     mocks.list.mockResolvedValue({ items: [], nextCursor: null });
+    expect(await offerGithubImport(true)).toBe(true);
+  });
+
+  it("still offers when the only GitHub project is someone else's, where the student is a member", async () => {
+    mocks.list.mockResolvedValue({ items: [project("github", "member")], nextCursor: null });
     expect(await offerGithubImport(true)).toBe(true);
   });
 

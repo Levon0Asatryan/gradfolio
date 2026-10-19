@@ -268,6 +268,16 @@ test.describe("immediate connect and the standing offer (M7-T34)", () => {
     await expect(page.getByText(OFFER)).toBeVisible();
   });
 
+  test("onboarding step: connect answers connected at once, the dialog opens", async ({ page }) => {
+    await signIn(page, "e2e-late");
+    await page.goto("/integrations/connections");
+    await page.getByRole("button", { name: "Connect" }).click();
+    await expect(page.getByRole("dialog").getByRole("checkbox").first()).toBeAttached();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText(OFFER)).toBeVisible();
+  });
+
   test("connected with no GitHub project: the offer, on both pages; Import opens the dialog", async ({
     page,
   }) => {
