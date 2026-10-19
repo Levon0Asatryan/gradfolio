@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { useState } from "react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import { projectSummary } from "@/testing/fixtures";
@@ -7,7 +8,8 @@ import ProjectCard from "./ProjectCard";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
-vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: vi.fn() }));
+const setDraftMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/projects/actions", () => ({ setDraftStateAction: setDraftMock }));
 
 describe("ProjectCard", () => {
   it("prints the date range in the UI language, in UTC", () => {
@@ -63,5 +65,32 @@ describe("ProjectCard publish", () => {
     expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
     renderInApp(<ProjectCard project={projectSummary({ isDraft: true, isOwner: false })} />);
     expect(screen.queryByRole("button", { name: "Publish" })).toBeNull();
+  });
+});
+
+describe("ProjectCard after a quick publish", () => {
+  /** What the feed does: the card is re-rendered as a published project. */
+  function Feed() {
+    const [draft, setDraft] = useState(true);
+    return (
+      <ProjectCard
+        project={projectSummary({ isDraft: draft, isOwner: true })}
+        onDraftChange={(isDraft) => setDraft(isDraft)}
+      />
+    );
+  }
+
+  it("the focus and the announcement outlive the button that is removed", async () => {
+    setDraftMock.mockResolvedValue({ ok: true, isDraft: false, isPublic: true });
+    renderInApp(<Feed />);
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Publish" }));
+    // The button and its dialog are gone; the card says what happened and holds the focus.
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Publish" })).toBeNull());
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Published.");
+    await waitFor(() => expect(status).toHaveFocus());
+    expect(status.isConnected).toBe(true);
+    expect(screen.queryByText("Draft")).toBeNull();
   });
 });

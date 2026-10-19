@@ -13,7 +13,6 @@ import {
   DialogTitle,
   List,
   ListItem,
-  Snackbar,
   Typography,
 } from "@mui/material";
 import { useLanguage } from "@/components/i18n/LanguageContext";
@@ -37,7 +36,10 @@ export const PublishButton: FC<{
   label?: string;
   variant?: "contained" | "outlined" | "text";
   size?: "small" | "medium";
-  /** Called once the API has changed the project. */
+  /**
+   * Called once the API has changed the project. The caller announces it (`usePublishStatus`):
+   * this button is usually gone by then, and so would any toast of its own be.
+   */
   onDone?: (state: { isDraft: boolean }) => void;
 }> = ({
   projectId,
@@ -56,7 +58,6 @@ export const PublishButton: FC<{
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
-  const [done, setDone] = useState<string | null>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const lock = useRef(false);
 
@@ -73,7 +74,6 @@ export const PublishButton: FC<{
       }
       setOpen(false);
       onDone?.({ isDraft: result.isDraft });
-      setDone(toDraft ? text.doneDraft : text.done);
       router.refresh();
     } catch {
       setFailure({ code: "UNKNOWN" });
@@ -153,17 +153,6 @@ export const PublishButton: FC<{
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={done !== null}
-        autoHideDuration={5000}
-        onClose={() => setDone(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="success" onClose={() => setDone(null)} closeText={text.close}>
-          {done}
-        </Alert>
-      </Snackbar>
     </>
   );
 };

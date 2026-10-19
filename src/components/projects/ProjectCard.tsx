@@ -13,6 +13,7 @@ import HighlightedText from "@/components/shared/HighlightedText";
 import TruncatedText from "@/components/shared/TruncatedText";
 import DraftChip from "@/components/shared/DraftChip";
 import { PublishButton } from "@/components/project/PublishButton";
+import { PublishStatus, usePublishStatus } from "@/components/project/PublishStatus";
 import SourceBadge from "@/components/shared/SourceBadge";
 import { CategoryChip, isProjectCategory } from "@/components/shared/CategoryChip";
 import type { ProjectSummary } from "@/lib/api/types";
@@ -42,6 +43,7 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftCha
   const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const { t, language } = useLanguage();
   const titleId = useId();
+  const publishStatus = usePublishStatus();
 
   const { visibleTags, remainingCount } = useMemo(() => {
     const visible = technologies.slice(0, MAX_TAGS);
@@ -146,10 +148,17 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftCha
             isPublic={project.isPublic}
             variant="outlined"
             size="small"
-            onDone={({ isDraft }) => onDraftChange?.(isDraft)}
+            onDone={(state) => {
+              publishStatus.onDone(state);
+              onDraftChange?.(state.isDraft);
+            }}
           />
         </Box>
       )}
+      {/* Outlives the button: publishing removes it, and with it the dialog and the focus. */}
+      <Box sx={{ px: 3, pb: publishStatus.status ? 2 : 0 }}>
+        <PublishStatus text={publishStatus.status} lineRef={publishStatus.line} />
+      </Box>
     </Card>
   );
 };
