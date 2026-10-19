@@ -185,18 +185,32 @@ describe("AttachmentsEditor, live", () => {
     expect(act_.del).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Remove Item b" }));
     fireEvent.click(
-      within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete project" }),
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove attachment" }),
     );
     await waitFor(() => expect(names()).toHaveLength(2));
     expect(act_.del).toHaveBeenCalledWith("p1", "b");
   });
+
+  it.each([
+    ["en", "Remove attachment"],
+    ["ru", "Убрать вложение"],
+    ["am", "Հեռացնել կցորդը"],
+  ] as const)(
+    "labels the removal action for an attachment in %s, not as deleting a project",
+    async (language, label) => {
+      renderInApp(<AttachmentsEditor projectId="p1" initial={three} />, language);
+      fireEvent.click(screen.getAllByRole("button", { name: /Item b/ })[3]!);
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("button", { name: label })).toBeInTheDocument();
+    },
+  );
 
   it("keeps the item and says so when a removal fails", async () => {
     act_.del.mockResolvedValue({ ok: false, code: "API_UNREACHABLE" });
     live();
     fireEvent.click(screen.getByRole("button", { name: "Remove Item b" }));
     fireEvent.click(
-      within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete project" }),
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove attachment" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the change");
     expect(names()).toHaveLength(3);
@@ -250,7 +264,7 @@ describe("AttachmentsEditor, draft (a new project)", () => {
     expect(onChange).toHaveBeenLastCalledWith([draft[1], draft[0]]);
     fireEvent.click(screen.getByRole("button", { name: "Remove B" }));
     fireEvent.click(
-      within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete project" }),
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove attachment" }),
     );
     expect(onChange).toHaveBeenLastCalledWith([draft[0]]);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

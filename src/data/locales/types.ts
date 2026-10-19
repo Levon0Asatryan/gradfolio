@@ -416,6 +416,7 @@ export interface Dictionary {
       attachmentMoveDown: string;
       attachmentRemove: string;
       attachmentRemoveTitle: string;
+      attachmentRemoveConfirm: string;
       attachmentRemoveBody: string;
       attachmentMoved: string;
       attachmentUntitled: string;

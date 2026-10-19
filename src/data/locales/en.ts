@@ -462,6 +462,7 @@ export const en: Dictionary = {
       attachmentMoveDown: "Move {name} down",
       attachmentRemove: "Remove {name}",
       attachmentRemoveTitle: "Remove “{name}”?",
+      attachmentRemoveConfirm: "Remove attachment",
       attachmentRemoveBody:
         "This removes the attachment, and its uploaded file if it has one. It cannot be undone.",
       attachmentMoved: "Moved to position {n} of {m}.",
