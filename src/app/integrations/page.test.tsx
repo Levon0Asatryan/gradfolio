@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getIntegrations: vi.fn(), offer: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getIntegrations: vi.fn(), offer: vi.fn(), inbox: vi.fn() }));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
     constructor(
@@ -13,6 +13,7 @@ vi.mock("@/lib/api/client", () => {
   }
   return { ApiError, getIntegrations: mocks.getIntegrations };
 });
+vi.mock("@/lib/integrations/suggestionActions", () => ({ loadInboxAction: mocks.inbox }));
 vi.mock("@/lib/integrations/importOffer", () => ({ offerGithubImport: mocks.offer }));
 vi.mock("@/lib/requestDictionary", () => ({
   requestDictionary: async () => ({ integrations: { title: "Integrations" } }),
@@ -21,7 +22,10 @@ vi.mock("@/lib/requestDictionary", () => ({
 const { default: Page, generateMetadata } = await import("./page");
 const { ApiError } = await import("@/lib/api/client");
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.inbox.mockResolvedValue({ ok: true, items: [], more: false });
+});
 
 describe("/integrations page", () => {
   it("renders the view with what the API says", async () => {
@@ -31,7 +35,22 @@ describe("/integrations page", () => {
     };
     mocks.getIntegrations.mockResolvedValue(data);
     mocks.offer.mockResolvedValue(false);
-    expect((await Page()).props).toEqual({ integrations: data, offerImport: false });
+    expect((await Page()).props).toEqual({
+      integrations: data,
+      offerImport: false,
+      suggestions: { items: [], more: false },
+    });
+  });
+
+  it("a failed suggestions read is not an empty inbox: the page passes null and the browser reads it", async () => {
+    const data = {
+      github: { available: true, status: "connected", login: "ani-p", lastSyncedAt: null },
+      linkedin: { status: "not_connected", lastSyncedAt: null },
+    };
+    mocks.getIntegrations.mockResolvedValue(data);
+    mocks.offer.mockResolvedValue(false);
+    mocks.inbox.mockResolvedValue({ ok: false, code: "DATABASE_UNAVAILABLE" });
+    expect((await Page()).props.suggestions).toBeNull();
   });
 
   it("passes the import offer, asked about the API's connected status", async () => {
@@ -41,7 +60,11 @@ describe("/integrations page", () => {
     };
     mocks.getIntegrations.mockResolvedValue(data);
     mocks.offer.mockResolvedValue(true);
-    expect((await Page()).props).toEqual({ integrations: data, offerImport: true });
+    expect((await Page()).props).toEqual({
+      integrations: data,
+      offerImport: true,
+      suggestions: { items: [], more: false },
+    });
     expect(mocks.offer).toHaveBeenCalledWith(true);
     mocks.getIntegrations.mockResolvedValue({
       ...data,

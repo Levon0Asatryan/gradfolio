@@ -36,6 +36,20 @@ describe.each([
     }
   });
 
+  it("renders suggestions_available from its count, with no placeholder left", () => {
+    const text = notificationText(
+      notification({
+        type: "suggestions_available",
+        title: "New suggestions",
+        params: { count: 3, kinds: ["project.new"] },
+      }),
+      t,
+    );
+    expect(text).toContain("3");
+    expect(text).not.toMatch(/[{}]/);
+    expect(text).not.toBe("New suggestions");
+  });
+
   it("names the role in an invite that has one, and only then", () => {
     const withRole = notificationText(
       notification({ type: "team_invite", params: params("Designer") }),

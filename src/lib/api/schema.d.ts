@@ -518,7 +518,7 @@ export interface paths {
         };
         /**
          * The caller’s notifications, newest first
-         * @description Keyset pagination: pass `nextCursor` back as `cursor`. Render the text from `type` and `params` in the reader’s language; `link` and `invite` are computed at read time.
+         * @description Keyset pagination: pass `nextCursor` back as `cursor`. Render the text from `type` and `params` in the reader’s language; `link` and `invite` are computed at read time. `suggestions_available`: a refresh opened repository suggestions; `params` are `count` and `kinds`, and the list is `GET /v1/me/suggestions`.
          */
         get: operations["listMyNotifications"];
         put?: never;
@@ -837,7 +837,7 @@ export interface paths {
         put?: never;
         /**
          * Connect GitHub, or get a nonce to link it
-         * @description When Auth0 already holds a GitHub identity for the caller (they sign in with GitHub, or linked it), GitHub confirms its token and the account is connected: `state: connected`. Otherwise `state: link_required` with a single-use nonce for a secondary GitHub sign-in (see `link`). Public repositories only (D6). A connected GitHub counts toward `verified`.
+         * @description When Auth0 already holds a GitHub identity for the caller (they sign in with GitHub, or linked it), GitHub confirms its token and the account is connected: `state: connected`. Otherwise `state: link_required` with a single-use nonce for a secondary GitHub sign-in (see `link`); so is the case where GitHub refuses the token Auth0 holds (revoked at GitHub, or stale), for any login: a flag left from that token is cleared first, and the sign-in replaces the token. `link` finishes it, including for a login that is itself the GitHub one. Public repositories only (D6). A connected GitHub counts toward `verified`.
          */
         post: operations["connectGithub"];
         delete?: never;
@@ -878,7 +878,7 @@ export interface paths {
         post?: never;
         /**
          * Disconnect GitHub, revoking access at GitHub first
-         * @description Revokes the GitHub app grant first (every token of it, including the one Auth0 holds); only once GitHub confirms, or there is nothing left to revoke, is GitHub disconnected. A revocation GitHub refuses changes nothing (502): retry. One whose outcome is unknown (timeout, dropped connection, 5xx) also answers 502, but the grant may still be deleted: the card then shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until it settles, after a short delay. Idempotent. Imported projects stay. The GitHub identity stays linked at Auth0 (a GitHub sign-in keeps working); reconnecting needs one fresh GitHub sign-in. `verified` falls back to the email.
+         * @description Revokes the GitHub app grant first (every token of it, including the one Auth0 holds); only once GitHub confirms, or there is nothing left to revoke, is GitHub disconnected. A token GitHub itself refuses (`GET /user` answers 401) counts as revoked, whatever the grant delete answered: the API holds no other token, and GitHub deletes a grant only for a valid one. Any other authorization the student made at GitHub stays until they remove it under Settings, Applications. A revocation GitHub refuses changes nothing (502): retry. One whose outcome is unknown (timeout, dropped connection, 5xx) also answers 502, but the grant may still be deleted: the card then shows not_connected and a retry answers 409 GITHUB_LINK_IN_PROGRESS until it settles, after a short delay. Idempotent. Imported projects stay. The GitHub identity stays linked at Auth0 (a GitHub sign-in keeps working); reconnecting needs one fresh GitHub sign-in. `verified` falls back to the email.
          */
         delete: operations["disconnectGithub"];
         options?: never;
@@ -1035,7 +1035,7 @@ export interface paths {
         };
         /**
          * The caller’s suggestions, newest first
-         * @description Open ones by default (`status=all` adds the answered). A `profile.*` suggestion names the `field`, what it holds now (`current`) and what an accept would write (`proposed`). `openCount` is the caller’s open suggestions in all.
+         * @description Open ones by default (`status=all` adds the answered). A `profile.*` suggestion names the `field`, what it holds now (`current`) and what an accept would write (`proposed`). A `profile.links.linkedin` / `profile.links.twitter` suggestion (from GitHub’s social accounts) is always `mode: fill`: offered to an empty field only. A `skill.add` suggestion names the `skill` and the `evidence` (public repositories and projects that show it). A `project.new` suggestion names the `repository` to import (and `project.id` once accepted). A `project.update` suggestion names the `project`, the `field` (`summary`: GitHub’s description; `descriptionHtml`: the README) and the `proposed` value; it is offered only while the project’s field is still what the import or last re-sync wrote. An `education.add` (the configured institution, UNIVERSITY_NAME) or `experience.add` (a configured organisation, UNIVERSITY_ORGS) names the section in `field` and the institution or organisation in `proposed`; accepting it needs `overrides`. `openCount` is the caller’s open suggestions in all.
          */
         get: operations["listSuggestions"];
         put?: never;
@@ -1057,7 +1057,7 @@ export interface paths {
         put?: never;
         /**
          * Read GitHub’s public profile and recompute the suggestions
-         * @description Reads GitHub at most once per SUGGESTIONS_MIN_INTERVAL_S (conditionally by ETag; a refresh inside the floor uses the stored profile and says `throttled`), then opens what is new, supersedes what GitHub no longer says, and never reopens an answered suggestion with the same value. LinkedIn: a sign-in’s name and photo, and a re-import reminder. Without GitHub connected only the LinkedIn rules run.
+         * @description Reads GitHub at most once per SUGGESTIONS_MIN_INTERVAL_S (conditionally by ETag; a refresh inside the floor uses the stored profile and says `throttled`), then opens what is new, supersedes what GitHub no longer says, and never reopens an answered suggestion with the same value. It also reads the caller’s newest public repositories (not forks): one `GET /user/repos` page and, for the newest SUGGESTIONS_LANGUAGE_REPOS (default 5), one `GET …/languages` each, and offers a skill missing from the profile (compared case-insensitively) that at least two repositories or projects show. A refresh inside the floor reads nothing and keeps the open skill suggestions. Repositories: up to SUGGESTIONS_NEW_REPOS (default 5) of the newest own, not-imported repositories are offered as `project.new`; for each imported project whose repository is on that page, a changed description is offered as `project.update` at no extra call, and its README is read (one call each, at most SUGGESTIONS_README_READS, default 10) only if the repository was pushed to since the import or last re-sync. Stars and forks are never suggested. One notification (`suggestions_available`, `count` and `kinds`) is written when a refresh opens repository suggestions, in the same transaction. LinkedIn: a sign-in’s name and photo, and a re-import reminder. University: when UNIVERSITY_DOMAINS is set, one `GET /user/emails` (a verified address on a listed domain or a subdomain of it offers the institution as `education.add`; an unverified one counts for nothing; an address is compared and dropped, never stored, returned or logged); when UNIVERSITY_ORGS is set, `GET /user` and `GET /users/{login}/orgs` (a listed public organisation is offered as `experience.add`). Offered only when the profile has no entry for that institution or organisation. Without GitHub connected the LinkedIn rules run and skills are offered from the caller’s projects alone.
          */
         post: operations["refreshSuggestions"];
         delete?: never;
@@ -1077,7 +1077,7 @@ export interface paths {
         put?: never;
         /**
          * Apply a suggestion: write the one field it names
-         * @description Writes that field through the profile’s own rules and marks the suggestion accepted, in one transaction. Idempotent for an accepted one. A reminder is only acknowledged.
+         * @description Writes that field through the profile’s own rules and marks the suggestion accepted, in one transaction. A `skill.add` appends the skill to the profile’s skills (at most PROFILE_MAX_SKILLS, else 400). A `project.new` imports the repository as a draft through the import service (GitHub is read again; the repository must still be the caller’s own public, non-fork, non-archived work, else 409 `SUGGESTION_STALE` and no draft) and answers with its `projectId`. A `project.update` writes the field only if it still equals the snapshot of the last import, re-sync or accept, and moves the snapshot; a field the student changed is never overwritten: 409 `SUGGESTION_STALE`. An `education.add` or `experience.add` adds the entry through the section’s create rules: `overrides` gives `degree`, `field`, `startYear` (education) or `title`, `start` (experience); a missing or invalid one is a 400 naming `overrides.<field>` and the suggestion stays open; if the profile has an entry for that name by now, or the configuration no longer offers it, 409 `SUGGESTION_STALE`. Other kinds take no overrides. Idempotent for an accepted one. A reminder is only acknowledged.
          */
         post: operations["acceptSuggestion"];
         delete?: never;
@@ -1713,11 +1713,11 @@ export interface components {
         Notification: {
             id: string;
             /** @enum {string} */
-            type: "team_invite" | "team_accepted" | "team_rejected" | "team_left" | "general";
+            type: "team_invite" | "team_accepted" | "team_rejected" | "team_left" | "suggestions_available" | "general";
             /** @description English fallback text. Prefer rendering `type` + `params`. */
             title: string;
-            /** @description null on a notification written before params existed: show `title`. */
-            params: components["schemas"]["NotificationParams"] | null;
+            /** @description Team notifications: `NotificationParams`. `suggestions_available`: `SuggestionsNotificationParams`. null on a notification written before params existed: show `title`. */
+            params: (components["schemas"]["NotificationParams"] | components["schemas"]["SuggestionsNotificationParams"]) | null;
             read: boolean;
             /** @description ISO 8601, UTC. */
             createdAt: string;
@@ -1934,7 +1934,7 @@ export interface components {
             updatedAt: string;
             /** @description Generated text (M8); null until then. */
             aiSummary: string | null;
-            /** @description Sanitized HTML (allow-list in docs/m4-plan.md §4.1). Render it with a second sanitizer anyway. */
+            /** @description Sanitized HTML (allow-list in docs/modules/m4/plan.md §4.1). Render it with a second sanitizer anyway. */
             descriptionHtml: string | null;
             liveDemoUrl: string | null;
             repo: components["schemas"]["ProjectRepo"];
@@ -2056,25 +2056,58 @@ export interface components {
             /** @description People only; null for projects. */
             avatarUrl: string | null;
         };
+        SuggestionAccept: {
+            /** @description What an `education.add` (`degree`, `field`, `startYear`, optionally `endYear`, `description`) or an `experience.add` (`title`, `start` as YYYY-MM, optionally `end`, `summary`) needs from the student. The rules are those of `POST /v1/me/education` and `POST /v1/me/experience`; a missing or invalid value is a 400 naming `overrides.<field>`, and the suggestion stays open. */
+            overrides?: components["schemas"]["SuggestionAcceptOverrides"];
+        };
+        SuggestionAcceptOverrides: {
+            degree?: string;
+            field?: string;
+            startYear?: number;
+            endYear?: number | null;
+            description?: string | null;
+            title?: string;
+            start?: string;
+            end?: string | null;
+            summary?: string;
+        };
         SuggestionItem: {
             id: string;
             /** @enum {string} */
-            kind: "profile.name" | "profile.headline" | "profile.bio" | "profile.location" | "profile.avatarUrl" | "profile.links.github" | "profile.links.website" | "linkedin.reimport";
+            kind: "profile.name" | "profile.headline" | "profile.bio" | "profile.location" | "profile.avatarUrl" | "profile.links.github" | "profile.links.website" | "profile.links.linkedin" | "profile.links.twitter" | "linkedin.reimport" | "skill.add" | "education.add" | "experience.add" | "project.new" | "project.update";
             /** @enum {string} */
             source: "github" | "linkedin" | "auth0";
             /** @enum {string} */
             status: "open" | "accepted" | "dismissed" | "superseded";
-            /** @description The profile field a `profile.*` suggestion would change (`bio`, `links.github` …); null for a reminder. */
+            /** @description The field an accept would change: a profile field for `profile.*` (`bio`, `links.github` …); `summary` (GitHub’s description) or `descriptionHtml` (the README) for `project.update`; the section (`education`, `experience`) for `education.add` and `experience.add`; null otherwise. */
             field: string | null;
             /** @description The field’s value now (open suggestions only); null when empty. */
             current: string | null;
-            /** @description The value an accept would write. */
+            /** @description The value an accept would write. For `project.update` the new description, or the new README as sanitized HTML. For `education.add` the institution, for `experience.add` the organisation: the entry also needs what `overrides` gives (see accept). */
             proposed: string | null;
             /**
              * @description `fill`: the field is empty now; `replace`: it holds a different value.
              * @enum {string|null}
              */
             mode: "fill" | "replace" | null;
+            /** @description `skill.add` only: the skill an accept would add to the profile. */
+            skill: string | null;
+            /** @description `skill.add` only, as of when it was offered: how many of the student’s own public repositories and projects show the skill. `total` counts a project imported from a repository once. */
+            evidence: {
+                total: number;
+                repositories: number;
+                projects: number;
+            } | null;
+            /** @description `project.new` and `project.update`: the GitHub repository. */
+            repository: {
+                id: number;
+                fullName: string;
+            } | null;
+            /** @description `project.update`: the project it would update, with its title when it was offered. `project.new`: `id` null until accepted (then the draft’s id), `title` the repository’s name. */
+            project: {
+                id: string | null;
+                title: string;
+            } | null;
             /** @description `linkedin.reimport` only: the last confirmed export import, ISO 8601. */
             lastSyncedAt: string | null;
             /** @description ISO 8601, UTC. */
@@ -2104,11 +2137,13 @@ export interface components {
             id: string;
             /** @enum {string} */
             status: "accepted" | "dismissed";
-            /** @description What an accept wrote; null for a dismiss or a reminder. */
+            /** @description What an accept wrote; null for a dismiss or a reminder. A project suggestion names the field (`project` for a new draft, `summary`, `descriptionHtml`) with `value` null: see `projectId`. */
             applied: {
                 field: string;
                 value: string | null;
             } | null;
+            /** @description The draft an accepted `project.new` created, or the project an accepted `project.update` changed; null otherwise. */
+            projectId: string | null;
         };
         Suggestions: {
             /** @description The text as normalized. */
@@ -2117,6 +2152,13 @@ export interface components {
             projects: components["schemas"]["Suggestion"][];
             /** @description Skills, technologies and tags in the site-wide spelling that a public project or profile uses. */
             tags: string[];
+        };
+        /** @description Of a `suggestions_available` notification: render “N suggestions” from `count`. The list is `GET /v1/me/suggestions`. */
+        SuggestionsNotificationParams: {
+            /** @description How many suggestions the refresh opened (still open when it was written). */
+            count: number;
+            /** @description The distinct suggestion kinds among them (`project.new`, `project.update`). */
+            kinds: string[];
         };
         TagCloud: {
             items: components["schemas"]["TagCloudItem"][];
@@ -5220,7 +5262,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description GITHUB_NOT_LINKED: GitHub refused the token Auth0 holds (sign in with GitHub again); GITHUB_ACCOUNT_IN_USE: another Gradfolio account has this GitHub account; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry) */
+            /** @description GITHUB_ACCOUNT_IN_USE: another Gradfolio account has this GitHub account; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5301,7 +5343,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description GITHUB_ACCOUNT_IN_USE: that GitHub account is a Gradfolio account of its own, or another account holds it; GITHUB_ALREADY_CONNECTED; GITHUB_LINK_REFUSED: Auth0 refused the link; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry); GITHUB_NOT_LINKED */
+            /** @description GITHUB_ACCOUNT_IN_USE: that GitHub account is a Gradfolio account of its own, or another account holds it; GITHUB_ALREADY_CONNECTED; GITHUB_LINK_REFUSED: Auth0 refused the link; GITHUB_LINK_IN_PROGRESS: a link started moments ago is still running; GITHUB_STATE_CHANGED: GitHub was connected or disconnected by another request at the same moment (nothing was changed by this one; reload and retry); GITHUB_NOT_LINKED: the token Auth0 holds after the sign-in is still refused by GitHub */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6141,7 +6183,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SuggestionAccept"];
+            };
+        };
         responses: {
             /** @description Accepted */
             200: {
@@ -6150,6 +6196,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestionResolved"];
+                };
+            };
+            /** @description VALIDATION_FAILED: the body does not fit the schema (see `details`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description UNAUTHENTICATED: no access token, or one that is invalid or expired */
@@ -6170,7 +6225,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded) */
+            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded); SUGGESTION_STALE: the skill is already on the profile, the link field was filled since the offer, the project’s field was edited (or re-synced) since, or the repository is already imported, gone, or no longer your own public, non-fork, non-archived work (it is superseded); LIMIT_REACHED: a `project.new` would exceed the per-user project cap (it stays open) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6181,6 +6236,15 @@ export interface operations {
             };
             /** @description RATE_LIMITED: over budget; see the Retry-After header */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GITHUB_UNAVAILABLE: a `project.new` could not read GitHub */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6237,7 +6301,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded) */
+            /** @description SUGGESTION_RESOLVED: it was already dismissed, superseded or accepted; SUGGESTION_INVALID: the value can no longer be written (it is superseded); SUGGESTION_STALE: the skill is already on the profile, the link field was filled since the offer, the project’s field was edited (or re-synced) since, or the repository is already imported, gone, or no longer your own public, non-fork, non-archived work (it is superseded); LIMIT_REACHED: a `project.new` would exceed the per-user project cap (it stays open) */
             409: {
                 headers: {
                     [name: string]: unknown;

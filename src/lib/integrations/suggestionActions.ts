@@ -7,7 +7,9 @@ import {
   listSuggestions,
   refreshSuggestions,
 } from "@/lib/api/client";
-import type { SuggestionItem, SuggestionRefresh } from "@/lib/api/types";
+import type { SuggestionAcceptOverrides, SuggestionItem, SuggestionRefresh } from "@/lib/api/types";
+import { isInboxItem } from "./suggestionKinds";
+import { parseOverrides } from "./suggestionOverrides";
 
 /** Public endpoints, like every server action: no user id; arguments checked here, then by the API. */
 type Failure = { ok: false; code: string; retryAfter?: number };
@@ -57,7 +59,13 @@ export async function loadProfileSuggestionsAction(): Promise<
     return {
       ok: true,
       items: page.items.filter(
-        (i) => i.status === "open" && i.source === "github" && i.kind.startsWith("profile."),
+        (i) =>
+          i.status === "open" &&
+          i.source === "github" &&
+          i.kind.startsWith("profile.") &&
+          // The dialog labels these fields only; links to LinkedIn and X are for the inbox.
+          i.kind !== "profile.links.linkedin" &&
+          i.kind !== "profile.links.twitter",
       ),
       refresh,
       refreshError,
@@ -107,6 +115,55 @@ export async function dismissSuggestionAction(input: unknown): Promise<{ ok: tru
   try {
     await dismissSuggestion(id);
     return { ok: true };
+  } catch (error) {
+    return failed(error);
+  }
+}
+
+/** Open suggestions for the inbox, the profile strips and the navigation count (one list). */
+export async function loadInboxAction(): Promise<
+  { ok: true; items: SuggestionItem[]; more: boolean } | Failure
+> {
+  try {
+    const page = await listSuggestions({ limit: 100 });
+    return { ok: true, items: page.items.filter(isInboxItem), more: page.nextCursor !== null };
+  } catch (error) {
+    return failed(error);
+  }
+}
+
+/** Ask the API to read GitHub again (it throttles itself and says so). */
+export async function refreshInboxAction(): Promise<
+  { ok: true; github: SuggestionRefresh["github"]; created: number } | Failure
+> {
+  try {
+    const r = await refreshSuggestions();
+    return { ok: true, github: r.github, created: r.created };
+  } catch (error) {
+    return failed(error);
+  }
+}
+
+/**
+ * Accept one suggestion from the inbox. Never called without a click. `overrides` only for an
+ * education or experience entry. A refusal carries the API's code (`SUGGESTION_STALE` and
+ * `SUGGESTION_RESOLVED` among them) so the card can say what happened.
+ */
+export async function acceptOneSuggestionAction(
+  input: unknown,
+): Promise<{ ok: true; projectId: string | null } | Failure> {
+  if (typeof input !== "object" || input === null) return invalid;
+  const { id, overrides } = input as { id?: unknown; overrides?: unknown };
+  if (typeof id !== "string" || !UUID.test(id)) return invalid;
+  let parsed: SuggestionAcceptOverrides | undefined;
+  if (overrides !== undefined) {
+    const p = parseOverrides(overrides);
+    if (!p) return invalid;
+    parsed = p;
+  }
+  try {
+    const r = await acceptSuggestion(id, parsed);
+    return { ok: true, projectId: r.projectId ?? null };
   } catch (error) {
     return failed(error);
   }

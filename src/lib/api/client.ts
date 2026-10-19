@@ -39,6 +39,7 @@ import type {
   GithubImportResponse,
   GithubPreviewResponse,
   GithubSyncResult,
+  SuggestionAcceptOverrides,
   SuggestionPage,
   SuggestionRefresh,
   SuggestionResolved,
@@ -311,10 +312,21 @@ const suggestionPath = (id: string, verb: "accept" | "dismiss"): string => {
   return `/v1/me/suggestions/${id}/${verb}`;
 };
 
-/** Apply one suggestion: the API writes the one field it names. */
-export function acceptSuggestion(id: string): Promise<SuggestionResolved> {
+/**
+ * Apply one suggestion: the API writes the one field it names. An `education.add` or
+ * `experience.add` also needs what the student gives in `overrides`; the API answers 400 and
+ * leaves the suggestion open without it.
+ */
+export function acceptSuggestion(
+  id: string,
+  overrides?: SuggestionAcceptOverrides,
+): Promise<SuggestionResolved> {
   return Promise.resolve().then(() =>
-    request<SuggestionResolved>({ method: "POST", path: suggestionPath(id, "accept") }),
+    request<SuggestionResolved>({
+      method: "POST",
+      path: suggestionPath(id, "accept"),
+      ...(overrides ? { body: { overrides } } : {}),
+    }),
   );
 }
 

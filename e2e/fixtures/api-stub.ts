@@ -15,6 +15,8 @@ import type {
   GithubRepo,
   ProjectDetail,
   Integrations,
+  Profile,
+  SuggestionItem,
   DiscoveryProject,
   Suggestions,
   TagCloud,
@@ -162,6 +164,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     return send(res, 200, {
       accepted: SUGGESTION_ACCEPTED.filter((x) => x.token === only).map((x) => x.id),
       dismissed: SUGGESTION_DISMISSED.filter((x) => x.token === only).map((x) => x.id),
+      bodies: SUGGESTION_BODIES.filter((x) => x.token === only),
     });
   }
   if (url.pathname === "/__imports") {
@@ -179,6 +182,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
   if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
   if (url.pathname.startsWith("/v1/me/suggestions")) return suggestions(req, res, url.pathname);
+  if (url.pathname === `/v1/users/${SUG_OWNER}`) return suggestionsProfile(req, res);
   if (url.pathname === "/v1/me" || url.pathname === "/v1/me/profile")
     return account(req, res, url.pathname);
   if (
@@ -625,58 +629,227 @@ function projectBody(id: string, isDraft: boolean): ProjectDetail {
  */
 const SUGGESTION_ACCEPTED: Array<{ token: string; id: string }> = [];
 const SUGGESTION_DISMISSED: Array<{ token: string; id: string }> = [];
-const suggestionItems = () => [
+const SUGGESTION_BODIES: Array<{ token: string; id: string; body: unknown }> = [];
+const suggestionItems = (): SuggestionItem[] => [
   {
+    ...OPEN,
     id: "0b6f2c1e-1111-4222-8333-444455556661",
     kind: "profile.bio",
-    source: "github",
-    status: "open",
     field: "bio",
-    current: null,
     proposed: "I build things",
     mode: "fill",
-    lastSyncedAt: null,
-    createdAt: "2026-10-16T10:00:00.000Z",
-    resolvedAt: null,
   },
   {
+    ...OPEN,
     id: "0b6f2c1e-1111-4222-8333-444455556662",
     kind: "profile.location",
-    source: "github",
-    status: "open",
     field: "location",
     current: "Yerevan",
     proposed: "Gyumri",
     mode: "replace",
-    lastSyncedAt: null,
-    createdAt: "2026-10-16T10:00:00.000Z",
-    resolvedAt: null,
   },
 ];
-function suggestions(req: IncomingMessage, res: ServerResponse, path: string) {
-  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
-  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
-  const gone = new Set(
+
+/**
+ * The inbox scenario (`e2e-sug-*`, M7-T32): every kind the inbox lists. The suffixes of the ids
+ * are magic: `…80` answers an accept with 409 SUGGESTION_STALE, `…81` with SUGGESTION_RESOLVED,
+ * and an education or experience accept with no `overrides` is a 400 naming the field, as the
+ * API's is. An accepted skill and an accepted link show on the owner's profile (`SUG_OWNER`).
+ */
+const SUG_OWNER = "0b6f2c1e-1111-4222-8333-444455556666";
+const sugId = (n: number) => `0b6f2c1e-1111-4222-8333-4444555566${n}`;
+const SUG_IDS = {
+  go: sugId(71),
+  rust: sugId(72),
+  twitter: sugId(73),
+  update: sugId(74),
+  education: sugId(75),
+  stale: sugId(80),
+  resolved: sugId(81),
+};
+const sugItems = (): SuggestionItem[] => [
+  {
+    ...OPEN,
+    id: SUG_IDS.go,
+    kind: "skill.add",
+    skill: "Go",
+    evidence: { total: 3, repositories: 2, projects: 1 },
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.rust,
+    kind: "skill.add",
+    skill: "Rust",
+    evidence: { total: 2, repositories: 2, projects: 0 },
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.twitter,
+    kind: "profile.links.twitter",
+    field: "links.twitter",
+    proposed: "https://x.com/ani_p",
+    mode: "fill",
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.stale,
+    kind: "profile.links.linkedin",
+    field: "links.linkedin",
+    proposed: "https://www.linkedin.com/in/ani-p",
+    mode: "fill",
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.resolved,
+    kind: "skill.add",
+    skill: "Zig",
+    evidence: { total: 2, repositories: 1, projects: 1 },
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.update,
+    kind: "project.update",
+    field: "summary",
+    current: "Soil moisture monitoring.",
+    proposed: LONG.summary,
+    mode: "replace",
+    project: { id: "5c1d9a3e-0000-4000-8000-000000000001", title: LONG.title },
+    repository: { id: 1, fullName: "ani-p/smart-garden" },
+  },
+  {
+    ...OPEN,
+    id: SUG_IDS.education,
+    kind: "education.add",
+    field: "education",
+    proposed: "National Polytechnic University of Armenia",
+  },
+];
+const OPEN: SuggestionItem = {
+  id: "",
+  kind: "profile.bio",
+  source: "github",
+  status: "open",
+  field: null,
+  current: null,
+  proposed: null,
+  mode: null,
+  skill: null,
+  evidence: null,
+  repository: null,
+  project: null,
+  lastSyncedAt: null,
+  createdAt: "2026-10-16T10:00:00.000Z",
+  resolvedAt: null,
+};
+
+const tokenOf = (req: IncomingMessage) => (req.headers.authorization ?? "").replace(/^Bearer /, "");
+const answered = (token: string) =>
+  new Set(
     [...SUGGESTION_ACCEPTED, ...SUGGESTION_DISMISSED]
       .filter((x) => x.token === token)
       .map((x) => x.id),
   );
+/** The ids the API has already closed on its own (superseded by a change elsewhere). */
+const SUPERSEDED = new Map<string, Set<string>>();
+const supersededFor = (token: string) => {
+  let set = SUPERSEDED.get(token);
+  if (!set) SUPERSEDED.set(token, (set = new Set()));
+  return set;
+};
+
+function suggestions(req: IncomingMessage, res: ServerResponse, path: string) {
+  const token = tokenOf(req);
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  const gone = answered(token);
+  const sug = token.startsWith("e2e-sug-");
   if (path === "/v1/me/suggestions/refresh")
     return send(res, 200, { github: "refreshed", nextAllowedAt: null, created: 2, openCount: 2 });
   if (path === "/v1/me/suggestions") {
-    if (token.startsWith("e2e-onempty-"))
+    if (token.startsWith("e2e-sugdown-"))
+      return send(res, 503, { code: "DATABASE_UNAVAILABLE", message: "down" });
+    if (token.startsWith("e2e-onempty-") || token.startsWith("e2e-sugempty-"))
       return send(res, 200, { items: [], nextCursor: null, openCount: 0 });
-    const items = suggestionItems().filter((i) => !gone.has(i.id));
+    const hidden = supersededFor(token);
+    const items = (sug ? sugItems() : suggestionItems()).filter(
+      (i) => !gone.has(i.id) && !hidden.has(i.id),
+    );
     return send(res, 200, { items, nextCursor: null, openCount: items.length });
   }
   const m = /^\/v1\/me\/suggestions\/([^/]+)\/(accept|dismiss)$/.exec(path);
-  if (m) {
-    (m[2] === "accept" ? SUGGESTION_ACCEPTED : SUGGESTION_DISMISSED).push({ token, id: m[1]! });
+  if (!m) return send(res, 404, { code: "NOT_FOUND", message: "no" });
+  const id = m[1]!;
+  const verb = m[2]!;
+  let raw = "";
+  req.on("data", (chunk) => (raw += chunk));
+  req.on("end", () => {
+    let body: unknown;
+    try {
+      body = raw ? JSON.parse(raw) : undefined;
+    } catch {
+      body = undefined;
+    }
+    if (sug && verb === "accept") {
+      SUGGESTION_BODIES.push({ token, id, body });
+      if (id === SUG_IDS.stale) {
+        supersededFor(token).add(id);
+        return send(res, 409, { code: "SUGGESTION_STALE", message: "the field was filled" });
+      }
+      if (id === SUG_IDS.resolved) {
+        supersededFor(token).add(id);
+        return send(res, 409, { code: "SUGGESTION_RESOLVED", message: "already answered" });
+      }
+      if (id === SUG_IDS.education) {
+        const o = (body as { overrides?: Record<string, unknown> } | undefined)?.overrides;
+        if (!o || !o.degree || !o.field || !o.startYear)
+          return send(res, 400, {
+            code: "VALIDATION_FAILED",
+            message: "overrides.degree is required",
+          });
+      }
+    }
+    (verb === "accept" ? SUGGESTION_ACCEPTED : SUGGESTION_DISMISSED).push({ token, id });
     return send(res, 200, {
-      id: m[1],
-      status: m[2] === "accept" ? "accepted" : "dismissed",
+      id,
+      status: verb === "accept" ? "accepted" : "dismissed",
       applied: null,
+      projectId: null,
     });
+  });
+}
+
+/** The owner's profile in the inbox scenario: accepted skills and links show on it. */
+function suggestionsProfile(req: IncomingMessage, res: ServerResponse) {
+  const token = tokenOf(req);
+  if (!token.startsWith("e2e-sug")) {
+    return send(res, 404, { code: "NOT_FOUND", message: "no such profile" });
   }
-  return send(res, 404, { code: "NOT_FOUND", message: "no" });
+  const done = new Set(SUGGESTION_ACCEPTED.filter((x) => x.token === token).map((x) => x.id));
+  const body: Profile = {
+    id: SUG_OWNER,
+    name: "Ani Petrosyan",
+    headline: "CS student",
+    bio: "I like compilers.",
+    location: "Yerevan",
+    avatarUrl: null,
+    verified: true,
+    contactEmail: null,
+    links: {
+      github: "https://github.com/ani-p",
+      linkedin: null,
+      twitter: done.has(SUG_IDS.twitter) ? "https://x.com/ani_p" : null,
+      website: null,
+    },
+    isOwner: true,
+    isPublic: true,
+    education: [],
+    experience: [],
+    certifications: [],
+    skills: [
+      "TypeScript",
+      ...(done.has(SUG_IDS.go) ? ["Go"] : []),
+      ...(done.has(SUG_IDS.rust) ? ["Rust"] : []),
+    ],
+    projects: [],
+  };
+  return send(res, 200, body);
 }

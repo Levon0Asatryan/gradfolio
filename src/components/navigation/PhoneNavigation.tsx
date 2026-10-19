@@ -18,6 +18,7 @@ import {
   useBellLabel,
 } from "@/components/notifications/NotificationsBell";
 import { useNotifications } from "@/components/notifications/NotificationsProvider";
+import { NavCount } from "./NavCount";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
 
@@ -236,6 +237,7 @@ export const PhoneNavigation: FC<{ user?: NavUser | null }> = ({ user = null }) 
             >
               {item.icon}
               <span>{item.label}</span>
+              <NavCount href={item.href} />
             </NavLink>
           );
         })}

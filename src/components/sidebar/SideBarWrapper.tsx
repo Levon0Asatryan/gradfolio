@@ -7,6 +7,7 @@ import { PHONE_BAR_HEIGHT, PhoneNavigation } from "@/components/navigation/Phone
 import { useSidebarVisibility } from "@/components/layout/SidebarVisibilityContext";
 import type { NavMode } from "@/components/navigation/navMode";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
+import { SuggestionsProvider } from "@/components/suggestions/SuggestionsProvider";
 import { MAIN_ID } from "@/components/layout/SkipLink";
 
 interface SideBarWrapperProps {
@@ -47,6 +48,12 @@ export const SideBarWrapper: FC<SideBarWrapperProps> = ({ children, user = null,
     </Box>
   );
 
-  // The bell's data exists for a signed-in user only; a visitor makes no request.
-  return user ? <NotificationsProvider>{frame}</NotificationsProvider> : frame;
+  // The bell's and the suggestions' data exist for a signed-in user only; a visitor makes no request.
+  return user ? (
+    <NotificationsProvider>
+      <SuggestionsProvider>{frame}</SuggestionsProvider>
+    </NotificationsProvider>
+  ) : (
+    frame
+  );
 };

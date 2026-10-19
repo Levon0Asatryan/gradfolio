@@ -108,6 +108,7 @@ export type GithubImportResponse = Json<paths["/v1/me/github/import"]["post"]>;
 
 // Suggestions (M7 7.13): profile data GitHub offers, accepted or dismissed by the student.
 export type SuggestionItem = components["schemas"]["SuggestionItem"];
+export type SuggestionAcceptOverrides = components["schemas"]["SuggestionAcceptOverrides"];
 export type SuggestionPage = components["schemas"]["SuggestionPage"];
 export type SuggestionRefresh = components["schemas"]["SuggestionRefresh"];
 export type SuggestionResolved = components["schemas"]["SuggestionResolved"];

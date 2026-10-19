@@ -17,6 +17,7 @@ import KeyboardDoubleArrowRight from "@mui/icons-material/KeyboardDoubleArrowRig
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { safeHttpUrl } from "@/utils/helpers/safeHttpUrl";
 import { NotificationsPopoverButton } from "@/components/notifications/NotificationsBell";
+import { NavCount } from "./NavCount";
 import { NavLink } from "./NavLink";
 import { activeHref, isActive, navItems } from "./navItems";
 import { type NavMode, pickByMode, writeNavMode } from "./navMode";
@@ -147,6 +148,7 @@ export const AppNavigation: FC<{ user?: NavUser | null; initialMode?: NavMode }>
           >
             {item.icon}
             <span className="nav-label">{item.label}</span>
+            <NavCount href={item.href} />
           </NavLink>
         );
       })}

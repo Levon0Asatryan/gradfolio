@@ -885,6 +885,104 @@ export const en: Dictionary = {
     errorGithub:
       "GitHub did not confirm that access was removed, so your account was not deleted. Try again in a minute.",
   },
+  suggestions: {
+    intro:
+      "What Gradfolio suggests for your profile and projects. Nothing changes until you accept it.",
+    /** `{count}` */
+    stripTitle: "Suggestions ({count})",
+    /** `{count}`: read after the item's name in the navigation */
+    navCount: "{count} to review",
+    /** `{count}` */
+    notification: "New suggestions to review: {count}",
+    loading: "Loading suggestions",
+    loadError: "Suggestions could not be loaded",
+    retry: "Try again",
+    empty: "Nothing to suggest",
+    stripDone: "Nothing left to review here.",
+    moreNote: "Only the first 100 are shown. Answer some to see the rest.",
+    checkNow: "Check GitHub now",
+    checking: "Checking GitHub…",
+    checked: {
+      refreshed: "GitHub was read. The list is up to date.",
+      unchanged: "GitHub has not changed since the last check.",
+      throttled: "GitHub was read a moment ago, so the saved data was used. Try again later.",
+      discarded: "The GitHub connection changed during the check. Check again.",
+      not_connected: "GitHub is not connected.",
+    },
+    groups: {
+      profile: "Profile",
+      skills: "Skills",
+      links: "Links",
+      projects: "Projects",
+      university: "Education and experience",
+    },
+    now: "Now",
+    suggested: "Suggested",
+    emptyNow: "(empty)",
+    modeFill: "Fills an empty field",
+    modeReplace: "Replaces what you have now",
+    accept: "Accept",
+    fillIn: "Fill in details",
+    dismiss: "Dismiss",
+    titles: {
+      /** `{skill}` */
+      skill: "Add the skill {skill}",
+      /** `{repo}` */
+      /** `{project}`, `{field}` */
+      projectUpdate: "{project}: {field} changed on GitHub",
+      /** `{institution}` */
+      education: "Add education: {institution}",
+      /** `{organization}` */
+      experience: "Add experience: {organization}",
+    },
+    /** `{repositories}`, `{projects}` */
+    evidence: "Shown by your work. Repositories: {repositories}. Projects: {projects}.",
+    fields: {
+      name: "Name",
+      headline: "Headline",
+      bio: "Bio",
+      location: "Location",
+      avatarUrl: "Photo",
+      linksGithub: "GitHub link",
+      linksWebsite: "Website link",
+      linksLinkedin: "LinkedIn link",
+      linksTwitter: "X (Twitter) link",
+      summary: "Summary",
+      descriptionHtml: "Description",
+    },
+    form: {
+      needsDetails: "Gradfolio only knows the name. Add the rest yourself.",
+      intro: "Fill in these details. The entry is added to your profile when you submit.",
+      educationLabel: "Education details",
+      experienceLabel: "Experience details",
+      degree: "Degree",
+      field: "Field of study",
+      startYear: "Start year",
+      jobTitle: "Job title",
+      start: "Start",
+      submit: "Add to profile",
+      cancel: "Cancel",
+      required: "Required",
+      tooLong: "Too long",
+      invalidYear: "Enter a year between 1900 and 2100",
+      invalidMonth: "Choose a month and a year",
+    },
+    done: {
+      /** `{title}` */
+      accepted: "Accepted: {title}",
+      /** `{title}` */
+      dismissed: "Dismissed: {title}",
+    },
+    errors: {
+      SUGGESTION_STALE:
+        "This changed in the meantime, so nothing was applied. The suggestion was removed.",
+      SUGGESTION_RESOLVED: "This suggestion was already answered. Nothing was applied.",
+      SUGGESTION_INVALID: "This value can no longer be written, so it was removed.",
+      LIMIT_REACHED: "You have reached the limit, so this could not be added. It stays open.",
+      VALIDATION_FAILED: "Some of the values are not valid. Check the fields and try again.",
+      NOT_FOUND: "This suggestion no longer exists.",
+    },
+  },
   notifications: {
     title: "Notifications",
     bellLabel: "Notifications",

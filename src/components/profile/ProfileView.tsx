@@ -19,6 +19,7 @@ import ProjectsGrid from "./ProjectsGrid";
 import CertificationsList from "./CertificationsList";
 import SkillsChips from "./SkillsChips";
 import { SectionEditor, type EditableItem } from "./edit/SectionEditor";
+import { SuggestionsPanel } from "@/components/suggestions/SuggestionsPanel";
 import { SkillsEditor } from "./edit/SkillsEditor";
 import { CompletenessCard } from "./CompletenessCard";
 import { Toast } from "@/components/layout/Toast";
@@ -76,6 +77,8 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           onEdit={owner ? () => setEditing(true) : undefined}
         />
       )}
+
+      {owner && !editing && <SuggestionsPanel groups={["links"]} variant="strip" />}
 
       <Grid container spacing={3} columns={{ xs: 12, md: 12 }}>
         <Grid size={{ xs: 12, md: 8 }}>
