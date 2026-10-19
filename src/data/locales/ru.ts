@@ -188,6 +188,11 @@ export const ru: Dictionary = {
     },
     sourceBadge: "Из GitHub",
     importButton: "Импорт из GitHub",
+    importPrompt: {
+      title: "Перенесите репозитории и данные профиля из GitHub",
+      body: "Ничего не импортируется, пока вы не выберете.",
+      notNow: "Не сейчас",
+    },
     import: {
       title: "Импорт из GitHub",
       intro: "Выберите репозитории для импорта. Пока вы не сохраните, ничего не импортируется.",

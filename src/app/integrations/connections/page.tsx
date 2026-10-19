@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IntegrationsError } from "@/components/integrations/IntegrationsError";
 import { ApiError, getIntegrations } from "@/lib/api/client";
+import { offerGithubImport } from "@/lib/integrations/importOffer";
 import { requestDictionary } from "@/lib/requestDictionary";
 import { ConnectionsContent } from "./ConnectionsContent";
 
@@ -20,5 +21,6 @@ export default async function Page() {
     if (!(error instanceof ApiError)) throw error;
     return <IntegrationsError code={error.code} returnTo="/integrations/connections" />;
   }
-  return <ConnectionsContent integrations={integrations} />;
+  const offer = await offerGithubImport(integrations.github.status === "connected");
+  return <ConnectionsContent integrations={integrations} offerImport={offer} />;
 }

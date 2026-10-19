@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IntegrationsError } from "@/components/integrations/IntegrationsError";
 import { IntegrationsView } from "@/components/integrations/IntegrationsView";
 import { ApiError, getIntegrations } from "@/lib/api/client";
+import { offerGithubImport } from "@/lib/integrations/importOffer";
 import { requestDictionary } from "@/lib/requestDictionary";
 
 export const dynamic = "force-dynamic";
@@ -24,5 +25,6 @@ export default async function Page() {
     if (!(error instanceof ApiError)) throw error;
     return <IntegrationsError code={error.code} returnTo="/integrations" />;
   }
-  return <IntegrationsView integrations={integrations} />;
+  const offer = await offerGithubImport(integrations.github.status === "connected");
+  return <IntegrationsView integrations={integrations} offerImport={offer} />;
 }

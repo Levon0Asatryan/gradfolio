@@ -20,6 +20,7 @@ import { errorCode } from "@/lib/integrations/errors";
 import { wantsImport } from "@/lib/integrations/githubLink";
 import type { Integrations } from "@/lib/api/types";
 import { GithubImportModal } from "@/components/github-import/GithubImportModal";
+import { ImportPrompt } from "./ImportPrompt";
 import IntegrationCard from "./IntegrationCard";
 
 type Problem = { code: string; retryAfter?: number };
@@ -38,7 +39,9 @@ export const GithubCard: FC<{
   github: Integrations["github"];
   /** The page this card is on, so GitHub sends the user back to it. */
   returnTo?: "integrations" | "connections";
-}> = ({ github, returnTo = "integrations" }) => {
+  /** The server's word that GitHub is connected and nothing was imported from it yet (T34). */
+  offerImport?: boolean;
+}> = ({ github, returnTo = "integrations", offerImport = false }) => {
   const { t } = useLanguage();
   const router = useRouter();
   const text = t.integrations;
@@ -51,7 +54,12 @@ export const GithubCard: FC<{
   // connected, never on the URL's alone (a forged `?import=1` opens nothing).
   const params = useSearchParams();
   const [importing, setImporting] = useState(() => connected && wantsImport(params));
+  // The standing offer needs both: the page's word that nothing was imported, and a connection.
+  const showOffer = connected && offerImport;
   const importButton = useRef<HTMLButtonElement>(null);
+  // The button that opened the dialog, so closing it puts focus back there; when that button is
+  // gone (the Connect button, or the prompt after an import) the card's own Import button is next.
+  const opener = useRef<HTMLElement | null>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   // State updates land after the click handler returns, so a fast double click would pass a
   // `busy` check twice. The ref closes that gap.
@@ -75,7 +83,11 @@ export const GithubCard: FC<{
         return;
       }
       if (result.state === "connected") {
+        // Already linked (for example the student signs in with GitHub): the API's answer is the
+        // same word as the callback's, so the same offer follows. Nothing is imported until a click.
         setToast(text.github.connectedToast);
+        opener.current = null;
+        setImporting(true);
         release();
         router.refresh();
         return;
@@ -126,14 +138,32 @@ export const GithubCard: FC<{
         syncedAt={github.lastSyncedAt}
         neverText={text.neverSynced}
         detail={
-          connected && github.login ? (
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {text.github.connectedAs.replace("{login}", github.login)}
-            </Typography>
-          ) : !github.available ? (
-            <Typography variant="body2" color="text.secondary">
-              {text.github.unavailable}
-            </Typography>
+          (connected && github.login) || !github.available || showOffer ? (
+            <>
+              {connected && github.login ? (
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {text.github.connectedAs.replace("{login}", github.login)}
+                </Typography>
+              ) : !github.available ? (
+                <Typography variant="body2" color="text.secondary">
+                  {text.github.unavailable}
+                </Typography>
+              ) : undefined}
+              {showOffer && (
+                <ImportPrompt
+                  storageKey={`github:${github.login ?? ""}`}
+                  title={text.importPrompt.title}
+                  body={text.importPrompt.body}
+                  importLabel={text.importButton}
+                  dismissLabel={text.importPrompt.notNow}
+                  onImport={(trigger) => {
+                    opener.current = trigger;
+                    setImporting(true);
+                  }}
+                  onDismissed={() => importButton.current?.focus()}
+                />
+              )}
+            </>
           ) : undefined
         }
         notice={
@@ -159,7 +189,14 @@ export const GithubCard: FC<{
         }
       >
         {connected && (
-          <Button ref={importButton} variant="contained" onClick={() => setImporting(true)}>
+          <Button
+            ref={importButton}
+            variant="contained"
+            onClick={() => {
+              opener.current = importButton.current;
+              setImporting(true);
+            }}
+          >
             {text.importButton}
           </Button>
         )}
@@ -187,7 +224,7 @@ export const GithubCard: FC<{
       <GithubImportModal
         open={importing}
         onClose={() => setImporting(false)}
-        returnFocusTo={() => importButton.current}
+        returnFocusTo={() => (opener.current?.isConnected ? opener.current : importButton.current)}
       />
 
       <Dialog

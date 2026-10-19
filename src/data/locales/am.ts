@@ -188,6 +188,11 @@ export const am: Dictionary = {
     },
     sourceBadge: "GitHub-ից",
     importButton: "Ներմուծել GitHub-ից",
+    importPrompt: {
+      title: "Բերեք ձեր ռեպոզիտորիաները և պրոֆիլի տվյալները GitHub-ից",
+      body: "Ոչինչ չի ներմուծվի, մինչև դուք չընտրեք։",
+      notNow: "Ոչ հիմա",
+    },
     import: {
       title: "Ներմուծում GitHub-ից",
       intro: "Ընտրեք ներմուծվող պահոցները։ Մինչև չպահեք, ոչինչ չի ներմուծվի։",

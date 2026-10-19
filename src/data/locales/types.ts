@@ -186,6 +186,7 @@ export interface Dictionary {
     };
     sourceBadge: string;
     importButton: string;
+    importPrompt: { title: string; body: string; notNow: string };
     import: {
       title: string;
       intro: string;

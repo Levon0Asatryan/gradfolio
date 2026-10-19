@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getIntegrations: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getIntegrations: vi.fn(), offer: vi.fn() }));
 vi.mock("@/lib/api/client", () => {
   class ApiError extends Error {
     constructor(
@@ -13,6 +13,7 @@ vi.mock("@/lib/api/client", () => {
   }
   return { ApiError, getIntegrations: mocks.getIntegrations };
 });
+vi.mock("@/lib/integrations/importOffer", () => ({ offerGithubImport: mocks.offer }));
 vi.mock("@/lib/requestDictionary", () => ({
   requestDictionary: async () => ({ integrations: { title: "Integrations" } }),
 }));
@@ -29,8 +30,25 @@ describe("/integrations page", () => {
       linkedin: { status: "not_connected", lastSyncedAt: null },
     };
     mocks.getIntegrations.mockResolvedValue(data);
-    const element = await Page();
-    expect(element.props).toEqual({ integrations: data });
+    mocks.offer.mockResolvedValue(false);
+    expect((await Page()).props).toEqual({ integrations: data, offerImport: false });
+  });
+
+  it("passes the import offer, asked about the API's connected status", async () => {
+    const data = {
+      github: { available: true, status: "connected", login: "ani-p", lastSyncedAt: null },
+      linkedin: { status: "not_connected", lastSyncedAt: null },
+    };
+    mocks.getIntegrations.mockResolvedValue(data);
+    mocks.offer.mockResolvedValue(true);
+    expect((await Page()).props).toEqual({ integrations: data, offerImport: true });
+    expect(mocks.offer).toHaveBeenCalledWith(true);
+    mocks.getIntegrations.mockResolvedValue({
+      ...data,
+      github: { ...data.github, status: "not_connected" },
+    });
+    await Page();
+    expect(mocks.offer).toHaveBeenLastCalledWith(false);
   });
 
   it("a failed load is the error component with the code, never a 'not connected' view", async () => {

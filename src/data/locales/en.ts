@@ -187,6 +187,11 @@ export const en: Dictionary = {
     },
     sourceBadge: "From GitHub",
     importButton: "Import from GitHub",
+    importPrompt: {
+      title: "Bring your repositories and profile details from GitHub",
+      body: "Nothing is imported until you choose it.",
+      notNow: "Not now",
+    },
     import: {
       title: "Import from GitHub",
       intro: "Choose the repositories to bring in. Nothing is imported until you save.",
