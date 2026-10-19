@@ -72,14 +72,6 @@ describe("connect", () => {
     expect(mocks.assign).not.toHaveBeenCalled();
   });
 
-  it("refreshes when GitHub was already connected through sign-in", async () => {
-    mocks.start.mockResolvedValue({ ok: true, state: "connected", login: "ani-p" });
-    renderInApp(<GithubCard github={off} />);
-    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
-    expect(await screen.findByText("GitHub is connected.")).toBeVisible();
-  });
-
   it("starts only once for a double click", async () => {
     mocks.start.mockReturnValue(new Promise(() => {}));
     renderInApp(<GithubCard github={off} />);
@@ -212,6 +204,29 @@ describe("the import dialog right after connecting", () => {
     expect(actions.importGithubReposAction).not.toHaveBeenCalled();
   });
 
+  it("opens at once when connect answers connected, refreshes, and imports nothing", async () => {
+    mocks.start.mockResolvedValue({ ok: true, state: "connected", login: "ani-p" });
+    renderInApp(<GithubCard github={off} />);
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(mocks.refresh).toHaveBeenCalled();
+    expect(await screen.findByText("GitHub is connected.")).toBeVisible();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const actions = await import("@/lib/integrations/importActions");
+    expect(actions.importGithubReposAction).not.toHaveBeenCalled();
+  });
+
+  it("opens nothing when connect fails or redirects", async () => {
+    mocks.start.mockResolvedValue({ ok: false, code: "GITHUB_ACCOUNT_IN_USE" });
+    renderInApp(<GithubCard github={off} />);
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await waitFor(() => expect(mocks.start).toHaveBeenCalled());
+    await screen.findByRole("alert");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await list()).not.toHaveBeenCalled();
+  });
+
   it("returns focus to the Import button when the dialog closes", async () => {
     mocks.query = "import=1";
     renderInApp(<GithubCard github={on} />);
@@ -221,5 +236,84 @@ describe("the import dialog right after connecting", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Import from GitHub" })).toHaveFocus(),
     );
+  });
+});
+
+describe("the standing import prompt", () => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    const actions = await import("@/lib/integrations/importActions");
+    vi.mocked(actions.listGithubReposAction).mockResolvedValue({
+      ok: true,
+      page: { items: [], nextCursor: null, rateLimit: { remaining: null, resetsAt: null } },
+    });
+  });
+  const PROMPT = "Bring your repositories and profile details from GitHub";
+
+  it("shows when the page says GitHub is connected with nothing imported", async () => {
+    renderInApp(<GithubCard github={on} offerImport />);
+    expect(await screen.findByText(PROMPT)).toBeVisible();
+  });
+
+  it("is absent without the offer, and when GitHub is not connected", () => {
+    renderInApp(<GithubCard github={on} />);
+    expect(screen.queryByText(PROMPT)).toBeNull();
+    cleanup();
+    renderInApp(<GithubCard github={off} offerImport />);
+    expect(screen.queryByText(PROMPT)).toBeNull();
+  });
+
+  it("its Import button opens the dialog and focus comes back to it", async () => {
+    renderInApp(<GithubCard github={on} offerImport />);
+    const prompt = (await screen.findByText(PROMPT)).closest("section")!;
+    const trigger = within(prompt).getByRole("button", { name: "Import from GitHub" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("Not now hides it, remembers that, moves focus to the card's Import button", async () => {
+    renderInApp(<GithubCard github={on} offerImport />);
+    const prompt = (await screen.findByText(PROMPT)).closest("section")!;
+    fireEvent.click(within(prompt).getByRole("button", { name: "Not now" }));
+    expect(screen.queryByText(PROMPT)).toBeNull();
+    expect(screen.getByRole("button", { name: "Import from GitHub" })).toHaveFocus();
+    cleanup();
+    renderInApp(<GithubCard github={on} offerImport />);
+    await waitFor(() => expect(screen.queryByText(PROMPT)).toBeNull());
+    expect(screen.getByRole("button", { name: "Import from GitHub" })).toBeVisible();
+  });
+
+  it("is remembered per GitHub account, not per browser", async () => {
+    renderInApp(<GithubCard github={on} offerImport />);
+    fireEvent.click(
+      within((await screen.findByText(PROMPT)).closest("section")!).getByRole("button", {
+        name: "Not now",
+      }),
+    );
+    cleanup();
+    renderInApp(<GithubCard github={{ ...on, login: "someone-else" }} offerImport />);
+    expect(await screen.findByText(PROMPT)).toBeVisible();
+  });
+
+  it("works when storage throws", async () => {
+    const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    try {
+      renderInApp(<GithubCard github={on} offerImport />);
+      const prompt = (await screen.findByText(PROMPT)).closest("section")!;
+      fireEvent.click(within(prompt).getByRole("button", { name: "Not now" }));
+      expect(screen.queryByText(PROMPT)).toBeNull();
+    } finally {
+      get.mockRestore();
+      set.mockRestore();
+    }
   });
 });

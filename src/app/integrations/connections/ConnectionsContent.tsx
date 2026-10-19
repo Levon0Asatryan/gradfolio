@@ -17,7 +17,11 @@ import type { Integrations } from "@/lib/api/types";
  * `/integrations`, one per step, on what the API says. Every step can be skipped; nothing is
  * saved here, because connecting is done by the cards themselves.
  */
-export const ConnectionsContent: FC<{ integrations: Integrations }> = ({ integrations }) => {
+export const ConnectionsContent: FC<{
+  integrations: Integrations;
+  /** GitHub is connected and nothing was imported from it (the page checked). */
+  offerImport?: boolean;
+}> = ({ integrations, offerImport = false }) => {
   const { t } = useLanguage();
   const text = t.integrations.setup;
 
@@ -48,7 +52,11 @@ export const ConnectionsContent: FC<{ integrations: Integrations }> = ({ integra
         sx={{ width: "100%" }}
       >
         <Step>
-          <GithubCard github={integrations.github} returnTo="connections" />
+          <GithubCard
+            github={integrations.github}
+            returnTo="connections"
+            offerImport={offerImport}
+          />
         </Step>
         <Step>
           <LinkedinCard linkedin={integrations.linkedin} />

@@ -45,6 +45,15 @@ describe("integrations setup stepper", () => {
     expect(screen.queryByText(/imported/i)).toBeNull();
   });
 
+  it("offers the import on the GitHub step when the page says so", () => {
+    const connected = {
+      ...integrations,
+      github: { ...integrations.github, status: "connected" },
+    } as const;
+    renderInApp(<ConnectionsContent integrations={connected} offerImport />);
+    expect(screen.getByText(/Bring your repositories/)).toBeVisible();
+  });
+
   it("ends in a translated finish screen with a way to the profile", async () => {
     renderInApp(<ConnectionsContent integrations={integrations} />, "ru");
     fireEvent.click(screen.getByRole("button", { name: "Шаг 2 из 2" }));

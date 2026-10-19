@@ -11,7 +11,11 @@ import { GithubReturnNotice } from "./GithubReturnNotice";
 import { LinkedinCard } from "./LinkedinCard";
 
 /** `/integrations`: the two cards, from what the API says (never local state). */
-export const IntegrationsView: FC<{ integrations: Integrations }> = ({ integrations }) => {
+export const IntegrationsView: FC<{
+  integrations: Integrations;
+  /** GitHub is connected and nothing was imported from it (the page checked). */
+  offerImport?: boolean;
+}> = ({ integrations, offerImport = false }) => {
   const { t } = useLanguage();
   return (
     <PageContainer maxWidth={900}>
@@ -25,7 +29,7 @@ export const IntegrationsView: FC<{ integrations: Integrations }> = ({ integrati
           alignItems: "stretch",
         }}
       >
-        <GithubCard github={integrations.github} />
+        <GithubCard github={integrations.github} offerImport={offerImport} />
         <LinkedinCard linkedin={integrations.linkedin} />
       </Box>
     </PageContainer>
