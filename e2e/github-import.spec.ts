@@ -132,6 +132,36 @@ for (const language of LANGUAGES) {
           expect(problems).toEqual([]);
         });
 
+        test("profile-only review and result: wording, axe, clean console", async ({ page }) => {
+          const problems = watch(page);
+          const dialog = await openDialog(page, "e2e-on", language, theme);
+          await dialog.getByRole("tab").nth(1).click();
+          await expect(dialog.getByRole("checkbox").first()).toBeChecked();
+          await dialog
+            .getByRole("button")
+            .filter({ hasText: /Continue|Продолжить|Շարունակել/ })
+            .click();
+          const save = dialog.getByRole("button").filter({
+            hasText: /Update my profile|Обновить мой профиль|Թարմացնել իմ պրոֆիլը/,
+          });
+          await expect(save).toBeEnabled();
+          await expect(
+            dialog.getByRole("button").filter({
+              hasText: /Save as drafts|Сохранить как черновики|Պահել որպես սևագրեր/,
+            }),
+          ).toHaveCount(0);
+          await page.mouse.move(0, 0);
+          await settled(page);
+          await expectCleanAxe(page);
+          await save.click();
+          await expect(dialog.getByRole("link").first()).toBeVisible();
+          await expect(dialog.getByRole("link")).toHaveCount(1);
+          await page.mouse.move(0, 0);
+          await settled(page);
+          await expectCleanAxe(page);
+          expect(problems).toEqual([]);
+        });
+
         test("draft project page: Draft chip and Publish, axe, clean console", async ({ page }) => {
           const problems = watch(page);
           await signIn(page, "e2e-on", language, theme);
@@ -191,8 +221,14 @@ test.describe("profile data", () => {
     await expectCleanAxe(page);
     await dialog.getByRole("button", { name: "Continue" }).click();
     await expect(dialog.getByText("Profile fields to update")).toBeVisible();
-    await dialog.getByRole("button", { name: "Save as drafts" }).click();
-    await expect(dialog.getByText("Profile fields updated: 1")).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Review profile changes" })).toBeFocused();
+    await dialog.getByRole("button", { name: "Update my profile" }).click();
+    await expect(dialog.getByText("Profile updated: Bio")).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "View my profile" })).toHaveAttribute(
+      "href",
+      "/profile",
+    );
+    await expect(dialog.getByText(/created|Go to my projects/)).toHaveCount(0);
     const seen = (await (
       await request.get(`${STUB}/__suggestions?token=${encodeURIComponent(currentToken)}`)
     ).json()) as { accepted: string[]; dismissed: string[] };
