@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Profile } from "@/lib/api/types";
 import ProfileHeader from "./ProfileHeader";
+import { ResumeDownload } from "./ResumeDownload";
 import { ProfileHeaderForm } from "./ProfileHeaderForm";
 import EducationList from "./EducationList";
 import ExperienceList from "./ExperienceList";
@@ -39,6 +40,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
 
   return (
     <PageContainer gap={0}>
+      {owner && <ResumeDownload profile={profile} />}
       {owner && (
         <Alert
           severity="info"

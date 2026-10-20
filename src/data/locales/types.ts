@@ -7,6 +7,34 @@ import type { IntegrationErrorCode } from "@/lib/integrations/errors";
 export type Language = "en" | "ru" | "am";
 
 export interface Dictionary {
+  emailPreferences: {
+    title: string;
+    help: string;
+    teamInvites: string;
+    language: string;
+    failed: string;
+    unsubscribeTitle: string;
+    unsubscribeHelp: string;
+    unsubscribe: string;
+    unsubscribed: string;
+    invalidLink: string;
+  };
+  resume: {
+    download: string;
+    title: string;
+    intro: string;
+    includePrivate: string;
+    privateWarning: string;
+    cancel: string;
+    generating: string;
+    failed: string;
+    rateLimited: string;
+    tooLarge: string;
+    sections: Record<
+      "contact" | "bio" | "education" | "experience" | "projects" | "skills" | "certifications",
+      string
+    >;
+  };
   common: {
     myProjects: string;
     publicProjects: string;

@@ -112,3 +112,8 @@ export type SuggestionAcceptOverrides = components["schemas"]["SuggestionAcceptO
 export type SuggestionPage = components["schemas"]["SuggestionPage"];
 export type SuggestionRefresh = components["schemas"]["SuggestionRefresh"];
 export type SuggestionResolved = components["schemas"]["SuggestionResolved"];
+type ResumeSchema = components["schemas"]["ResumeRequest"];
+/** openapi-typescript makes defaulted properties required; the API accepts them omitted. */
+export type ResumeRequest = Omit<ResumeSchema, "language" | "includePrivateProjects"> &
+  Partial<Pick<ResumeSchema, "language" | "includePrivateProjects">>;
+export type EmailPreferences = components["schemas"]["EmailPreferences"];

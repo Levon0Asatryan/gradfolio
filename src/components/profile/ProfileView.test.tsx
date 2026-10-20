@@ -98,9 +98,11 @@ describe("ProfileView", () => {
   it("offers Add Project to the owner only", () => {
     const { unmount } = show({ isOwner: true });
     expect(screen.getByRole("button", { name: "Add Project" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download resume" })).toBeInTheDocument();
     unmount();
     show({ isOwner: false });
     expect(screen.queryByRole("button", { name: "Add Project" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download resume" })).not.toBeInTheDocument();
   });
 
   it("drops a non-http avatar URL instead of rendering it", () => {

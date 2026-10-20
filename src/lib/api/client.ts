@@ -77,6 +77,21 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 10_000;
 
+export function generateResume(body: import("./types").ResumeRequest): Promise<Uint8Array> {
+  return request({ method: "POST", path: "/v1/me/resume", body, responseType: "pdf" });
+}
+export function getEmailPreferences(): Promise<import("./types").EmailPreferences> {
+  return request({ method: "GET", path: "/v1/me/email-preferences" });
+}
+export function updateEmailPreferences(
+  body: Partial<import("./types").EmailPreferences>,
+): Promise<import("./types").EmailPreferences> {
+  return request({ method: "PATCH", path: "/v1/me/email-preferences", body });
+}
+export function unsubscribeInvitationEmail(token: string): Promise<{ unsubscribed: true }> {
+  return request({ method: "POST", path: "/v1/email/unsubscribe", body: { token }, auth: "none" });
+}
+
 function isEnvelope(value: unknown): value is { code: string; message: string; details?: unknown } {
   return (
     typeof value === "object" &&
@@ -108,6 +123,7 @@ async function accessToken(allowAnonymous: boolean): Promise<string | null> {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Call {
+  responseType?: "pdf";
   method: "GET" | "PATCH" | "POST" | "PUT" | "DELETE";
   path: string;
   body?: unknown;
@@ -148,11 +164,20 @@ export async function forwardedClientHeaders(
   return { "X-Client-IP": ip, "X-Gradfolio-Proxy-Secret": secret };
 }
 
-async function request<T>({ method, path, body, auth = "required", revalidate }: Call): Promise<T> {
+async function request<T>({
+  method,
+  path,
+  body,
+  auth = "required",
+  revalidate,
+  responseType,
+}: Call): Promise<T> {
   const base = process.env.API_BASE_URL;
   if (!base) throw new ApiError(503, LOCAL_CODES.notConfigured, "API_BASE_URL is not set");
 
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept: responseType === "pdf" ? "application/pdf" : "application/json",
+  };
   if (auth === "none") {
     Object.assign(headers, await forwardedClientHeaders());
   } else {
@@ -175,6 +200,12 @@ async function request<T>({ method, path, body, auth = "required", revalidate }:
     throw new ApiError(503, LOCAL_CODES.unreachable, "the API did not answer");
   }
 
+  if (response.ok && responseType === "pdf") {
+    if (!response.headers.get("content-type")?.startsWith("application/pdf")) {
+      throw new ApiError(502, LOCAL_CODES.unknown, "unexpected download type");
+    }
+    return new Uint8Array(await response.arrayBuffer()) as T;
+  }
   const parsed: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
     const waited = Number(response.headers.get("retry-after"));

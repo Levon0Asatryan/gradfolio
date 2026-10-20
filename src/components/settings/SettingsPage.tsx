@@ -1,8 +1,20 @@
 // Settings page: language and theme, in the same card style as the account page.
 "use client";
 
-import { FC, memo, useContext } from "react";
-import { Typography, ToggleButtonGroup, ToggleButton, Stack, Box } from "@mui/material";
+import { FC, memo, useContext, useState } from "react";
+import {
+  Alert,
+  FormControlLabel,
+  Switch,
+  MenuItem,
+  TextField,
+  Typography,
+  ToggleButtonGroup,
+  ToggleButton,
+  Stack,
+  Box,
+} from "@mui/material";
+import type { EmailPreferences } from "@/lib/api/types";
 import { Language } from "@/data/locales/types";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import { DarkModeContext } from "@/components/theme/ThemeWrapper";
@@ -11,12 +23,44 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
-const SettingsPage: FC = () => {
+const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?: boolean }> = ({
+  initialEmailPreferences,
+  emailError,
+}) => {
   const { language, setLanguage, t } = useLanguage();
   const { mode, toggleMode } = useContext(DarkModeContext);
+  const [preferences, setPreferences] = useState(initialEmailPreferences);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  async function saveEmail(patch: Partial<EmailPreferences>) {
+    setSaving(true);
+    setSaveError(false);
+    try {
+      const response = await fetch("/api/email-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!response.ok) {
+        setSaveError(true);
+        return;
+      }
+      const saved = (await response.json()) as EmailPreferences;
+      setPreferences(saved);
+      if (patch.preferredLanguage) setLanguage(saved.preferredLanguage);
+    } catch {
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const handleLanguageChange = (_: React.MouseEvent<HTMLElement>, next: Language | null) => {
-    if (next !== null) setLanguage(next);
+    if (next !== null) {
+      if (preferences) void saveEmail({ preferredLanguage: next });
+      else setLanguage(next);
+    }
   };
 
   const handleThemeChange = (_: React.MouseEvent<HTMLElement>, next: string | null) => {
@@ -41,6 +85,7 @@ const SettingsPage: FC = () => {
           gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" },
         }}
       >
+        {(emailError || saveError) && <Alert severity="error">{t.emailPreferences.failed}</Alert>}
         <AccountCard title={t.common.language} help={t.common.languageHelp}>
           <ToggleButtonGroup
             color="primary"
@@ -49,6 +94,7 @@ const SettingsPage: FC = () => {
             onChange={handleLanguageChange}
             aria-label={t.common.language}
             fullWidth
+            disabled={saving}
           >
             {/* Native names, never translated: a reader can always find their own language. */}
             <ToggleButton value="en" lang="en">
@@ -62,6 +108,35 @@ const SettingsPage: FC = () => {
             </ToggleButton>
           </ToggleButtonGroup>
         </AccountCard>
+        {preferences && (
+          <AccountCard title={t.emailPreferences.title} help={t.emailPreferences.help}>
+            <Stack spacing={2}>
+              <FormControlLabel
+                label={t.emailPreferences.teamInvites}
+                control={
+                  <Switch
+                    checked={preferences.teamInvitesEnabled}
+                    disabled={saving}
+                    onChange={(_, checked) => void saveEmail({ teamInvitesEnabled: checked })}
+                  />
+                }
+              />
+              <TextField
+                select
+                label={t.emailPreferences.language}
+                value={preferences.preferredLanguage}
+                disabled={saving}
+                onChange={(event) =>
+                  void saveEmail({ preferredLanguage: event.target.value as Language })
+                }
+              >
+                <MenuItem value="en">English</MenuItem>
+                <MenuItem value="ru">Русский</MenuItem>
+                <MenuItem value="am">Հայերեն</MenuItem>
+              </TextField>
+            </Stack>
+          </AccountCard>
+        )}
 
         <AccountCard title={t.common.theme} help={t.common.themeHelp}>
           <ToggleButtonGroup
