@@ -17,7 +17,7 @@ import {
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import { useLanguage } from "@/components/i18n/LanguageContext";
 import type { Profile, ResumeRequest } from "@/lib/api/types";
-import { RESUME_SECTIONS } from "@/lib/resume/request";
+import { RESUME_MAX_PROJECTS, RESUME_SECTIONS } from "@/lib/resume/request";
 
 export function ResumeDownload({ profile }: { profile: Profile }) {
   const { t, language } = useLanguage();
@@ -32,7 +32,10 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
     (p) => p.role === "owner" || (p.isPublic && !p.isDraft),
   );
   const [projectIds, setProjectIds] = useState<string[]>(
-    candidates.filter((p) => p.isPublic && !p.isDraft).map((p) => p.id),
+    candidates
+      .filter((p) => p.isPublic && !p.isDraft)
+      .slice(0, RESUME_MAX_PROJECTS)
+      .map((p) => p.id),
   );
   const [includePrivate, setIncludePrivate] = useState(false);
   const hasPrivate = candidates.some((p) => !p.isPublic || p.isDraft);
@@ -58,7 +61,9 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
             ? copy.rateLimited
             : response.status === 422
               ? copy.tooLarge
-              : copy.failed,
+              : response.status === 404
+                ? copy.projectUnavailable
+                : copy.failed,
         );
         return;
       }
@@ -152,6 +157,9 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
                   />
                 )}
                 {includePrivate && <Alert severity="warning">{copy.privateWarning}</Alert>}
+                <Typography color="text.secondary">
+                  {copy.projectLimit.replace("{max}", String(RESUME_MAX_PROJECTS))}
+                </Typography>
                 <FormGroup>
                   {candidates.map((p) => (
                     <FormControlLabel
@@ -160,10 +168,16 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
                       control={
                         <Checkbox
                           checked={projectIds.includes(p.id)}
-                          disabled={busy || ((!p.isPublic || p.isDraft) && !includePrivate)}
+                          disabled={
+                            busy ||
+                            ((!p.isPublic || p.isDraft) && !includePrivate) ||
+                            (!projectIds.includes(p.id) && projectIds.length >= RESUME_MAX_PROJECTS)
+                          }
                           onChange={(_, checked) =>
                             setProjectIds((ids) =>
-                              checked ? [...ids, p.id] : ids.filter((id) => id !== p.id),
+                              checked
+                                ? [...ids, p.id].slice(0, RESUME_MAX_PROJECTS)
+                                : ids.filter((id) => id !== p.id),
                             )
                           }
                         />
@@ -179,7 +193,15 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
           <Button onClick={() => setOpen(false)} disabled={busy}>
             {copy.cancel}
           </Button>
-          <Button variant="contained" onClick={() => void download()} disabled={busy}>
+          <Button
+            variant="contained"
+            onClick={() => void download()}
+            disabled={
+              busy ||
+              sections.size === 0 ||
+              (sections.size === 1 && sections.has("projects") && projectIds.length === 0)
+            }
+          >
             {busy ? copy.generating : copy.download}
           </Button>
         </DialogActions>

@@ -6,6 +6,8 @@ import type { Section } from "@/lib/profile/sections";
 import type { PeopleBrowseQuery, ProjectBrowseQuery } from "@/lib/discovery/browse";
 import type {
   Me,
+  ResumeRequest,
+  EmailPreferences,
   Profile,
   ProfileHeader,
   ProfileHeaderPatch,
@@ -76,21 +78,6 @@ export class ApiError extends Error {
 }
 
 const TIMEOUT_MS = 10_000;
-
-export function generateResume(body: import("./types").ResumeRequest): Promise<Uint8Array> {
-  return request({ method: "POST", path: "/v1/me/resume", body, responseType: "pdf" });
-}
-export function getEmailPreferences(): Promise<import("./types").EmailPreferences> {
-  return request({ method: "GET", path: "/v1/me/email-preferences" });
-}
-export function updateEmailPreferences(
-  body: Partial<import("./types").EmailPreferences>,
-): Promise<import("./types").EmailPreferences> {
-  return request({ method: "PATCH", path: "/v1/me/email-preferences", body });
-}
-export function unsubscribeInvitationEmail(token: string): Promise<{ unsubscribed: true }> {
-  return request({ method: "POST", path: "/v1/email/unsubscribe", body: { token }, auth: "none" });
-}
 
 function isEnvelope(value: unknown): value is { code: string; message: string; details?: unknown } {
   return (
@@ -218,6 +205,19 @@ async function request<T>({
 }
 
 /** The signed-in user's account; the API creates it on the first call. */
+export function generateResume(body: ResumeRequest): Promise<Uint8Array> {
+  return request({ method: "POST", path: "/v1/me/resume", body, responseType: "pdf" });
+}
+export function getEmailPreferences(): Promise<EmailPreferences> {
+  return request({ method: "GET", path: "/v1/me/email-preferences" });
+}
+export function updateEmailPreferences(body: Partial<EmailPreferences>): Promise<EmailPreferences> {
+  return request({ method: "PATCH", path: "/v1/me/email-preferences", body });
+}
+export function unsubscribeInvitationEmail(token: string): Promise<{ unsubscribed: true }> {
+  return request({ method: "POST", path: "/v1/email/unsubscribe", body: { token }, auth: "none" });
+}
+
 export function getMe(): Promise<Me> {
   return request<Me>({ method: "GET", path: "/v1/me" });
 }

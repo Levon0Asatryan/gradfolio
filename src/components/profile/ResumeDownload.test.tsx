@@ -44,6 +44,55 @@ afterEach(() => {
 });
 
 describe("resume download", () => {
+  it("caps initial and subsequent project selection at fifty", async () => {
+    const many = {
+      ...profile,
+      projects: Array.from({ length: 55 }, (_, i) => ({
+        ...profile.projects[0]!,
+        id: `11111111-1111-4111-8111-${String(i).padStart(12, "0")}`,
+        title: `Project ${i}`,
+      })),
+    };
+    render(
+      <LanguageProvider>
+        <ResumeDownload profile={many} />
+      </LanguageProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Download resume" }));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByRole("checkbox", { name: "Project 50" })).toBeDisabled();
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Project 0" }));
+    expect(dialog.getByRole("checkbox", { name: "Project 50" })).toBeEnabled();
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Project 50" }));
+    expect(dialog.getByRole("checkbox", { name: "Project 51" })).toBeDisabled();
+    const fetcher = vi.fn().mockResolvedValue(new Response("", { status: 429 }));
+    vi.stubGlobal("fetch", fetcher);
+    fireEvent.click(dialog.getByRole("button", { name: "Download resume" }));
+    await screen.findByText(/Too many downloads/);
+    expect(JSON.parse(fetcher.mock.calls[0]![1].body).projectIds).toHaveLength(50);
+  });
+
+  it("prevents an empty section/project selection", () => {
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Download resume" }));
+    const dialog = within(screen.getByRole("dialog"));
+    for (const name of ["About", "Education", "Experience", "Projects", "Skills", "Certifications"])
+      fireEvent.click(dialog.getByRole("checkbox", { name }));
+    expect(dialog.getByRole("button", { name: "Download resume" })).toBeDisabled();
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Projects" }));
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Public project" }));
+    expect(dialog.getByRole("button", { name: "Download resume" })).toBeDisabled();
+  });
+
+  it("explains that a selected project disappeared on a 404", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 404 })));
+    show();
+    fireEvent.click(screen.getByRole("button", { name: "Download resume" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Download resume" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Reload your profile");
+  });
   it("defaults private projects and contact details off, and requires explicit private selection", async () => {
     show();
     fireEvent.click(screen.getByRole("button", { name: "Download resume" }));

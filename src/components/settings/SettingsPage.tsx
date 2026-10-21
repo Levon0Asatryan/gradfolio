@@ -31,7 +31,7 @@ const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?
   const { mode, toggleMode } = useContext(DarkModeContext);
   const [preferences, setPreferences] = useState(initialEmailPreferences);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState(emailError ?? false);
 
   async function saveEmail(patch: Partial<EmailPreferences>) {
     setSaving(true);
@@ -48,7 +48,6 @@ const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?
       }
       const saved = (await response.json()) as EmailPreferences;
       setPreferences(saved);
-      if (patch.preferredLanguage) setLanguage(saved.preferredLanguage);
     } catch {
       setSaveError(true);
     } finally {
@@ -58,8 +57,7 @@ const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?
 
   const handleLanguageChange = (_: React.MouseEvent<HTMLElement>, next: Language | null) => {
     if (next !== null) {
-      if (preferences) void saveEmail({ preferredLanguage: next });
-      else setLanguage(next);
+      setLanguage(next);
     }
   };
 
@@ -85,7 +83,11 @@ const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?
           gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" },
         }}
       >
-        {(emailError || saveError) && <Alert severity="error">{t.emailPreferences.failed}</Alert>}
+        {saveError && (
+          <Alert severity="error" sx={{ gridColumn: "1 / -1" }}>
+            {t.emailPreferences.failed}
+          </Alert>
+        )}
         <AccountCard title={t.common.language} help={t.common.languageHelp}>
           <ToggleButtonGroup
             color="primary"
@@ -94,7 +96,6 @@ const SettingsPage: FC<{ initialEmailPreferences?: EmailPreferences; emailError?
             onChange={handleLanguageChange}
             aria-label={t.common.language}
             fullWidth
-            disabled={saving}
           >
             {/* Native names, never translated: a reader can always find their own language. */}
             <ToggleButton value="en" lang="en">

@@ -11,6 +11,8 @@ export const en: Dictionary = {
     unsubscribeHelp: "You can still read and answer invitations on your Teams page.",
     unsubscribe: "Turn off invitation emails",
     unsubscribed: "Invitation emails are off. You can enable them in Settings.",
+    unsubscribeUnavailable:
+      "We could not turn off invitation emails right now. Please wait and try again.",
     invalidLink:
       "This link is invalid or expired. You can change your email preferences in Settings.",
   },
@@ -25,6 +27,9 @@ export const en: Dictionary = {
     generating: "Creating PDF…",
     failed: "The resume could not be created. Please try again.",
     rateLimited: "Too many downloads. Please wait a minute and try again.",
+    projectUnavailable:
+      "A selected project is no longer available. Reload your profile and choose again.",
+    projectLimit: "Choose up to {max} projects. Only projects loaded on your profile are listed.",
     tooLarge: "The resume is too long. Select fewer sections or projects.",
     sections: {
       contact: "Public contact details and links",

@@ -50,7 +50,7 @@ export interface paths {
         put?: never;
         /**
          * Download a resume PDF from selected sections of your profile
-         * @description Private/draft own projects require explicit IDs and includePrivateProjects. Accepted-team projects must be public and published. Login email and internal fields are never included. Dedicated PDF budget; no stored copy.
+         * @description Private/draft own projects require explicit IDs and includePrivateProjects. Accepted-team projects must be public and published. Login email and internal fields are never included. Projects are sorted newest first (createdAt descending, then ID), regardless of projectIds order. Dedicated PDF budget; no stored copy.
          */
         post: operations["generateResume"];
         delete?: never;

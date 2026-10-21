@@ -1,7 +1,7 @@
 # M8 frontend verification
 
 2026-10-20. Rebased on `origin/main` at `e0f3d53`. The API snapshot is pinned to
-`0a80c0f`, which includes the M8 operations and migration `0012_email`.
+`4aa061e`, which includes the M8 operations and migration `0012_email`.
 
 ## Delivered
 
@@ -27,6 +27,24 @@ The pre-existing untracked `docs/qa-production-ui-2026-10-18.md` is excluded fro
 the PR and the tracked-file formatting check.
 
 ## Review and remaining acceptance
+
+### Review corrections (2026-10-21)
+
+UI language updates only the UI cookie/state; the separate email-language select
+PATCHes email preferences without changing the UI. Saving preferences clears an old
+load error, and the alert spans the settings grid. Unsubscribe distinguishes invalid
+tokens from HTTP 429/503/network failures, retaining the token for retries.
+
+Resume selection defaults to at most 50 projects and prevents adding a 51st. The
+limit is a named contract constant; section names are checked against generated
+request types. The UI explains that only projects loaded on the profile are listed,
+disables empty downloads, and maps a missing project to a reload instruction.
+
+All 1,645 tests passed; coverage statements 89.88%, branches 85.95%, functions 86.42%,
+lines 91.18%. Lint, typecheck, knip and production build passed. The 19 focused tests
+pass on the corrected version; six targeted assertions fail on the old version.
+This proves the regressions without claiming exhaustive mutation testing or a
+signed-in production browser run.
 
 Manual review traced browser input through the same-origin validators and server
 API client to caller-scoped API operations. Auth0 tokens stay on the server;

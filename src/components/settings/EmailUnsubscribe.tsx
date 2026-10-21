@@ -9,7 +9,9 @@ export function EmailUnsubscribe() {
   const text = t.emailPreferences;
   const [token, setToken] = useState<string | null>(null);
   const captured = useRef(false);
-  const [status, setStatus] = useState<"ready" | "busy" | "done" | "failed">("ready");
+  const [status, setStatus] = useState<"ready" | "busy" | "done" | "invalid" | "unavailable">(
+    "ready",
+  );
   useEffect(() => {
     if (captured.current) return;
     captured.current = true;
@@ -25,9 +27,17 @@ export function EmailUnsubscribe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
-      setStatus(response.ok ? "done" : "failed");
+      if (response.ok) setStatus("done");
+      else {
+        const body = (await response.json().catch(() => null)) as { code?: string } | null;
+        setStatus(
+          response.status === 400 && body?.code === "INVALID_UNSUBSCRIBE_TOKEN"
+            ? "invalid"
+            : "unavailable",
+        );
+      }
     } catch {
-      setStatus("failed");
+      setStatus("unavailable");
     }
   }
   return (
@@ -41,8 +51,11 @@ export function EmailUnsubscribe() {
           <Alert severity="success">{text.unsubscribed}</Alert>
         ) : (
           <>
-            {(status === "failed" || token === "") && (
+            {(status === "invalid" || token === "") && (
               <Alert severity="error">{text.invalidLink}</Alert>
+            )}
+            {status === "unavailable" && (
+              <Alert severity="error">{text.unsubscribeUnavailable}</Alert>
             )}
             <Button
               variant="contained"

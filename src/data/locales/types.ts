@@ -18,6 +18,7 @@ export interface Dictionary {
     unsubscribe: string;
     unsubscribed: string;
     invalidLink: string;
+    unsubscribeUnavailable: string;
   };
   resume: {
     download: string;
@@ -30,6 +31,8 @@ export interface Dictionary {
     failed: string;
     rateLimited: string;
     tooLarge: string;
+    projectUnavailable: string;
+    projectLimit: string;
     sections: Record<
       "contact" | "bio" | "education" | "experience" | "projects" | "skills" | "certifications",
       string
