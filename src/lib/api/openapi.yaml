@@ -27,6 +27,217 @@ tags:
   - name: discovery
     description: "Public search and tag pages: published work of public profiles only"
 paths:
+  /v1/me/email-preferences:
+    get:
+      operationId: getEmailPreferences
+      tags:
+        - email
+      summary: Read your invitation email preference and language
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Your preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailPreferences"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such account of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateEmailPreferences
+      tags:
+        - email
+      summary: Change your invitation email preference and language
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamInvitesEnabled:
+                  type: boolean
+                preferredLanguage:
+                  type: string
+                  enum:
+                    - en
+                    - ru
+                    - am
+              additionalProperties: false
+      responses:
+        "200":
+          description: Saved preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailPreferences"
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such account of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/email/unsubscribe:
+    post:
+      operationId: unsubscribeInvitationEmail
+      tags:
+        - email
+      summary: Disable invitation email with the signed link from an email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+              required:
+                - token
+              additionalProperties: false
+      responses:
+        "200":
+          description: Unsubscribed, also for a replay or a deleted account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unsubscribed:
+                    type: boolean
+                    enum:
+                      - true
+                required:
+                  - unsubscribed
+                additionalProperties: false
+        "400":
+          description: INVALID_UNSUBSCRIBE_TOKEN or VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: EMAIL_UNAVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/me/resume:
+    post:
+      operationId: generateResume
+      tags:
+        - resume
+      summary: Download a resume PDF from selected sections of your profile
+      description: Private/draft own projects require explicit IDs and includePrivateProjects. Accepted-team projects must be public and published. Login email and internal fields are never included. Projects are sorted newest first (createdAt descending, then ID), regardless of projectIds order. Dedicated PDF budget; no stored copy.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeRequest"
+      responses:
+        "200":
+          description: Resume download; private, no-store
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: "VALIDATION_FAILED: the body does not fit the schema (see `details`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "UNAUTHENTICATED: no access token, or one that is invalid or expired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "NOT_FOUND: no such profile or project of the caller's (someone else's id answers the same)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: "RESUME_TOO_LARGE: select less content"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: "RATE_LIMITED: over budget; see the Retry-After header"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: "AUTH_UNAVAILABLE: Auth0 signing keys unreachable, or DATABASE_UNAVAILABLE: MySQL unreachable"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /healthz:
     get:
       operationId: liveness
@@ -5231,6 +5442,21 @@ components:
         - description
         - highlights
       additionalProperties: false
+    EmailPreferences:
+      type: object
+      properties:
+        teamInvitesEnabled:
+          type: boolean
+        preferredLanguage:
+          type: string
+          enum:
+            - en
+            - ru
+            - am
+      required:
+        - teamInvitesEnabled
+        - preferredLanguage
+      additionalProperties: false
     Experience:
       type: object
       properties:
@@ -7015,6 +7241,42 @@ components:
           maximum: 9007199254740991
       required:
         - updated
+      additionalProperties: false
+    ResumeRequest:
+      type: object
+      properties:
+        language:
+          default: en
+          type: string
+          enum:
+            - en
+            - ru
+            - am
+        sections:
+          maxItems: 7
+          type: array
+          items:
+            type: string
+            enum:
+              - contact
+              - bio
+              - education
+              - experience
+              - projects
+              - skills
+              - certifications
+        projectIds:
+          maxItems: 50
+          type: array
+          items:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        includePrivateProjects:
+          default: false
+          type: boolean
+      required:
+        - sections
       additionalProperties: false
     SchoolFacet:
       type: object

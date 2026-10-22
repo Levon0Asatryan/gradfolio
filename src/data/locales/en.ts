@@ -1,6 +1,46 @@
 import { Dictionary } from "./types";
 
 export const en: Dictionary = {
+  emailPreferences: {
+    title: "Invitation emails",
+    help: "Choose whether to receive team invitations by email. Invitations also appear on your Teams page.",
+    teamInvites: "Email me about team invitations",
+    language: "Email language",
+    failed: "Email settings could not be loaded or saved. Please try again.",
+    unsubscribeTitle: "Turn off invitation emails",
+    unsubscribeHelp: "You can still read and answer invitations on your Teams page.",
+    unsubscribe: "Turn off invitation emails",
+    unsubscribed: "Invitation emails are off. You can enable them in Settings.",
+    unsubscribeUnavailable:
+      "We could not turn off invitation emails right now. Please wait and try again.",
+    invalidLink:
+      "This link is invalid or expired. You can change your email preferences in Settings.",
+  },
+  resume: {
+    download: "Download resume",
+    title: "Create your resume",
+    intro: "Choose the sections and projects to include in your PDF.",
+    includePrivate: "Allow my private and draft projects",
+    privateWarning:
+      "Selected private or draft projects will be visible to anyone you share this PDF with.",
+    cancel: "Cancel",
+    generating: "Creating PDF…",
+    failed: "The resume could not be created. Please try again.",
+    rateLimited: "Too many downloads. Please wait a minute and try again.",
+    projectUnavailable:
+      "A selected project is no longer available. Reload your profile and choose again.",
+    projectLimit: "Choose up to {max} projects. Only projects loaded on your profile are listed.",
+    tooLarge: "The resume is too long. Select fewer sections or projects.",
+    sections: {
+      contact: "Public contact details and links",
+      bio: "About",
+      education: "Education",
+      experience: "Experience",
+      projects: "Projects",
+      skills: "Skills",
+      certifications: "Certifications",
+    },
+  },
   common: {
     myProjects: "My projects",
     publicProjects: "Public projects",

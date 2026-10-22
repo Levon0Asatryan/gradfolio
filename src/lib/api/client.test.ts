@@ -44,6 +44,8 @@ const {
   connectGithub,
   linkGithub,
   disconnectGithub,
+  generateResume,
+  unsubscribeInvitationEmail,
 } = await import("./client");
 
 const ME = {
@@ -57,6 +59,43 @@ const ME = {
   onboarded: true,
   identities: ["google-oauth2"],
 };
+
+describe("M8 downloads and public unsubscribe", () => {
+  it("requests PDF bytes with the server access token and no cache", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("%PDF-test", { headers: { "Content-Type": "application/pdf" } }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    expect(new TextDecoder().decode(await generateResume({ sections: [] }))).toBe("%PDF-test");
+    expect(fetcher.mock.calls[0]![1]).toMatchObject({
+      cache: "no-store",
+      headers: { Authorization: "Bearer tok-123", Accept: "application/pdf" },
+    });
+  });
+  it("refuses a successful response that is not a PDF", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(new Response("{}", { headers: { "Content-Type": "application/json" } })),
+    );
+    await expect(generateResume({ sections: [] })).rejects.toMatchObject({ status: 502 });
+  });
+  it("unsubscribes without an Auth0 session and keeps the token out of the URL", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response('{"unsubscribed":true}', { headers: { "Content-Type": "application/json" } }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    expect(await unsubscribeInvitationEmail("signed-token")).toEqual({ unsubscribed: true });
+    expect(sdk.getAccessToken).not.toHaveBeenCalled();
+    expect(fetcher.mock.calls[0]![0].href).not.toContain("signed-token");
+    expect(fetcher.mock.calls[0]![1].body).toBe('{"token":"signed-token"}');
+  });
+});
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
