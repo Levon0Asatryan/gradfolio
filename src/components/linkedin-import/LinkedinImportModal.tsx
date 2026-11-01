@@ -77,6 +77,8 @@ export const LinkedinImportModal: FC<{
 
   const abort = useRef<AbortController | null>(null);
   const sending = useRef(false);
+  // Bumped by every reset: an answer that arrives for an earlier run is dropped, not applied.
+  const run = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
 
   // Leaving with a proposal on screen or a request in flight is asked about, not silent.
@@ -97,6 +99,7 @@ export const LinkedinImportModal: FC<{
     abort.current?.abort();
     abort.current = null;
     sending.current = false;
+    run.current += 1;
     setStep("guide");
     setBusy(null);
     setProgress(0);
@@ -130,6 +133,7 @@ export const LinkedinImportModal: FC<{
   async function send() {
     if (!file || fileProblem || sending.current) return;
     sending.current = true;
+    const gen = run.current;
     setProblem(null);
     const controller = new AbortController();
     abort.current = controller;
@@ -137,6 +141,7 @@ export const LinkedinImportModal: FC<{
       setBusy("uploading");
       setProgress(0);
       const ticket = await startLinkedinUploadAction({ size: file.size });
+      if (gen !== run.current) return;
       if (!ticket.ok) return fail(ticket.code, ticket.retryAfter);
       const put = await putFile({
         url: ticket.uploadUrl,
@@ -145,12 +150,14 @@ export const LinkedinImportModal: FC<{
         onProgress: setProgress,
         signal: controller.signal,
       });
+      if (gen !== run.current) return;
       if (!put.ok) {
         if (put.reason === "aborted") return;
         return fail(put.reason === "rejected" ? "UPLOAD_REJECTED" : "UPLOAD_UNREACHABLE");
       }
       setBusy("reading");
       const read = await previewLinkedinAction({ uploadId: ticket.uploadId });
+      if (gen !== run.current) return;
       if (!read.ok) return fail(read.code, read.retryAfter);
       const rows = rowsFromPreview(read.preview);
       setPreview(read.preview);
@@ -159,11 +166,13 @@ export const LinkedinImportModal: FC<{
       setFile(null);
       setStep("review");
     } catch {
-      fail("UNKNOWN");
+      if (gen === run.current) fail("UNKNOWN");
     } finally {
-      sending.current = false;
-      abort.current = null;
-      setBusy(null);
+      if (gen === run.current) {
+        sending.current = false;
+        abort.current = null;
+        setBusy(null);
+      }
     }
   }
 
@@ -172,18 +181,22 @@ export const LinkedinImportModal: FC<{
     const body = buildConfirm(model, selected);
     if (!body) return;
     sending.current = true;
+    const gen = run.current;
     setProblem(null);
     setBusy("confirming");
     try {
       const done = await confirmLinkedinAction(body);
+      if (gen !== run.current) return;
       if (!done.ok) return fail(done.code, done.retryAfter);
       setResult(done.result);
       setStep("done");
     } catch {
-      fail("UNKNOWN");
+      if (gen === run.current) fail("UNKNOWN");
     } finally {
-      sending.current = false;
-      setBusy(null);
+      if (gen === run.current) {
+        sending.current = false;
+        setBusy(null);
+      }
     }
   }
 
@@ -369,6 +382,7 @@ export const LinkedinImportModal: FC<{
               onToggle={toggle}
               onEdit={edit}
               preview={preview}
+              disabled={busy === "confirming"}
             />
           </Stack>
         )}

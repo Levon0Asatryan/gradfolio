@@ -48,8 +48,10 @@ export const LinkedinReview: FC<{
   selected: ReadonlySet<string>;
   onToggle: (ids: string[], on: boolean) => void;
   onEdit: (id: string, values: Record<string, string>) => void;
+  /** A confirmation is in flight: what is on screen is what was sent, so it cannot change. */
+  disabled?: boolean;
   preview: Pick<LinkedinPreview, "skippedColumns" | "missingFiles" | "skippedFileCount">;
-}> = ({ model, selected, onToggle, onEdit, preview }) => {
+}> = ({ model, selected, onToggle, onEdit, preview, disabled }) => {
   const { t } = useLanguage();
   const text = t.linkedinImport.review;
   const [editing, setEditing] = useState<string | null>(null);
@@ -81,6 +83,7 @@ export const LinkedinReview: FC<{
           <Box
             key={group.key}
             component="fieldset"
+            disabled={disabled}
             sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}
             aria-labelledby={legendId}
           >

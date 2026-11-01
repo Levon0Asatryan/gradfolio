@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderInApp } from "@/testing/render";
 import type { LinkedinPreview } from "@/lib/api/types";
@@ -289,5 +290,50 @@ describe("LinkedIn import wizard", () => {
     renderModal();
     await toReview();
     expect(set).not.toHaveBeenCalled();
+  });
+
+  it("drops a preview that arrives after the dialog was closed and reopened", async () => {
+    let setOpen: (open: boolean) => void = () => {};
+    const Harness = () => {
+      const [open, set] = useState(true);
+      setOpen = set;
+      return <LinkedinImportModal open={open} onClose={() => set(false)} onImported={vi.fn()} />;
+    };
+    renderInApp(<Harness />, "en");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    mocks.start.mockResolvedValue({
+      ok: true,
+      uploadId: "6f1f0c1e-0d4f-4c53-9f0a-0c9a3b1d2e3f",
+      uploadUrl: "https://storage.googleapis.com/b/k",
+      headers: {},
+    });
+    mocks.put.mockResolvedValue({ ok: true });
+    let answer!: (v: unknown) => void;
+    mocks.preview.mockReturnValue(new Promise((r) => (answer = r)));
+    fireEvent.change(document.querySelector<HTMLInputElement>('input[type="file"]')!, {
+      target: { files: [zip()] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Upload and read" }));
+    await waitFor(() => expect(mocks.preview).toHaveBeenCalled());
+    act(() => setOpen(false));
+    act(() => setOpen(true));
+    await act(async () => answer({ ok: true, preview: base }));
+    expect(
+      await screen.findByRole("heading", { name: "Get your LinkedIn data file" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Choose what to add" })).toBeNull();
+  });
+
+  it("freezes the review while the confirmation is in flight", async () => {
+    renderModal();
+    await toReview();
+    mocks.confirm.mockReturnValue(new Promise(() => {}));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("checkbox", { name: "Placeholder Engineer · Example Co" }),
+      ).toBeDisabled(),
+    );
+    expect(screen.getByRole("checkbox", { name: "Faking" })).toBeDisabled();
   });
 });
