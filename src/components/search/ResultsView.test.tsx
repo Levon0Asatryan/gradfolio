@@ -39,7 +39,7 @@ describe("ResultsView", () => {
     );
     expect(screen.getByRole("heading", { level: 2, name: "People" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Projects" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Ani Petrosyan/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^Ani Petrosyan/ })).toHaveAttribute(
       "href",
       "/profile/0b6f2c1e-1111-4222-8333-444455556666",
     );

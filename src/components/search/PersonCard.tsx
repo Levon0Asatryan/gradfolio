@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, memo, useId } from "react";
+import { FC, memo } from "react";
 import Link from "next/link";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -29,7 +29,6 @@ const PersonCard: FC<{ person: PersonSummary; highlightQuery?: string }> = ({
   highlightQuery,
 }) => {
   const { t } = useLanguage();
-  const nameId = useId();
   const { id, name, headline, avatarUrl, verified, skills, projectCount, location } = person;
 
   return (
@@ -40,16 +39,20 @@ const PersonCard: FC<{ person: PersonSummary; highlightQuery?: string }> = ({
       <CardActionArea
         component={Link}
         href={`/profile/${id}`}
-        aria-labelledby={nameId}
         sx={{ p: 3, display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar src={safeHttpsUrl(avatarUrl)} alt="" sx={{ width: 64, height: 64, flex: "none" }}>
+          <Avatar
+            aria-hidden
+            src={safeHttpsUrl(avatarUrl)}
+            alt=""
+            sx={{ width: 64, height: 64, flex: "none" }}
+          >
             {name.trim().charAt(0).toUpperCase()}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Typography id={nameId} variant="h6" component="h3" sx={{ overflowWrap: "anywhere" }}>
+              <Typography variant="h6" component="h3" sx={{ overflowWrap: "anywhere" }}>
                 <HighlightedText text={name} query={highlightQuery} />
               </Typography>
               <VerifiedBadge visible={verified} label={t.search.verified} />

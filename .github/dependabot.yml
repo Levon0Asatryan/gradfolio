@@ -19,6 +19,10 @@ updates:
         update-types: [minor, patch]
     # Majors come one at a time: they need a human reading the changelog.
     ignore:
+      # TypeScript 6: openapi-typescript 7.13 (latest) still peers typescript ^5, so
+      # npm ci cannot resolve the pair (#128). Lift this when it supports 6.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
       # @types/node's major tracks the runtime it describes. Node 24 is pinned
       # in three places (.nvmrc, engines, CI via .nvmrc) and selects Vercel's
       # runtime; a newer major types APIs Node 24 does not have, so tsc passes

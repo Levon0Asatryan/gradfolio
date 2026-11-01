@@ -95,7 +95,7 @@ for (const language of LANGUAGES) {
           const response = await page.goto("/search?q=long", { waitUntil: "networkidle" });
           expect(response?.status()).toBe(200);
 
-          const card = page.getByRole("link", { name: /^Distributed soil moisture/ });
+          const card = page.getByRole("link", { name: /Distributed soil moisture/ });
           const title = card.locator("h3");
           const summary = card.getByText(/^Forty sensor nodes/);
           const headline = page
@@ -108,9 +108,9 @@ for (const language of LANGUAGES) {
           expect(await isCropped(headline)).toBe(true);
           expect(await isCropped(short)).toBe(false);
 
-          // One name for the card, the title's own text; the tooltip adds no name, no
-          // description and no tab stop inside the link.
-          await expect(card).toHaveAccessibleName(await fullText(title));
+          // The card is named by its content, full title included even when cropped; the
+          // tooltip adds no second name, no description and no tab stop inside the link.
+          await expect(page.getByRole("link", { name: await fullText(title) })).toHaveCount(1);
           await expect(card).toHaveAccessibleDescription("");
           await expectNoSecondName(title);
           await expectNoSecondName(summary);

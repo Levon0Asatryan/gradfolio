@@ -1,8 +1,8 @@
 import type { ProjectListQuery } from "@/lib/api/types";
 
 /** The values the API accepts (openapi `listMyProjects`); anything else is dropped, not forwarded. */
-export const PROJECT_SORTS = ["newest", "oldest", "updated", "name_asc", "name_desc"] as const;
-export const PROJECT_CATEGORY_VALUES = [
+const PROJECT_SORTS = ["newest", "oldest", "updated", "name_asc", "name_desc"] as const;
+const PROJECT_CATEGORY_VALUES = [
   "academic",
   "personal",
   "research",

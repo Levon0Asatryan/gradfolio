@@ -29,7 +29,6 @@ const SHOWN = 3;
 
 const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) => {
   const { t, language } = useLanguage();
-  const titleId = useId();
   const publishStatus = usePublishStatus();
   // The dashboard's list comes from the server; show a quick publish at once, then the refresh agrees.
   const [publishedHere, setPublishedHere] = useState(false);
@@ -39,7 +38,6 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
       <CardActionArea
         component={Link}
         href={`/projects/${p.id}`}
-        aria-labelledby={titleId}
         sx={{
           p: 3,
           display: "flex",
@@ -64,7 +62,7 @@ const RecentProjectCard: FC<{ project: DashboardProject }> = ({ project: p }) =>
             <Chip size="small" variant="outlined" label={t.dashboard.roleMember} />
           )}
         </Box>
-        <Typography id={titleId} variant="subtitle1" component="h3" sx={{ fontWeight: 800 }}>
+        <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 800 }}>
           {p.title}
         </Typography>
         <TruncatedText variant="body2" color="text.secondary" lines={2} text={p.summary ?? ""} />
