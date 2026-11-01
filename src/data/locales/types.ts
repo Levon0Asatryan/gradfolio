@@ -3,6 +3,7 @@
 // Used to enforce type-safe access to localized strings across the app
 
 import type { IntegrationErrorCode } from "@/lib/integrations/errors";
+import type { LinkedinErrorCode } from "@/lib/linkedin/errors";
 
 export type Language = "en" | "ru" | "am";
 
@@ -347,6 +348,80 @@ export interface Dictionary {
       /** `{step}` `{total}` */
       stepOf: string;
     };
+  };
+  linkedinImport: {
+    open: string;
+    title: string;
+    close: string;
+    cancel: string;
+    back: string;
+    next: string;
+    startOver: string;
+    /** "Step {n} of {total}" */
+    stepOf: string;
+    stepNames: [string, string, string, string];
+    guide: {
+      heading: string;
+      intro: string;
+      steps: string[];
+      openLinkedin: string;
+      notUnzip: string;
+      privacy: string;
+      /** "{alt}" of a screenshot comes from the list in src/lib/linkedin/screenshots.ts */
+      shotsTitle: string;
+    };
+    upload: {
+      heading: string;
+      hint: string;
+      choose: string;
+      chooseAnother: string;
+      /** "{name} ({size})" */
+      chosen: string;
+      send: string;
+      uploading: string;
+      reading: string;
+      cancelUpload: string;
+      tooBig: string;
+      notZip: string;
+      empty: string;
+    };
+    review: {
+      heading: string;
+      intro: string;
+      sections: { experience: string; education: string; certifications: string; skills: string };
+      selectAll: string;
+      empty: string;
+      alreadyOnProfile: string;
+      needsFixing: string;
+      edit: string;
+      doneEditing: string;
+      /** "{count} of {total} selected" */
+      selectedCount: string;
+      nothingSelected: string;
+      add: string;
+      adding: string;
+      nothingNew: string;
+      skippedTitle: string;
+      /** "{file}: {columns}" */
+      skippedColumns: string;
+      /** "{files}" */
+      missingFiles: string;
+      /** "{count}" */
+      skippedFiles: string;
+      present: string;
+      educationFieldHint: string;
+    };
+    done: {
+      heading: string;
+      added: string;
+      skipped: string;
+      /** "{count}" */
+      countLine: string;
+      viewProfile: string;
+    };
+    /** "{seconds}" */
+    retryIn: string;
+    errors: Record<LinkedinErrorCode, string>;
   };
   projects: {
     loadErrorTitle: string;
