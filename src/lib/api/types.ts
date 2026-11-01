@@ -49,6 +49,13 @@ export type UploadRequest = NonNullable<
   paths["/v1/me/uploads"]["post"]["requestBody"]
 >["content"]["application/json"];
 export type UploadTicket = components["schemas"]["UploadTicket"];
+/** The LinkedIn data-export import: a signed PUT, a proposal, and what was added. */
+export type LinkedinUploadTicket = components["schemas"]["LinkedinUploadTicket"];
+export type LinkedinPreview = components["schemas"]["LinkedinPreview"];
+export type LinkedinImportResult = components["schemas"]["LinkedinImportResult"];
+export type LinkedinConfirmBody = NonNullable<
+  paths["/v1/me/imports/linkedin/confirm"]["post"]["requestBody"]
+>["content"]["application/json"];
 /** The query of `listMyProjects`: what the list page and "load more" send. */
 export type ProjectListQuery = NonNullable<paths["/v1/me/projects"]["get"]["parameters"]["query"]>;
 
