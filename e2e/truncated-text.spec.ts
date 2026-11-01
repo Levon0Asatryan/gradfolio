@@ -57,6 +57,8 @@ const tooltips = (page: Page) => page.locator('[role="tooltip"]');
 /** What the browser really drew: a clamped block overflows its own height. */
 const isCropped = (el: Locator) => el.evaluate((node) => node.scrollHeight > node.clientHeight);
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 async function fullText(el: Locator) {
   const text = (await el.textContent()) ?? "";
   expect(text.length).toBeGreaterThan(0);
@@ -95,7 +97,7 @@ for (const language of LANGUAGES) {
           const response = await page.goto("/search?q=long", { waitUntil: "networkidle" });
           expect(response?.status()).toBe(200);
 
-          const card = page.getByRole("link", { name: /^Distributed soil moisture/ });
+          const card = page.getByRole("link", { name: /Distributed soil moisture/ });
           const title = card.locator("h3");
           const summary = card.getByText(/^Forty sensor nodes/);
           const headline = page
@@ -108,9 +110,13 @@ for (const language of LANGUAGES) {
           expect(await isCropped(headline)).toBe(true);
           expect(await isCropped(short)).toBe(false);
 
-          // One name for the card, the title's own text; the tooltip adds no name, no
-          // description and no tab stop inside the link.
-          await expect(card).toHaveAccessibleName(await fullText(title));
+          // The card is named by its content, full title included even when cropped; the
+          // tooltip adds no second name, no description and no tab stop inside the link.
+          await expect(card).toHaveAccessibleName(
+            new RegExp(
+              `${escapeRegExp(await fullText(title))}.*${escapeRegExp(await fullText(summary))}`,
+            ),
+          );
           await expect(card).toHaveAccessibleDescription("");
           await expectNoSecondName(title);
           await expectNoSecondName(summary);

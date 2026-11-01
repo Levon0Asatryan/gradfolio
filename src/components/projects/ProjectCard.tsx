@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, memo, useId, useMemo } from "react";
+import { FC, memo, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Box from "@mui/material/Box";
@@ -42,7 +42,6 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftCha
   const { id, title, summary, technologies, metadata, category: rawCategory } = project;
   const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const { t, language } = useLanguage();
-  const titleId = useId();
   const publishStatus = usePublishStatus();
 
   const { visibleTags, remainingCount } = useMemo(() => {
@@ -63,7 +62,6 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftCha
       <CardActionArea
         component={Link}
         href={`/projects/${id}`}
-        aria-labelledby={titleId}
         sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", flex: 1 }}
       >
         <Box
@@ -111,7 +109,6 @@ const ProjectCard: FC<ProjectCardProps> = ({ project, highlightQuery, onDraftCha
             )}
           </Box>
           <TruncatedText
-            id={titleId}
             variant="h6"
             component="h3"
             lines={2}

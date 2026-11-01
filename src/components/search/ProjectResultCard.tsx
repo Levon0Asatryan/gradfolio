@@ -1,7 +1,7 @@
 "use client";
 
 import SourceBadge from "@/components/shared/SourceBadge";
-import { FC, memo, useId } from "react";
+import { FC, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Box from "@mui/material/Box";
@@ -27,7 +27,6 @@ const ProjectResultCard: FC<{ project: DiscoveryProject; highlightQuery?: string
   highlightQuery,
 }) => {
   const { t } = useLanguage();
-  const titleId = useId();
   const { id, title, summary, technologies, owner } = project;
   const heroImageUrl = safeHttpsUrl(project.heroImageUrl);
   const category = isProjectCategory(project.category) ? project.category : "other";
@@ -41,7 +40,6 @@ const ProjectResultCard: FC<{ project: DiscoveryProject; highlightQuery?: string
       <CardActionArea
         component={Link}
         href={`/projects/${id}`}
-        aria-labelledby={titleId}
         sx={{ display: "flex", flexDirection: "column", alignItems: "stretch" }}
       >
         <Box
@@ -80,7 +78,6 @@ const ProjectResultCard: FC<{ project: DiscoveryProject; highlightQuery?: string
             </Typography>
           </Box>
           <TruncatedText
-            id={titleId}
             variant="h6"
             component="h3"
             lines={2}
