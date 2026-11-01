@@ -70,3 +70,14 @@ describe("activity feed keys", () => {
     expect(Object.keys(en.dashboard.activity).sort()).toEqual(Object.keys(ACTIVITY_PARAMS).sort());
   });
 });
+
+describe("accessible names that contain the visible text (WCAG 2.5.3)", () => {
+  // ProfileHeader's Edit button shows `common.edit` and is named `common.editProfile`.
+  for (const [language, dictionary] of Object.entries({ en, ru, am })) {
+    it(`${language}: "${"edit"}" is part of the Edit profile name`, () => {
+      expect(dictionary.common.editProfile.toLowerCase()).toContain(
+        dictionary.common.edit.toLowerCase(),
+      );
+    });
+  }
+});

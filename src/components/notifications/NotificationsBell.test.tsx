@@ -83,6 +83,14 @@ describe("the bell button", () => {
     await waitFor(() => expect(bell()).toHaveAttribute("aria-label", "Notifications, unread: 99+"));
   });
 
+  it("draws no badge text at zero: axe reads it as visible text missing from the name", async () => {
+    unread = 0;
+    show();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await act(async () => {});
+    expect(bell()).toHaveTextContent(/^Notifications$/);
+  });
+
   it("has no count while the first read has not (or did not) come back", async () => {
     fetchMock.mockImplementation(() => res(503, { code: "API_UNREACHABLE" }));
     show();
