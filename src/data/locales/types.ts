@@ -206,8 +206,6 @@ export interface Dictionary {
     };
     linkedin: {
       description: string;
-      viaSignIn: string;
-      notViaSignIn: string;
       lastImport: string;
     };
     dialog: {

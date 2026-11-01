@@ -214,9 +214,7 @@ export const en: Dictionary = {
     },
     linkedin: {
       description:
-        "Shown as connected when you sign in with LinkedIn, which fills in your name and photo. Your positions, education, skills and certifications come from your own LinkedIn data export.",
-      viaSignIn: "You sign in with LinkedIn.",
-      notViaSignIn: "You do not sign in with LinkedIn.",
+        "Your positions, education, skills and certifications come from your own LinkedIn data export. Upload the file here and choose what to add.",
       lastImport: "Last import:",
     },
     dialog: {
