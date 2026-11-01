@@ -21,7 +21,7 @@ export const BellIcon: FC = () => {
   return (
     <Badge
       color="error"
-      badgeContent={count ?? 0}
+      badgeContent={count || null}
       max={BADGE_MAX}
       invisible={!count}
       overlap="circular"

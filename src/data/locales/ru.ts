@@ -74,7 +74,7 @@ export const ru: Dictionary = {
     integrations: "Интеграции",
     explorePortfolios: "Изучить портфолио",
     viewAll: "Посмотреть все",
-    editProfile: "Редактировать профиль",
+    editProfile: "Изменить профиль",
     contact: "Связаться",
     edit: "Изменить",
     details: "Подробнее",
