@@ -13,7 +13,8 @@ export interface IntegrationCardProps {
   id: "github" | "linkedin";
   name: string;
   description: string;
-  connected: boolean;
+  /** Omit for a source with no connection to show (LinkedIn: the history comes from a file). */
+  connected?: boolean;
   /** The label before the date, and the text when there is none. Omit to show no sync line. */
   syncLabel?: string;
   /** ISO 8601; `null` shows `neverText`. Ignored without `syncLabel`. */
@@ -83,12 +84,14 @@ const IntegrationCard: FC<IntegrationCardProps> = ({
               {name}
             </Typography>
           </Stack>
-          <Chip
-            size="small"
-            color={connected ? "success" : "default"}
-            icon={connected ? <CheckCircleOutlined /> : <RemoveCircleOutline />}
-            label={connected ? t.integrations.connected : t.integrations.notConnected}
-          />
+          {connected !== undefined && (
+            <Chip
+              size="small"
+              color={connected ? "success" : "default"}
+              icon={connected ? <CheckCircleOutlined /> : <RemoveCircleOutline />}
+              label={connected ? t.integrations.connected : t.integrations.notConnected}
+            />
+          )}
         </Stack>
 
         <Typography variant="body2" color="text.secondary">

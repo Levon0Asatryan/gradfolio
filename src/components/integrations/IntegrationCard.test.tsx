@@ -41,4 +41,10 @@ describe("IntegrationCard", () => {
     expect(screen.getByText("Not connected")).toBeVisible();
     expect(screen.getByRole("region", { name: "LinkedIn" })).toBeInTheDocument();
   });
+
+  it("shows no connection chip when the source has no connection to show", () => {
+    renderInApp(<IntegrationCard id="linkedin" name="LinkedIn" description="d" />);
+    expect(screen.queryByText("Not connected")).toBeNull();
+    expect(screen.queryByText("Connected")).toBeNull();
+  });
 });
