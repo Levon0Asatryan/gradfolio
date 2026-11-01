@@ -26,6 +26,8 @@ import type {
   PersonSummary,
   SearchResults,
   TagSummary,
+  LinkedinPreview,
+  LinkedinUploadTicket,
 } from "../../src/lib/api/types";
 
 const PORT = Number(process.env.E2E_API_PORT ?? 3199);
@@ -175,11 +177,20 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       importBodies.filter((b) => !only || b.token === only),
     );
   }
+  if (url.pathname === "/__linkedin") {
+    const only = url.searchParams.get("token");
+    return send(
+      res,
+      200,
+      linkedinConfirms.filter((b) => !only || b.token === only),
+    );
+  }
   if (url.pathname === "/__reset") {
     seen.length = 0;
     return send(res, 200, {});
   }
 
+  if (url.pathname.startsWith("/v1/me/imports/linkedin/")) return linkedinData(req, res, url);
   if (url.pathname.startsWith("/v1/me/integrations")) return integrations(req, res, url.pathname);
   if (url.pathname.startsWith("/v1/me/suggestions")) return suggestions(req, res, url.pathname);
   if (url.pathname === `/v1/users/${SUG_OWNER}`) return suggestionsProfile(req, res);
@@ -852,4 +863,131 @@ function suggestionsProfile(req: IncomingMessage, res: ServerResponse) {
     projects: [],
   };
   return send(res, 200, body);
+}
+
+/**
+ * The LinkedIn export import (docs/modules/m7/plan.md section 4). The browser PUTs to the ticket's
+ * URL, which the spec fulfils at network level (`page.route`), so no byte of a ZIP reaches this
+ * stub. Scenarios by token prefix: `e2e-lk-` a proposal with a new, a duplicate and a broken
+ * item; `e2e-lkempty-` everything already there; `e2e-lklang-` preview fails with
+ * IMPORT_LANGUAGE_UNRECOGNISED; `e2e-lkrl-` the upload ticket is rate limited; `e2e-lkfull-`
+ * confirm answers LIMIT_REACHED. Everything in the proposal is invented.
+ */
+const linkedinConfirms: Array<{ token: string; body: unknown }> = [];
+
+const LINKEDIN_UPLOAD_ID = "6f1f0c1e-0d4f-4c53-9f0a-0c9a3b1d2e3f";
+
+const linkedinPreview = (token: string): LinkedinPreview => {
+  const empty = token.startsWith("e2e-lkempty-");
+  const fresh = empty ? "duplicate" : "new";
+  return {
+    experience: [
+      {
+        status: fresh,
+        fields: {
+          title: "Placeholder Engineer",
+          organization: "Example Co",
+          start: "2022-03",
+          end: null,
+          summary: "Built invented things for a fictional company.",
+          achievements: [],
+          skills: [],
+        },
+        problems: [],
+      },
+      {
+        status: "duplicate",
+        fields: {
+          title: "Earlier Role",
+          organization: "Example Co",
+          start: "2020-01",
+          end: "2022-02",
+          summary: "",
+          achievements: [],
+          skills: [],
+        },
+        problems: [],
+      },
+    ],
+    education: [
+      {
+        status: empty ? "duplicate" : "invalid",
+        fields: {
+          institution: "Placeholder Institute",
+          degree: "BSc",
+          startYear: 2016,
+          endYear: 2020,
+          description: null,
+          highlights: [],
+        },
+        problems: [{ field: "field", code: "REQUIRED" }],
+      },
+    ],
+    certifications: [
+      {
+        status: fresh,
+        fields: {
+          name: "Example Certificate",
+          issuer: "Example Authority",
+          date: "2023-05",
+          credentialUrl: null,
+        },
+        problems: [],
+      },
+    ],
+    skills: [
+      { name: "Faking", status: fresh },
+      { name: "Mocking", status: "duplicate" },
+    ],
+    skippedColumns: [{ file: "Positions.csv", column: "Location" }],
+    missingFiles: [],
+    skippedFileCount: 4,
+    extensions: { csv: 4 },
+  };
+};
+
+function linkedinData(req: IncomingMessage, res: ServerResponse, url: URL) {
+  const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+  if (!token) return send(res, 401, { code: "UNAUTHENTICATED", message: "no token" });
+  if (req.method !== "POST") return send(res, 405, { code: "NOT_FOUND", message: "post only" });
+  let raw = "";
+  req.on("data", (c) => (raw += c));
+  req.on("end", () => {
+    if (url.pathname === "/v1/me/imports/linkedin/uploads") {
+      if (token.startsWith("e2e-lkrl-")) {
+        res.setHeader("Retry-After", "30");
+        return send(res, 429, { code: "RATE_LIMITED", message: "slow down" });
+      }
+      const ticket: LinkedinUploadTicket = {
+        uploadId: LINKEDIN_UPLOAD_ID,
+        uploadUrl: "https://storage.googleapis.com/e2e-bucket/imports/key?signature=stub",
+        method: "PUT",
+        headers: { "content-type": "application/zip" },
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      };
+      return send(res, 201, ticket);
+    }
+    if (url.pathname === "/v1/me/imports/linkedin/preview") {
+      if (token.startsWith("e2e-lklang-"))
+        return send(res, 422, { code: "IMPORT_LANGUAGE_UNRECOGNISED", message: "not English" });
+      return send(res, 200, linkedinPreview(token));
+    }
+    if (url.pathname === "/v1/me/imports/linkedin/confirm") {
+      if (token.startsWith("e2e-lkfull-"))
+        return send(res, 409, { code: "LIMIT_REACHED", message: "full" });
+      const body = JSON.parse(raw) as Record<string, unknown[]>;
+      linkedinConfirms.push({ token, body });
+      const count = (k: string) => body[k]?.length ?? 0;
+      return send(res, 200, {
+        added: {
+          experience: count("experience"),
+          education: count("education"),
+          certifications: count("certifications"),
+          skills: count("skills"),
+        },
+        skipped: { experience: 0, education: 0, certifications: 0, skills: 0 },
+      });
+    }
+    return send(res, 404, { code: "NOT_FOUND", message: "no such endpoint" });
+  });
 }

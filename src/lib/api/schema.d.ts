@@ -39,6 +39,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/email/webhooks/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive signed Resend bounce and complaint events
+         * @description Requires svix-id, svix-timestamp and svix-signature headers. Signature covers the exact JSON bytes and expires after five minutes. No Auth0 token. Duplicate feedback is harmless; unrelated signed events are acknowledged.
+         */
+        post: operations["receiveResendWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/email/webhooks/sendgrid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receive signed SendGrid bounce and spam-report events
+         * @description Requires X-Twilio-Email-Event-Webhook-Signature and X-Twilio-Email-Event-Webhook-Timestamp. Verifies ECDSA against exact JSON bytes. Duplicate feedback is harmless; no Auth0 token.
+         */
+        post: operations["receiveSendGridWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/resume": {
         parameters: {
             query?: never;
@@ -1032,7 +1072,7 @@ export interface paths {
         put?: never;
         /**
          * Get a signed URL to upload a LinkedIn data export ZIP
-         * @description **Not served yet: arrives with M7 PR (c).** The browser PUTs the ZIP straight to the returned URL (never through the frontend’s server: its body limit is 4.5 MB). At most IMPORT_MAX_PENDING uploads wait at once.
+         * @description The browser PUTs the ZIP straight to the returned URL (never through the frontend’s server: its body limit is 4.5 MB). At most IMPORT_MAX_PENDING uploads wait at once.
          */
         post: operations["createLinkedinUpload"];
         delete?: never;
@@ -1052,7 +1092,7 @@ export interface paths {
         put?: never;
         /**
          * Read an uploaded export and propose entries; saves nothing
-         * @description **Not served yet: arrives with M7 PR (c).** Parses positions, education, skills and certifications; each item is `new`, `duplicate` (already on the profile) or `invalid` (with `problems`). The upload is deleted afterwards, whatever the outcome. Only the four datasets are ever opened.
+         * @description Parses positions, education, skills and certifications; each item is `new`, `duplicate` (already on the profile, or earlier in the file) or `invalid` (with `problems`; the student fixes it in the preview). Education items always carry a `field` problem: the export has no field of study. The upload is deleted afterwards, whatever the outcome (except IMPORT_BUSY and IMPORT_UPLOAD_MISSING). Only the four datasets are ever opened; the profile file never is.
          */
         post: operations["previewLinkedinImport"];
         delete?: never;
@@ -1072,7 +1112,7 @@ export interface paths {
         put?: never;
         /**
          * Save the selected entries, in one transaction
-         * @description **Not served yet: arrives with M7 PR (c).** The items are validated again like manual entries. Entries equal to an existing one are skipped; skills merge case-insensitively. Over a section cap nothing is saved. A second identical confirm adds nothing.
+         * @description The items are validated again like manual entries (a bad one is a 400 naming its path and nothing is saved). Entries equal to an existing one on the natural key (title + organisation + start; institution + degree + start year; name + issuer + date) or to an earlier item of the request are skipped; skills merge case-insensitively and never reorder or remove existing ones. Over a section cap nothing is saved. A second identical confirm adds nothing. Sets the LinkedIn `lastSyncedAt`.
          */
         post: operations["confirmLinkedinImport"];
         delete?: never;
@@ -2471,6 +2511,134 @@ export interface operations {
                 };
             };
             /** @description INVALID_UNSUBSCRIBE_TOKEN or VALIDATION_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description EMAIL_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    receiveResendWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    type: string;
+                    data: {
+                        /** Format: uuid */
+                        email_id?: string;
+                        tags?: {
+                            [key: string]: string;
+                        };
+                    } & {
+                        [key: string]: unknown;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Acknowledged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        received: true;
+                    };
+                };
+            };
+            /** @description INVALID_WEBHOOK_SIGNATURE or INVALID_EMAIL_EVENT */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description RATE_LIMITED: over budget; see the Retry-After header */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description EMAIL_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    receiveSendGridWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": ({
+                    event: string;
+                    /** Format: uuid */
+                    outbox_id?: string;
+                    sg_message_id?: string;
+                } & {
+                    [key: string]: unknown;
+                })[];
+            };
+        };
+        responses: {
+            /** @description Acknowledged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        received: true;
+                    };
+                };
+            };
+            /** @description INVALID_WEBHOOK_SIGNATURE or INVALID_EMAIL_EVENT */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6176,7 +6344,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After */
+            /** @description RATE_LIMITED: over the `linkedin` budget (3 per minute); see Retry-After */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -6257,7 +6425,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description IMPORT_NOT_ZIP, IMPORT_TOO_MANY_ENTRIES, IMPORT_UNCOMPRESSED_TOO_LARGE, IMPORT_RATIO_EXCEEDED, IMPORT_UNSAFE_PATH, IMPORT_ENCRYPTED, IMPORT_ENTRY_NOT_CSV, IMPORT_EMPTY, IMPORT_COLUMNS_MISSING (see `details`), IMPORT_MALFORMED_CSV */
+            /** @description IMPORT_NOT_ZIP, IMPORT_TOO_MANY_ENTRIES, IMPORT_UNCOMPRESSED_TOO_LARGE, IMPORT_RATIO_EXCEEDED, IMPORT_UNSAFE_PATH, IMPORT_ENCRYPTED, IMPORT_ENTRY_NOT_CSV, IMPORT_DUPLICATE_ENTRY, IMPORT_EMPTY, IMPORT_COLUMNS_MISSING (`details`: file and columns), IMPORT_LANGUAGE_UNRECOGNISED (`details`: file; only the English export is supported), IMPORT_MALFORMED_CSV */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6266,7 +6434,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description RATE_LIMITED, or IMPORT_BUSY: too many previews running; see Retry-After */
+            /** @description RATE_LIMITED (the `linkedin` budget, 3 per minute), or IMPORT_BUSY: too many previews running; see Retry-After. The upload is kept after IMPORT_BUSY. */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -6363,7 +6531,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description RATE_LIMITED: over the `import` budget (5 per minute); see Retry-After */
+            /** @description RATE_LIMITED: over the `linkedin` budget (3 per minute); see Retry-After */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -6372,7 +6540,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description STORAGE_UNAVAILABLE: uploads are off on this server; AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
+            /** @description AUTH_UNAVAILABLE or DATABASE_UNAVAILABLE */
             503: {
                 headers: {
                     [name: string]: unknown;

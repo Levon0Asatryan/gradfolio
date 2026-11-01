@@ -18,6 +18,10 @@ import type {
   ProjectListQuery,
   UploadRequest,
   UploadTicket,
+  LinkedinConfirmBody,
+  LinkedinImportResult,
+  LinkedinPreview,
+  LinkedinUploadTicket,
   ProjectWriteBody,
   ProjectPage,
   NotificationPage,
@@ -460,6 +464,33 @@ export async function reorderAttachments(
 /** A signed PUT for one file. The browser uploads straight to storage; the token stays here (Q11). */
 export function createUpload(body: UploadRequest): Promise<UploadTicket> {
   return request<UploadTicket>({ method: "POST", path: "/v1/me/uploads", body });
+}
+
+/** A signed PUT for the member's LinkedIn ZIP (`POST /v1/me/imports/linkedin/uploads`). */
+export function createLinkedinUpload(size: number): Promise<LinkedinUploadTicket> {
+  return request<LinkedinUploadTicket>({
+    method: "POST",
+    path: "/v1/me/imports/linkedin/uploads",
+    body: { size },
+  });
+}
+
+/** Reads the uploaded ZIP and proposes entries; nothing is saved (`.../linkedin/preview`). */
+export function previewLinkedinImport(uploadId: string): Promise<LinkedinPreview> {
+  return request<LinkedinPreview>({
+    method: "POST",
+    path: "/v1/me/imports/linkedin/preview",
+    body: { uploadId },
+  });
+}
+
+/** Saves exactly the entries the member kept (`.../linkedin/confirm`); the API checks them again. */
+export function confirmLinkedinImport(body: LinkedinConfirmBody): Promise<LinkedinImportResult> {
+  return request<LinkedinImportResult>({
+    method: "POST",
+    path: "/v1/me/imports/linkedin/confirm",
+    body,
+  });
 }
 
 /** The caller's own projects, every state; one page, keyset-paginated by `cursor`. */
