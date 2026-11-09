@@ -34,6 +34,16 @@ export interface Dictionary {
     tooLarge: string;
     projectUnavailable: string;
     projectLimit: string;
+    summary: string;
+    moved: string;
+    dragHandle: string;
+    off: string;
+    notIncluded: string;
+    pageOrder: string;
+    outlineNote: string;
+    projectsSelected: string;
+    showProjects: string;
+    hideProjects: string;
     sections: Record<
       "contact" | "bio" | "education" | "experience" | "projects" | "skills" | "certifications",
       string
