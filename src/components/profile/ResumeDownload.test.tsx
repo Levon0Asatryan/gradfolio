@@ -153,6 +153,11 @@ describe("resume download", () => {
     return within(screen.getByRole("dialog"));
   };
 
+  it("names the dialog by its title alone, not the intro text", () => {
+    open();
+    expect(screen.getByRole("dialog", { name: "Create your resume" })).toBeInTheDocument();
+  });
+
   it("sends sections in the order the user arranged them", async () => {
     const dialog = open();
     fireEvent.click(dialog.getByRole("button", { name: "Move up: Skills" }));

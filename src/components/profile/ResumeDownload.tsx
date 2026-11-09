@@ -173,9 +173,19 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
         aria-labelledby="resume-title"
       >
         <MotionConfig reducedMotion="user">
-          <DialogTitle id="resume-title" sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              {copy.title}
+          <DialogTitle
+            id="resume-title"
+            sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}
+          >
+            {copy.title}
+            {phone && (
+              <IconButton aria-label={t.common.close} onClick={close} disabled={busy}>
+                <CloseIcon />
+              </IconButton>
+            )}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ mb: 2 }}>
               <Typography color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
                 {copy.intro}
               </Typography>
@@ -197,13 +207,6 @@ export function ResumeDownload({ profile }: { profile: Profile }) {
                   .replace("{p}", String(enabled.has("projects") ? projectIds.length : 0))}
               </Typography>
             </Box>
-            {phone && (
-              <IconButton aria-label={t.common.close} onClick={close} disabled={busy}>
-                <CloseIcon />
-              </IconButton>
-            )}
-          </DialogTitle>
-          <DialogContent>
             <Box aria-live="polite" role="status" sx={{ position: "absolute", left: -9999 }}>
               {status}
             </Box>
