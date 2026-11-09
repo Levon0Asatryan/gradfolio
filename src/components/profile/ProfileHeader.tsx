@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, memo } from "react";
+import { FC, memo, type ReactNode } from "react";
 import { Alert, Avatar, Box, Button, Link, Stack, Tooltip, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VerifiedBadge from "./shared/Badge";
@@ -21,6 +21,8 @@ export interface ProfileHeaderProps {
   privateNotice?: boolean;
   /** Owner only: open the editor. */
   onEdit?: () => void;
+  /** Owner only: extra actions (the resume download), shown beside Edit. */
+  actions?: ReactNode;
 }
 
 const LINK_KEYS = ["github", "linkedin", "twitter", "website"] as const;
@@ -36,6 +38,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
   links,
   privateNotice,
   onEdit,
+  actions,
 }) => {
   const { t } = useLanguage();
   const visibleLinks = LINK_KEYS.flatMap((key) => {
@@ -120,6 +123,7 @@ const ProfileHeader: FC<ProfileHeaderProps> = ({
                 {t.common.edit}
               </Button>
             )}
+            {actions}
             {visibleLinks.map(({ key, href }) => (
               <Link key={key} href={href} target="_blank" rel="noopener noreferrer" variant="body2">
                 {t.profile.links[key]}

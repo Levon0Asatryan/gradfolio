@@ -40,7 +40,6 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
 
   return (
     <PageContainer gap={0}>
-      {owner && <ResumeDownload profile={profile} />}
       {owner && (
         <Alert
           severity="info"
@@ -77,6 +76,7 @@ export const ProfileView: FC<{ profile: Profile }> = ({ profile }) => {
           links={profile.links}
           privateNotice={owner && !profile.isPublic}
           onEdit={owner ? () => setEditing(true) : undefined}
+          actions={owner ? <ResumeDownload profile={profile} /> : undefined}
         />
       )}
 
