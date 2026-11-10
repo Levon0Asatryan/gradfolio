@@ -19,7 +19,8 @@ export const en: Dictionary = {
   resume: {
     download: "Download resume",
     title: "Create your resume",
-    intro: "Choose the sections and projects to include in your PDF.",
+    intro:
+      "Switch blocks on or off and drag them into the order you want. Projects can be reordered inside their block.",
     includePrivate: "Allow my private and draft projects",
     privateWarning:
       "Selected private or draft projects will be visible to anyone you share this PDF with.",
@@ -30,6 +31,16 @@ export const en: Dictionary = {
     projectUnavailable:
       "A selected project is no longer available. Reload your profile and choose again.",
     projectLimit: "Choose up to {max} projects. Only projects loaded on your profile are listed.",
+    summary: "Sections: {s} · Projects: {p}",
+    moved: "{name} moved to position {n} of {m}",
+    dragHandle: "Drag to reorder: {name}",
+    off: "Off",
+    notIncluded: "Not included",
+    pageOrder: "Page order",
+    outlineNote: "A sketch of your arrangement. The PDF does not follow this order yet.",
+    projectsSelected: "{n} of {max} selected",
+    showProjects: "Show projects",
+    hideProjects: "Hide projects",
     tooLarge: "The resume is too long. Select fewer sections or projects.",
     sections: {
       contact: "Public contact details and links",

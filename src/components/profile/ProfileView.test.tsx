@@ -105,6 +105,13 @@ describe("ProfileView", () => {
     expect(screen.queryByRole("button", { name: "Download resume" })).not.toBeInTheDocument();
   });
 
+  it("puts the resume download in the header, beside Edit", () => {
+    show({ isOwner: true });
+    const header = within(screen.getByRole("banner", { hidden: false }));
+    expect(header.getByRole("button", { name: "Download resume" })).toBeInTheDocument();
+    expect(header.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
+  });
+
   it("drops a non-http avatar URL instead of rendering it", () => {
     const { container } = show({ avatarUrl: "javascript:alert(1)" });
     expect(within(container).queryByRole("img")).not.toBeInTheDocument();
